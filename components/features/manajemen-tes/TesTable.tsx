@@ -1,0 +1,208 @@
+// components/features/manajemen-tes/TesTable.tsx
+
+"use client";
+
+import { useMemo, useState } from "react";
+import { Pencil, Eye, Trash2, ChevronUp, ChevronDown } from "lucide-react";
+import StatusBadge from "./StatusBadge";
+import type { TesItem } from "./types";
+
+type Props = {
+  data: TesItem[];
+  pageSize: number;
+  totalItems: number;
+  currentPage: number;
+  onPreview: (item: TesItem) => void;
+  onEdit: (item: TesItem) => void;
+  onDelete: (item: TesItem) => void;
+  onSeeAll: () => void;
+  onPageSizeChange: (pageSize: number) => void;
+};
+
+type SortKey = "nama" | "jumlah" | "status";
+type SortDir = "asc" | "desc";
+
+export default function TesTable({
+  data,
+  pageSize,
+  totalItems,
+  currentPage,
+  onPreview,
+  onEdit,
+  onDelete,
+  onSeeAll,
+  onPageSizeChange,
+}: Props) {
+  const [sortKey, setSortKey] = useState<SortKey>("nama");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const startIndex = totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const endIndex =
+    totalItems === 0 ? 0 : Math.min(currentPage * pageSize, totalItems);
+
+  const handleSort = (key: SortKey) => {
+    setSortKey((prevKey) => {
+      if (prevKey === key) {
+        setSortDir((prevDir) => (prevDir === "asc" ? "desc" : "asc"));
+        return prevKey;
+      }
+      setSortDir("asc");
+      return key;
+    });
+  };
+
+  const sortedData = useMemo(() => {
+    const list = [...data];
+
+    list.sort((a, b) => {
+      let va: string | number;
+      let vb: string | number;
+
+      if (sortKey === "nama") {
+        va = a.nama.toLowerCase();
+        vb = b.nama.toLowerCase();
+      } else if (sortKey === "jumlah") {
+        va = a.jumlah;
+        vb = b.jumlah;
+      } else {
+        va = a.status.toLowerCase();
+        vb = b.status.toLowerCase();
+      }
+
+      if (va < vb) return sortDir === "asc" ? -1 : 1;
+      if (va > vb) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return list;
+  }, [data, sortKey, sortDir]);
+
+  const renderSortIcon = (key: SortKey) => {
+    if (sortKey !== key) {
+      return (
+        <span className="ml-1 text-[10px] text-gray-300">
+          ↕
+        </span>
+      );
+    }
+    return sortDir === "asc" ? (
+      <ChevronUp size={12} className="ml-1 text-gray-500" />
+    ) : (
+      <ChevronDown size={12} className="ml-1 text-gray-500" />
+    );
+  };
+
+  return (
+    <div className="rounded-2xl bg-white p-4 shadow-sm">
+      {/* Header kolom */}
+      <div className="grid grid-cols-5 px-6 py-3 text-sm font-medium text-gray-500">
+        <div>No</div>
+
+        <button
+          type="button"
+          className="flex items-center text-left"
+          onClick={() => handleSort("nama")}
+        >
+          <span>Nama Tes</span>
+          {renderSortIcon("nama")}
+        </button>
+
+        <button
+          type="button"
+          className="flex items-center text-left"
+          onClick={() => handleSort("jumlah")}
+        >
+          <span>Jumlah Soal</span>
+          {renderSortIcon("jumlah")}
+        </button>
+
+        <button
+          type="button"
+          className="flex items-center text-left"
+          onClick={() => handleSort("status")}
+        >
+          <span>Status</span>
+          {renderSortIcon("status")}
+        </button>
+
+        <div className="text-right">Aksi</div>
+      </div>
+
+      {/* Isi tabel */}
+      <div className="space-y-3">
+        {sortedData.length === 0 ? (
+          <div className="px-6 py-10 text-center text-sm text-gray-400">
+            Data tidak ditemukan
+          </div>
+        ) : (
+          sortedData.map((item, index) => (
+            <div
+              key={item.id}
+              className="grid grid-cols-5 items-center rounded-xl border bg-white px-6 py-4 shadow-sm"
+            >
+              <div className="text-sm text-gray-400">
+                {startIndex + index}
+              </div>
+              <div className="text-sm font-medium text-gray-700">
+                {item.nama}
+              </div>
+              <div className="text-sm text-gray-500">{item.jumlah}</div>
+              <div>
+                <StatusBadge status={item.status} />
+              </div>
+              <div className="flex justify-end gap-3 text-gray-500">
+                <button
+                  className="hover:text-blue-600"
+                  aria-label="Edit"
+                  onClick={() => onEdit(item)}
+                >
+                  <Pencil size={18} />
+                </button>
+                <button
+                  className="hover:text-gray-800"
+                  aria-label="View"
+                  onClick={() => onPreview(item)}
+                >
+                  <Eye size={18} />
+                </button>
+                <button
+                  className="hover:text-red-600"
+                  aria-label="Delete"
+                  onClick={() => onDelete(item)}
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Footer pagination */}
+      <div className="mt-6 flex items-center justify-between text-sm text-gray-500">
+        <span>
+          Showing {startIndex} to {endIndex} of {totalItems} Results
+        </span>
+        <div className="flex items-center gap-2">
+          <button
+            className="rounded-md border px-3 py-1 text-sm"
+            type="button"
+            onClick={onSeeAll}
+            disabled={totalItems === 0}
+          >
+            See all
+          </button>
+          <select
+            className="rounded-md border px-3 py-1 text-sm"
+            value={pageSize}
+            onChange={(e) => onPageSizeChange(Number(e.target.value) || 5)}
+          >
+            <option value={5}>5 per page</option>
+            <option value={10}>10 per page</option>
+            <option value={20}>20 per page</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  );
+}
