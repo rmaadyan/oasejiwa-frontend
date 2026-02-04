@@ -1,0 +1,632 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { Card, Badge, Button, Table, Pagination, Modal } from "@/components/admin/ui";
+import CountUp from "@/components/admin/ui/CountUp";
+import { ToastProvider, useToast } from "@/components/admin/ui/Toast";
+
+// Mock data for bookings
+const mockBookings = [
+  {
+    id: "BKG-001",
+    datetime: "2026-02-10 14:00",
+    client: { name: "Putri Nayla", avatar: "/assets/about-us.jpg" },
+    psychologist: "Dr. Sarah Wijaya",
+    service: "Konseling Individual",
+    paymentStatus: "validated",
+    sessionStatus: "scheduled",
+    scheduleUpdated: false,
+  },
+  {
+    id: "BKG-002",
+    datetime: "2026-02-08 09:00",
+    client: { name: "Budi Santoso", avatar: "/assets/about-us.jpg" },
+    psychologist: "Dr. Budi Santoso",
+    service: "Terapi Anak",
+    paymentStatus: "rejected",
+    sessionStatus: "cancelled",
+    rejectReason: "Data klien tidak lengkap, mohon lengkapi formulir konsultasi.",
+    scheduleUpdated: false,
+  },
+  {
+    id: "BKG-003",
+    datetime: "2026-02-04 13:00",
+    client: { name: "Citra Dewi", avatar: "/assets/about-us.jpg" },
+    psychologist: "Putri Rahayu, M.Psi",
+    service: "Konseling Online",
+    paymentStatus: "validated",
+    sessionStatus: "completed",
+    scheduleUpdated: false,
+  },
+  {
+    id: "BKG-004",
+    datetime: "2026-02-04 14:30",
+    client: { name: "Diana Putri", avatar: "/assets/about-us.jpg" },
+    psychologist: "Dr. Sarah Wijaya",
+    service: "Konseling Individual",
+    paymentStatus: "pending",
+    sessionStatus: "waiting",
+    scheduleUpdated: false,
+  },
+  {
+    id: "BKG-005",
+    datetime: "2026-02-05 09:00",
+    client: { name: "Eko Prasetyo", avatar: "/assets/about-us.jpg" },
+    psychologist: "Dr. Budi Santoso",
+    service: "Terapi CBT",
+    paymentStatus: "validated",
+    sessionStatus: "scheduled",
+    scheduleUpdated: true,
+  },
+];
+
+const paymentStatusMap: Record<string, { label: string; variant: "success" | "warning" | "danger" | "pending" }> = {
+  validated: { label: "Tervalidasi", variant: "success" },
+  pending: { label: "Menunggu Validasi", variant: "warning" },
+  rejected: { label: "Ditolak", variant: "danger" },
+};
+
+const sessionStatusMap: Record<string, { label: string; variant: "success" | "info" | "danger" | "pending" | "primary" }> = {
+  scheduled: { label: "Terjadwal", variant: "primary" },
+  waiting: { label: "Menunggu", variant: "pending" },
+  completed: { label: "Selesai", variant: "success" },
+  cancelled: { label: "Dibatalkan", variant: "danger" },
+};
+
+// Available time slots
+const timeSlots = [
+  { id: "09:00", time: "09.00 WIB", available: true },
+  { id: "10:00", time: "10.00 WIB", available: true },
+  { id: "11:00", time: "11.00 WIB", available: false },
+  { id: "13:00", time: "13.00 WIB", available: true },
+  { id: "14:00", time: "14.00 WIB", available: true },
+  { id: "15:00", time: "15.00 WIB", available: false },
+  { id: "16:00", time: "16.00 WIB", available: true },
+  { id: "19:00", time: "19.00 WIB", available: true },
+  { id: "20:00", time: "20.00 WIB", available: true },
+];
+
+// Generate dates for the next 14 days
+const generateDates = () => {
+  const dates = [];
+  const today = new Date();
+  for (let i = 0; i < 14; i++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() + i);
+    dates.push({
+      id: `date-${i}`,
+      date: date,
+      dayName: date.toLocaleDateString("id-ID", { weekday: "short" }),
+      dayNumber: date.getDate(),
+      monthName: date.toLocaleDateString("id-ID", { month: "short" }),
+      fullDate: date.toISOString().split("T")[0],
+    });
+  }
+  return dates;
+};
+
+function AdminBookingsContent() {
+  const { showToast } = useToast();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [quickFilter, setQuickFilter] = useState<"all" | "today" | "needValidation" | "cancelled">("all");
+  
+  // Reschedule modal state
+  const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<typeof mockBookings[0] | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedTime, setSelectedTime] = useState<string>("");
+  const [rescheduleReason, setRescheduleReason] = useState("");
+  const availableDates = generateDates();
+
+  const handleOpenReschedule = (booking: typeof mockBookings[0]) => {
+    setSelectedBooking(booking);
+    setSelectedDate("");
+    setSelectedTime("");
+    setRescheduleReason("");
+    setIsRescheduleModalOpen(true);
+  };
+
+  const handleConfirmReschedule = () => {
+    if (!selectedDate || !selectedTime || !rescheduleReason.trim()) {
+      showToast("Lengkapi semua data reschedule", "error");
+      return;
+    }
+    showToast(`Jadwal berhasil diubah untuk booking ${selectedBooking?.id}`, "success");
+    setIsRescheduleModalOpen(false);
+    setSelectedBooking(null);
+  };
+
+  // Quick filter counts (mock data)
+  const quickFilterCounts = {
+    today: mockBookings.filter(b => b.datetime.includes("2026-02-10")).length,
+    needValidation: mockBookings.filter(b => b.paymentStatus === "pending").length,
+    cancelled: mockBookings.filter(b => b.sessionStatus === "cancelled").length,
+  };
+
+  const stats = [
+    {
+      label: "Perlu Validasi",
+      value: 12,
+      color: "warning" as const,
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      pulse: true,
+    },
+    {
+      label: "Jadwal Hari Ini",
+      value: 8,
+      color: "primary" as const,
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      ),
+    },
+    {
+      label: "Total Bulan Ini",
+      value: 156,
+      color: "success" as const,
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+    },
+    {
+      label: "Booking Batal",
+      value: 5,
+      color: "danger" as const,
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+    },
+  ];
+
+  const columns = [
+    {
+      key: "client",
+      header: "Nama Klien",
+      render: (item: typeof mockBookings[0]) => (
+        <div className="flex items-center gap-3">
+          <div className="relative w-8 h-8 rounded-full overflow-hidden">
+            <Image
+              src={item.client.avatar}
+              alt={item.client.name}
+              fill
+              className="object-cover"
+            />
+          </div>
+          <span className="font-medium text-[#234463]">{item.client.name}</span>
+        </div>
+      ),
+    },
+    {
+      key: "datetime",
+      header: "Jadwal",
+      sortable: true,
+      render: (item: typeof mockBookings[0]) => {
+        const date = new Date(item.datetime.replace(" ", "T"));
+        const formattedDate = date.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+        const formattedTime = date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+        return (
+          <div className="flex flex-col">
+            <span className="text-[#234463] font-medium">{formattedDate}, {formattedTime}</span>
+            {item.scheduleUpdated && (
+              <span className="text-xs text-[#F59E0B] flex items-center gap-1 mt-0.5">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Jadwal Diperbarui
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      key: "service",
+      header: "Layanan",
+      render: (item: typeof mockBookings[0]) => (
+        <span className="text-[#4B4B4B]">{item.service}</span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (item: typeof mockBookings[0]) => {
+        const paymentStatus = paymentStatusMap[item.paymentStatus];
+        const statusColors: Record<string, string> = {
+          validated: "bg-[#22C55E]",
+          pending: "bg-[#F59E0B]",
+          rejected: "bg-[#EF4444]",
+        };
+        return (
+          <div className="flex items-center gap-2">
+            <span className={`w-2.5 h-2.5 rounded-full ${statusColors[item.paymentStatus]}`} />
+            <span className={`font-medium ${
+              item.paymentStatus === "validated" ? "text-[#22C55E]" :
+              item.paymentStatus === "rejected" ? "text-[#EF4444]" :
+              "text-[#F59E0B]"
+            }`}>
+              {item.paymentStatus === "validated" ? "Divalidasi" :
+               item.paymentStatus === "rejected" ? "Ditolak" :
+               "Menunggu"}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      key: "action",
+      header: "Action",
+      render: (item: typeof mockBookings[0]) => (
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/admin/bookings/${item.id}`}
+            className="px-3 py-1.5 text-sm bg-[#2B5379] text-white rounded-lg hover:bg-[#1E3A5F] transition-all"
+          >
+            Detail
+          </Link>
+          {item.paymentStatus === "validated" && item.sessionStatus !== "completed" && (
+            <button
+              onClick={() => handleOpenReschedule(item)}
+              className="p-1.5 text-[#4B4B4B] hover:bg-[#E8F6FF] rounded-lg transition-all"
+              title="Edit Jadwal"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#F5F9FC] p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8 animate-fadeIn">
+          <h1 className="text-[32px] font-bold text-[#234463]">
+            Manajemen Booking
+          </h1>
+          <p className="text-[#4B4B4B] mt-1">
+            Kelola dan pantau semua booking konseling
+          </p>
+        </div>
+
+        {/* Quick Filter Buttons */}
+        <div className="flex flex-wrap gap-3 mb-6 animate-fadeIn">
+          <button
+            onClick={() => setQuickFilter("all")}
+            className={`px-4 py-2 rounded-xl font-medium transition-all ${
+              quickFilter === "all"
+                ? "bg-[#2B5379] text-white shadow-md"
+                : "bg-white text-[#4B4B4B] border border-[#D6E6F2] hover:border-[#2B5379]"
+            }`}
+          >
+            Semua
+          </button>
+          <button
+            onClick={() => setQuickFilter("today")}
+            className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 ${
+              quickFilter === "today"
+                ? "bg-[#2B5379] text-white shadow-md"
+                : "bg-white text-[#4B4B4B] border border-[#D6E6F2] hover:border-[#2B5379]"
+            }`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            Hari Ini
+            <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+              quickFilter === "today" ? "bg-white/20" : "bg-[#2B5379]/10 text-[#2B5379]"
+            }`}>
+              {quickFilterCounts.today}
+            </span>
+          </button>
+          <button
+            onClick={() => setQuickFilter("needValidation")}
+            className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 ${
+              quickFilter === "needValidation"
+                ? "bg-[#F59E0B] text-white shadow-md"
+                : "bg-white text-[#4B4B4B] border border-[#D6E6F2] hover:border-[#F59E0B]"
+            }`}
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F59E0B] opacity-75" />
+              <span className={`relative inline-flex rounded-full h-2 w-2 ${
+                quickFilter === "needValidation" ? "bg-white" : "bg-[#F59E0B]"
+              }`} />
+            </span>
+            Perlu Validasi
+            <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+              quickFilter === "needValidation" ? "bg-white/20" : "bg-[#F59E0B]/10 text-[#F59E0B]"
+            }`}>
+              {quickFilterCounts.needValidation}
+            </span>
+          </button>
+          <button
+            onClick={() => setQuickFilter("cancelled")}
+            className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 ${
+              quickFilter === "cancelled"
+                ? "bg-[#EF4444] text-white shadow-md"
+                : "bg-white text-[#4B4B4B] border border-[#D6E6F2] hover:border-[#EF4444]"
+            }`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Dibatalkan
+            <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+              quickFilter === "cancelled" ? "bg-white/20" : "bg-[#EF4444]/10 text-[#EF4444]"
+            }`}>
+              {quickFilterCounts.cancelled}
+            </span>
+          </button>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {stats.map((stat, index) => (
+            <Card
+              key={stat.label}
+              accentColor={stat.color}
+              hoverable
+              className={`p-6 animate-fadeIn opacity-0 stagger-${index + 1}`}
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-[#4B4B4B] mb-1">{stat.label}</p>
+                  <p className="text-3xl font-bold text-[#234463]">
+                    <CountUp end={stat.value} />
+                  </p>
+                </div>
+                <div
+                  className={`
+                    p-3 rounded-xl
+                    ${stat.color === "warning" ? "bg-[#F59E0B]/10 text-[#F59E0B]" : ""}
+                    ${stat.color === "primary" ? "bg-[#2B5379]/10 text-[#2B5379]" : ""}
+                    ${stat.color === "success" ? "bg-[#22C55E]/10 text-[#22C55E]" : ""}
+                    ${stat.color === "danger" ? "bg-[#EF4444]/10 text-[#EF4444]" : ""}
+                    ${stat.pulse ? "animate-pulse" : ""}
+                  `}
+                >
+                  {stat.icon}
+                </div>
+              </div>
+              {stat.pulse && (
+                <div className="flex items-center gap-2 mt-3">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F59E0B] opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[#F59E0B]" />
+                  </span>
+                  <span className="text-xs text-[#F59E0B]">Perlu perhatian</span>
+                </div>
+              )}
+            </Card>
+          ))}
+        </div>
+
+        {/* Filter & Search */}
+        <Card className="p-4 mb-6 animate-fadeIn opacity-0 stagger-5">
+          <div className="flex flex-col lg:flex-row gap-4">
+            {/* Search */}
+            <div className="relative flex-1">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Cari booking, klien, atau psikolog..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 border border-[#D6E6F2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2B5379]/20 focus:border-[#2B5379] transition-all"
+              />
+            </div>
+
+            {/* Status Filter */}
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-4 py-2.5 border border-[#D6E6F2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2B5379]/20 focus:border-[#2B5379] transition-all bg-white text-[#4B4B4B]"
+            >
+              <option value="all">Semua Status</option>
+              <option value="pending">Menunggu Validasi</option>
+              <option value="validated">Tervalidasi</option>
+              <option value="rejected">Ditolak</option>
+            </select>
+
+            {/* Date Range */}
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                className="px-4 py-2.5 border border-[#D6E6F2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2B5379]/20 focus:border-[#2B5379] transition-all text-[#4B4B4B]"
+              />
+              <span className="text-[#4B4B4B]">-</span>
+              <input
+                type="date"
+                className="px-4 py-2.5 border border-[#D6E6F2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2B5379]/20 focus:border-[#2B5379] transition-all text-[#4B4B4B]"
+              />
+            </div>
+
+            {/* Psychologist Filter */}
+            <select className="px-4 py-2.5 border border-[#D6E6F2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2B5379]/20 focus:border-[#2B5379] transition-all bg-white text-[#4B4B4B]">
+              <option value="">Semua Psikolog</option>
+              <option value="sarah">Dr. Sarah Wijaya</option>
+              <option value="budi">Dr. Budi Santoso</option>
+              <option value="putri">Putri Rahayu, M.Psi</option>
+            </select>
+          </div>
+        </Card>
+
+        {/* Booking Table */}
+        <div className="animate-fadeIn opacity-0 stagger-5">
+          <Table columns={columns} data={mockBookings} />
+          <Pagination
+            currentPage={currentPage}
+            totalPages={10}
+            onPageChange={setCurrentPage}
+          />
+        </div>
+
+        {/* Reschedule Modal */}
+        <Modal
+          isOpen={isRescheduleModalOpen}
+          onClose={() => setIsRescheduleModalOpen(false)}
+          title="Ubah Jadwal Konseling"
+          size="lg"
+        >
+          <div className="space-y-6">
+            {/* Current Booking Info */}
+            {selectedBooking && (
+              <div className="bg-[#F5F9FC] p-4 rounded-xl border border-[#D6E6F2]">
+                <p className="text-sm text-[#4B4B4B] mb-2">Booking Saat Ini:</p>
+                <div className="flex items-center gap-3">
+                  <div className="relative w-10 h-10 rounded-full overflow-hidden">
+                    <Image
+                      src={selectedBooking.client.avatar}
+                      alt={selectedBooking.client.name}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <div>
+                    <p className="font-medium text-[#234463]">{selectedBooking.client.name}</p>
+                    <p className="text-sm text-[#4B4B4B]">
+                      {selectedBooking.datetime} • {selectedBooking.service}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Date Selection */}
+            <div>
+              <label className="block text-sm font-medium text-[#234463] mb-3">
+                Pilih Tanggal Baru
+              </label>
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                {availableDates.map((dateItem) => (
+                  <button
+                    key={dateItem.id}
+                    onClick={() => setSelectedDate(dateItem.fullDate)}
+                    className={`flex-shrink-0 w-16 py-3 rounded-xl border-2 transition-all ${
+                      selectedDate === dateItem.fullDate
+                        ? "border-[#2B5379] bg-[#2B5379] text-white"
+                        : "border-[#D6E6F2] bg-white text-[#4B4B4B] hover:border-[#2B5379]"
+                    }`}
+                  >
+                    <div className="text-xs opacity-75">{dateItem.dayName}</div>
+                    <div className="text-lg font-bold">{dateItem.dayNumber}</div>
+                    <div className="text-xs opacity-75">{dateItem.monthName}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Time Selection */}
+            <div>
+              <label className="block text-sm font-medium text-[#234463] mb-3">
+                Pilih Waktu Baru
+              </label>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {timeSlots.map((slot) => (
+                  <button
+                    key={slot.id}
+                    onClick={() => slot.available && setSelectedTime(slot.id)}
+                    disabled={!slot.available}
+                    className={`py-2.5 px-3 rounded-xl text-sm font-medium transition-all ${
+                      selectedTime === slot.id
+                        ? "bg-[#2B5379] text-white"
+                        : slot.available
+                        ? "bg-white border border-[#D6E6F2] text-[#4B4B4B] hover:border-[#2B5379]"
+                        : "bg-gray-100 text-gray-400 cursor-not-allowed line-through"
+                    }`}
+                  >
+                    {slot.time}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Reason */}
+            <div>
+              <label className="block text-sm font-medium text-[#234463] mb-2">
+                Alasan Perubahan Jadwal
+              </label>
+              <textarea
+                value={rescheduleReason}
+                onChange={(e) => setRescheduleReason(e.target.value)}
+                placeholder="Masukkan alasan perubahan jadwal..."
+                className="w-full px-4 py-3 border border-[#D6E6F2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2B5379]/20 focus:border-[#2B5379] transition-all resize-none"
+                rows={3}
+              />
+            </div>
+
+            {/* Summary */}
+            {selectedDate && selectedTime && (
+              <div className="bg-[#E8F6FF] p-4 rounded-xl border border-[#2B5379]/20">
+                <p className="text-sm font-medium text-[#2B5379] mb-1">Jadwal Baru:</p>
+                <p className="text-[#234463] font-semibold">
+                  {new Date(selectedDate).toLocaleDateString("id-ID", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric"
+                  })}, {selectedTime} WIB
+                </p>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsRescheduleModalOpen(false)}
+                className="flex-1"
+              >
+                Batal
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleConfirmReschedule}
+                disabled={!selectedDate || !selectedTime || !rescheduleReason.trim()}
+                className="flex-1"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Konfirmasi Perubahan
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      </div>
+    </div>
+  );
+}
+
+export default function AdminBookingsPage() {
+  return (
+    <ToastProvider>
+      <AdminBookingsContent />
+    </ToastProvider>
+  );
+}
