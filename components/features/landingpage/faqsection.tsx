@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
-import { faqs } from "../../../../lib/data";
+import { faqs } from "@/lib/data";
 
 export default function FAQSection() {
   const [openId, setOpenId] = useState<number | null>(null);

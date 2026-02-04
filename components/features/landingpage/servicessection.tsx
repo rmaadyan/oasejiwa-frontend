@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useRef } from "react";
+import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, useAnimationControls } from "framer-motion";
-import { services } from "../../../../lib/services";
+import { services } from "@/lib/services";
 
 export default function ServicesSection() {
   const scrollerRef = useRef<HTMLDivElement | null>(null);
@@ -108,14 +109,12 @@ export default function ServicesSection() {
                   </div>
 
                   <div className="mt-6 flex justify-center">
-                    <a
-                      href="https://wa.me/6281313888830"
-                      target="_blank"
-                      rel="noreferrer"
+                    <Link
+                      href="/booking"
                       className="inline-flex h-10 items-center justify-center rounded-full bg-[#3AB64C] px-8 text-sm font-medium text-white hover:opacity-95 transition-colors"
                     >
                       Booking
-                    </a>
+                    </Link>
                   </div>
                 </div>
               </article>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { loadBgheroImages } from "@/lib/imageLoader";
@@ -17,7 +17,7 @@ export default function HeroSection() {
         setImages(loadedImages);
       } catch (error) {
         console.error("Error loading images:", error);
-        setImages(["/bghero/gambar.jpg"]);
+        setImages(["/assets/landingpage/gambar.jpg"]);
       } finally {
         setIsLoading(false);
       }

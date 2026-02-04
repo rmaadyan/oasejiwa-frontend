@@ -1,4 +1,4 @@
-import { Service, Testimonial, FAQ, BundlePackage } from "@/app/types";
+import { Service, Testimonial, FAQ, BundlePackage } from "@/types";
 
 export const services: Service[] = [
   {

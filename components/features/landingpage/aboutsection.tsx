@@ -1,6 +1,7 @@
 import Image from "next/image";
+import Link from "next/link";
 import { motion } from "framer-motion";
-import { aboutImages } from "../../../../lib/imageLoader";
+import { aboutImages } from "@/lib/imageLoader";
 
 export default function AboutSection() {
   const reasons = [
@@ -130,6 +131,14 @@ export default function AboutSection() {
         </em>{" "}
         untuk kesehatan mental yang optimal.
       </p>
+    </div>
+    <div className="mt-8">
+      <Link
+        href="/about"
+        className="inline-flex h-11 items-center justify-center rounded-full bg-[#0B7A3B] px-8 text-sm font-medium text-white hover:bg-[#0a6a34] transition-colors"
+      >
+        See More
+      </Link>
     </div>
   </div>
 </div>

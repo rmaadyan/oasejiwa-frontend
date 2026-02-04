@@ -7,7 +7,7 @@ import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 export default function Navbar() {
-  const [isAbout, setIsAbout] = useState(false);
+  const [isSpecialPage, setIsSpecialPage] = useState(false); // About atau Booking
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -15,16 +15,17 @@ export default function Navbar() {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
-    // Deteksi jika di halaman about
-    setIsAbout(window.location.pathname === "/about");
+    // Deteksi jika di halaman about atau booking
+    const pathname = window.location.pathname;
+    setIsSpecialPage(pathname === "/about" || pathname.startsWith("/booking"));
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const navItems = [
-    { name: "Beranda", href: "#hero" },
-    { name: "Tentang Kami", href: "#about" },
-    { name: "Layanan Kami", href: "#services" },
+    { name: "Beranda", href: "/landingpage" },
+    { name: "Tentang Kami", href: "/about" },
+    { name: "Layanan Kami", href: "/booking" },
     { name: "Testimoni", href: "#testimonials" },
     { name: "FAQ", href: "#faq" },
   ];
@@ -54,7 +55,7 @@ export default function Navbar() {
               className={`text-2xl font-semibold transition-colors duration-300 ${
                 isScrolled
                   ? "text-[#2B5379]"
-                  : isAbout
+                  : isSpecialPage
                     ? "text-[#234463]"
                     : "text-white"
               }`}
@@ -72,10 +73,11 @@ export default function Navbar() {
                 className={`font-medium transition-colors duration-300 select-none ${
                   isScrolled
                     ? "text-[#2B5379] hover:text-blue-600"
-                    : isAbout
+                    : isSpecialPage
                       ? "text-[#234463] hover:text-[#234463]/80"
                       : "text-white hover:text-white/80"
                 } active:text-white`}
+                
                 style={{
                   WebkitUserSelect: "none",
                   userSelect: "none",
@@ -88,9 +90,9 @@ export default function Navbar() {
               className={`transition-all ${
                 isScrolled
                   ? "bg-blue-600 text-[#234463] hover:bg-blue-700"
-                  : isAbout
-                    ? "border-2 border-[#234463] text-[#234463] hover:bg-[#234463]/10"
-                    : "border-2 border-white text-white hover:bg-white/10"
+                  : isSpecialPage
+                    ? "border-2 border-blue-600 !text-blue-600 hover:bg-blue-600/10 bg-transparent"
+                    : "border-2 border-white text-white hover:bg-white/10 bg-transparent"
               }`}
             >
               Login
@@ -103,7 +105,7 @@ export default function Navbar() {
             className={`md:hidden p-2 transition-colors duration-300 ${
               isScrolled
                 ? "text-[#2B5379]"
-                : isAbout
+                : isSpecialPage
                   ? "text-[#234463]"
                   : "text-white"
             }`}
@@ -115,7 +117,7 @@ export default function Navbar() {
         {/* Mobile Menu */}
         {isOpen && (
           <div className={`md:hidden pb-4 transition-all duration-300 ${
-            isScrolled ? "bg-[#D1EAFF]" : isAbout ? "bg-white" : "bg-black/50"
+            isScrolled ? "bg-[#D1EAFF]" : isSpecialPage ? "bg-white" : "bg-black/50"
           }`}>
             {navItems.map((item) => (
               <Link
@@ -124,7 +126,7 @@ export default function Navbar() {
                 className={`block py-3 px-4 font-medium transition-colors ${
                   isScrolled
                     ? "text-[#2B5379] hover:text-blue-600"
-                    : isAbout
+                    : isSpecialPage
                       ? "text-[#234463] hover:text-[#234463]/80"
                       : "text-white hover:text-white/80"
                 }`}
@@ -134,7 +136,7 @@ export default function Navbar() {
               </Link>
             ))}
             <div className="px-4 pt-2">
-              <Button className={`w-full ${isScrolled ? "bg-blue-600 text-white hover:bg-blue-700" : isAbout ? "border-2 border-[#234463] text-[#234463] hover:bg-[#234463]/10" : "border-2 border-white text-white hover:bg-white/10"}`}>
+              <Button className={`w-full ${isScrolled ? "bg-blue-600 text-white hover:bg-blue-700" : isSpecialPage ? "border-2 border-blue-600 !text-blue-600 hover:bg-blue-600/10 bg-transparent" : "border-2 border-white text-white hover:bg-white/10 bg-transparent"}`}>
                 Login
               </Button>
             </div>
