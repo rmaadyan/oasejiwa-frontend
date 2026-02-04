@@ -143,7 +143,7 @@ export default function SignUp(){
         if (hasError) return;
 
         setTimeout(() => {
-            router.push('/profile')
+            router.push('/userprofile')
         }, 500);
     };
 

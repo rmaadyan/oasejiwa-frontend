@@ -77,7 +77,7 @@ export default function Navbar() {
                 {item.name}
               </Link>
             ))}
-            <Link href="/login/signin">
+            <Link href="/auth/signin">
             <Button
               className={`transition-all ${
                 isScrolled
@@ -121,7 +121,7 @@ export default function Navbar() {
               </Link>
             ))}
             <div className="px-4 pt-2">
-              <Link href="/login/signin">
+              <Link href="/auth/signin">
               <Button className="w-full bg-blue-600 text-white hover:bg-blue-700">
                 Login
               </Button>
