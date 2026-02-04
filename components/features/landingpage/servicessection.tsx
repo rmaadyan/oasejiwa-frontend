@@ -3,7 +3,7 @@
 import { useMemo, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, useAnimationControls } from "framer-motion";
-import { services } from "../../../../lib/services";
+import { services } from "../../../lib/services";
 
 export default function ServicesSection() {
   const scrollerRef = useRef<HTMLDivElement | null>(null);

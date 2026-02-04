@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { aboutImages } from "../../../../lib/imageLoader";
+import { aboutImages } from "../../../lib/imageLoader";
 
 export default function AboutSection() {
   const reasons = [

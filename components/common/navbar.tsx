@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import SignIn from "@/app/auth/signin/page";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -76,6 +77,7 @@ export default function Navbar() {
                 {item.name}
               </Link>
             ))}
+            <Link href="/login/signin">
             <Button
               className={`transition-all ${
                 isScrolled
@@ -85,6 +87,7 @@ export default function Navbar() {
             >
               Login
             </Button>
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -118,9 +121,11 @@ export default function Navbar() {
               </Link>
             ))}
             <div className="px-4 pt-2">
+              <Link href="/login/signin">
               <Button className="w-full bg-blue-600 text-white hover:bg-blue-700">
                 Login
               </Button>
+              </Link>
             </div>
           </div>
         )}

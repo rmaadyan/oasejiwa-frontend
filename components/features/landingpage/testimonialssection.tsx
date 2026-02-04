@@ -5,8 +5,8 @@ import { useMemo, useRef } from "react";
 import { Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { testimonials } from "../../../../lib/data";
-import { bgTestimoniImages } from "../../../../lib/imageLoader";
+import { testimonials } from "../../../lib/data";
+import { bgTestimoniImages } from "../../../lib/imageLoader";
 
 function Stars({ rating }: { rating: number }) {
   return (

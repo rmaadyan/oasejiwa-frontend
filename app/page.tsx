@@ -2,13 +2,13 @@
 
 import Navbar from "@/components/common/navbar";
 import Footer from "@/components/common/footer";
-import HeroSection from "@/app/components/features/landingpage/herosection";
-import AboutSection from "@/app/components/features/landingpage/aboutsection";
-import ServicesSection from "@/app/components/features/landingpage/servicessection";
-import BundlingSection from "@/app/components/features/landingpage/bundlingsection";
-import TestimonialsSection from "@/app/components/features/landingpage/testimonialssection";
-import FAQSection from "@/app/components/features/landingpage/faqsection";
-import CTASection from "@/app/components/features/landingpage/ctasection";
+import HeroSection from "@/components/features/landingpage/herosection";
+import AboutSection from "@/components/features/landingpage/aboutsection";
+import ServicesSection from "@/components/features/landingpage/servicessection";
+import BundlingSection from "@/components/features/landingpage/bundlingsection";
+import TestimonialsSection from "@/components/features/landingpage/testimonialssection";
+import FAQSection from "@/components/features/landingpage/faqsection";
+import CTASection from "@/components/features/landingpage/ctasection";
 
 // Analytics/admin UI was accidentally merged into this file.
 // Keep this file as the main Home page. Admin analytics should live
