@@ -114,7 +114,7 @@ export default function SignIn() {
         }
 
         setTimeout(() => {
-            router.push("/profile");
+            router.push("/userprofile");
             setIsLoading(false);
         }, 100);
     };
