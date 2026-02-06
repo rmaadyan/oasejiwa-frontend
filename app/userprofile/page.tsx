@@ -2,7 +2,7 @@
 import {useState} from "react";
 import {Mail, Phone, MapPin, User, Calendar, LogOut, History, Pencil, Check, Menu, X} from "lucide-react";
 import ProfileInformation from "@/components/features/user/profileManagement/profileInfo";
-import Navbar from "@/components//common/navbar";
+import Navbar from "@/components//common/Navbar";
 import EditPersonalInformation from "@/components/features/user/profileManagement/editPersonalInfo";
 import EditAddress from "@/components/features/user/profileManagement/editAddress";
 import { useRouter } from "next/navigation";

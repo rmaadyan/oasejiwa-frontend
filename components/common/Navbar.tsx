@@ -23,7 +23,7 @@ export default function Navbar() {
   }, []);
 
   const navItems = [
-    { name: "Beranda", href: "/landingpage" },
+    { name: "Beranda", href: "/" },
     { name: "Tentang Kami", href: "/about" },
     { name: "Layanan Kami", href: "/booking" },
     { name: "Testimoni", href: "#testimonials" },

@@ -1,5 +1,7 @@
 "use client";
 
+import Navbar from "@/components/common/Navbar";
+import Footer from "@/components/common/Footer";
 import HeroSection from "@/components/features/landingpage/herosection";
 import AboutSection from "@/components/features/landingpage/aboutsection";
 import ServicesSection from "@/components/features/landingpage/servicessection";
@@ -8,16 +10,20 @@ import TestimonialsSection from "@/components/features/landingpage/testimonialss
 import FAQSection from "@/components/features/landingpage/faqsection";
 import CTASection from "@/components/features/landingpage/ctasection";
 
-export default function LandingPage() {
+export default function HomePage() {
   return (
-    <main className="min-h-screen">
-      <HeroSection />
-      <AboutSection />
-      <ServicesSection />
-      <BundlingSection />
-      <TestimonialsSection />
-      <FAQSection />
-      <CTASection />
-    </main>
+    <>
+      <Navbar />
+      <main className="min-h-screen">
+        <HeroSection />
+        <AboutSection />
+        <ServicesSection />
+        <BundlingSection />
+        <TestimonialsSection />
+        <FAQSection />
+        <CTASection />
+      </main>
+      <Footer />
+    </>
   );
 }

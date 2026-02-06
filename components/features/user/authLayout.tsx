@@ -10,7 +10,7 @@ export default function AuthLayout({ title, description, children }: SignProps){
     return(
         <div className="min-h-screen w-full flex items-center justify-center">
             <div className="min-h-screen w-full flex md:flex-row">
-                <div className="hidden md:flex flex-col w-full justify-center items-center px-6 md:px-16 text-white bg-[url('/bghero/gambar.jpg')] bg-cover bg-center">
+                <div className="hidden md:flex flex-col w-full justify-center items-center px-6 md:px-16 text-white bg-[url('/assets/landingpage/gambar.jpg')] bg-cover bg-center">
                     <h1 className="text-5xl md:text-6xl font-bold leading-tight">Oase Jiwa</h1>
                     <p className="mt-4 text-lg md:text-xl text-white">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
                 </div>
