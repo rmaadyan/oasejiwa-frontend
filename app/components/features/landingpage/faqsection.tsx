@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
-import { faqs } from "../../../../lib/data";
+import { faqs } from "@/lib/data/data";
 
 export default function FAQSection() {
   const [openId, setOpenId] = useState<number | null>(null);
@@ -16,7 +16,7 @@ export default function FAQSection() {
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      viewport={{ once: true }}
+      viewport={{ once: false }}
     >
       <div className="mx-auto max-w-6xl px-2 sm:px-3 lg:px-4">
         <h2 className="text-center text-4xl font-semibold text-primary-text md:text-5xl">
@@ -24,7 +24,7 @@ export default function FAQSection() {
         </h2>
 
         <div className="mt-10 space-y-4">
-          {faqs.map((f) => {
+          {faqs.map((f: typeof faqs[0]) => {
             const isOpen = openId === f.id;
 
             return (

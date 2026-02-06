@@ -5,7 +5,6 @@ import Footer from "@/components/common/footer";
 import HeroSection from "@/app/components/features/landingpage/herosection";
 import AboutSection from "@/app/components/features/landingpage/aboutsection";
 import ServicesSection from "@/app/components/features/landingpage/servicessection";
-import BundlingSection from "@/app/components/features/landingpage/bundlingsection";
 import TestimonialsSection from "@/app/components/features/landingpage/testimonialssection";
 import FAQSection from "@/app/components/features/landingpage/faqsection";
 import CTASection from "@/app/components/features/landingpage/ctasection";
@@ -22,7 +21,6 @@ export default function Home() {
       <HeroSection />
       <AboutSection />
       <ServicesSection />
-      <BundlingSection />
       <TestimonialsSection />
       <FAQSection />
       <CTASection />

@@ -1,103 +1,86 @@
 "use client";
 
-import { PieChart, Pie, Cell, ResponsiveContainer, Sector } from "recharts";
-import { useState } from "react";
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 
 interface BookingChartProps {
-  data: {
-    returning: number;
-    new: number;
-  };
+  data: { returning: number; new: number };
   compact?: boolean;
 }
 
-const renderActiveShape = (props: any) => {
-  const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } =
-    props;
+const COLORS = {
+  returning: "#3B82F6", // Blue
+  new: "#EF4444",       // Red
+};
 
-  return (
-    <g>
-      <Sector
-        cx={cx}
-        cy={cy}
-        innerRadius={innerRadius}
-        outerRadius={outerRadius + 5}
-        startAngle={startAngle}
-        endAngle={endAngle}
-        fill={fill}
-      />
-    </g>
-  );
+const CustomTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white px-3 py-2 rounded-lg shadow-lg border border-gray-200">
+        <p className="text-sm font-semibold text-gray-900">
+          {payload[0].name}: {payload[0].value}
+        </p>
+      </div>
+    );
+  }
+  return null;
 };
 
 export default function BookingChart({ data, compact = false }: BookingChartProps) {
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
-
   const chartData = [
-    { name: "Klien Lama", value: data.returning, color: "#3B82F6" },
-    { name: "Klien Baru", value: data.new, color: "#EF4444" },
+    { name: "Klien Lama", value: data.returning, color: COLORS.returning },
+    { name: "Klien Baru", value: data.new, color: COLORS.new },
   ];
 
   const total = data.returning + data.new;
 
-  const onPieEnter = (_: any, index: number) => {
-    setActiveIndex(index);
-  };
-
-  const onPieLeave = () => {
-    setActiveIndex(null);
-  };
-
-  const size = compact ? { inner: 50, outer: 70, height: 240 } : { inner: 70, outer: 90, height: 280 };
-
   return (
-    <div className={`h-${size.height} relative`} style={{ height: `${size.height}px` }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
-          <Pie
-            activeIndex={activeIndex !== null ? activeIndex : undefined}
-            activeShape={renderActiveShape}
-            data={chartData}
-            cx="50%"
-            cy="45%"
-            innerRadius={size.inner}
-            outerRadius={size.outer}
-            paddingAngle={2}
-            dataKey="value"
-            onMouseEnter={onPieEnter}
-            onMouseLeave={onPieLeave}
-          >
-            {chartData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.color} />
-            ))}
-          </Pie>
-        </PieChart>
-      </ResponsiveContainer>
+    <div className="w-full h-full flex flex-col items-center justify-center relative py-4">
+      {/* Chart Container */}
+      <div className="relative w-full" style={{ height: compact ? "200px" : "240px" }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={chartData}
+              cx="50%"
+              cy="50%"
+              innerRadius={compact ? 50 : 60}
+              outerRadius={compact ? 80 : 90}
+              paddingAngle={2}
+              dataKey="value"
+            >
+              {chartData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.color} />
+              ))}
+            </Pie>
+            <Tooltip content={<CustomTooltip />} />
+          </PieChart>
+        </ResponsiveContainer>
 
-      {/* Total di tengah donut */}
-      <div className="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-        <div className="text-[10px] text-gray-500 uppercase mb-0.5">Total</div>
-        <div className={`${compact ? 'text-2xl' : 'text-3xl'} font-bold text-gray-900`}>
-          {total}
+        {/* Center Label - TOTAL */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="text-center">
+            <div className="text-xs text-gray-500 font-medium">TOTAL</div>
+            <div className="text-3xl font-bold text-gray-900">{total}</div>
+          </div>
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-4">
-        {chartData.map((entry) => (
-          <div key={entry.name} className="flex items-center gap-1.5">
-            <div
-              className="w-2.5 h-2.5 rounded-full"
-              style={{ backgroundColor: entry.color }}
-            />
-            <div className="flex items-center gap-1">
-              <span className="text-xs text-gray-700">{entry.name}</span>
-              <span className="text-xs font-semibold text-gray-900">
-                {entry.value}
-              </span>
-            </div>
+      {/* Legend - INSIDE CARD */}
+      <div className="flex items-center justify-center gap-6 mt-6 px-4">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-blue-500 shrink-0" />
+          <div className="text-sm whitespace-nowrap">
+            <span className="text-gray-600">Klien Lama</span>
+            <span className="ml-2 font-semibold text-gray-900">{data.returning}</span>
           </div>
-        ))}
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-red-500 shrink-0" />
+          <div className="text-sm whitespace-nowrap">
+            <span className="text-gray-600">Klien Baru</span>
+            <span className="ml-2 font-semibold text-gray-900">{data.new}</span>
+          </div>
+        </div>
       </div>
     </div>
   );
