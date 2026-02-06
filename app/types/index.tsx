@@ -12,6 +12,7 @@ export interface Testimonial {
   role: string;
   content: string;
   rating: number;
+  gender?: "male" | "female";
 }
 
 export interface FAQ {
