@@ -104,16 +104,7 @@ export default function EditPersonalInformation({
                 </div>
                 <GenderSelect value={gender} onChange={setGender} />
             </div>
-
-            <FormField
-                label="Address"
-                id="address"
-                name="address"
-                type="textarea"
-                value={address}
-                onChange={setAddress}
-            />
-
+            
             <FormField
                 label="WhatsApp"
                 id="whatsapp"
