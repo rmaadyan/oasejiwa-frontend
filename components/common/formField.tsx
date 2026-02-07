@@ -78,6 +78,7 @@ export default function FormField({
                     type= {inputType}
                     id={id}
                     name={name}
+                    value={value}
                     onChange={(e) => {
                         onChange(e.target.value);
                         setShowOptions(true);

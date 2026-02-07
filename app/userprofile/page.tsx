@@ -1,12 +1,12 @@
 'use client'
 import {useState} from "react";
-import {Mail, Phone, MapPin, User, Calendar, LogOut, History, Pencil, Check, Menu, X} from "lucide-react";
+import {Mail, Phone, ArrowLeft, User, Calendar, LogOut, History, Pencil, Check, Menu, X, CheckCircle, AlertTriangle} from "lucide-react";
 import ProfileInformation from "@/components/features/user/profileManagement/profileInfo";
-import Navbar from "@/components//common/navbar";
 import EditPersonalInformation from "@/components/features/user/profileManagement/editPersonalInfo";
 import EditAddress from "@/components/features/user/profileManagement/editAddress";
 import { useRouter } from "next/navigation";
-
+import SuccessToast from "@/components/common/successToast";
+import ConfirmLeaveModal from "@/components/common/confirmLeaveModal";
 
 type profileData = {
     fullName: string;
@@ -25,14 +25,18 @@ export default function Profile(){
     const [isEditAddress, setIsEditAddress] = useState(false);
     const [currentPage, setCurrentPage] = useState<"profile" | "history">("profile");
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+    const [successMessage, setSuccessMessage] = useState("");
+    const [showExitConfirm, setShowExitConfirm] = useState(false);
+    const [pendingClose, setPendingClose] = useState<"personal" | "address" | null>(null);
     const router = useRouter();
 
     const handleSubmit = () => {
             setTimeout(() => {
-                setIsSidebarOpen(false);
-                router.push('/auth/signin')
-            }, 500);
-        }
+            setIsSidebarOpen(false);
+            router.push('/auth/signin')
+        }, 500);
+    }
 
     const [profileData, setProfileData] = useState<profileData>({
         fullName: "Amelia Agustin",
@@ -45,20 +49,74 @@ export default function Profile(){
         city: "Malang",
     });
 
+    // Handle close with confirmation
+    const handleCloseEdit = (type: "personal" | "address") => {
+        setPendingClose(type);
+        setShowExitConfirm(true);
+    };
+
+    // Confirm exit without saving
+    const confirmExit = () => {
+        if (pendingClose === "personal") {
+            setIsEditPersonalInformation(false);
+        } else if (pendingClose === "address") {
+            setIsEditAddress(false);
+        }
+        setShowExitConfirm(false);
+        setPendingClose(null);
+    };
+
+    // Cancel exit
+    const cancelExit = () => {
+        setShowExitConfirm(false);
+        setPendingClose(null);
+    };
+
+    // Show success message
+    const showSuccess = (message: string) => {
+        setSuccessMessage(message);
+        setShowSuccessPopup(true);
+        setTimeout(() => {
+            setShowSuccessPopup(false);
+        }, 1000);
+    };
+
     return(
         <div className="min-h-screen bg-gray-50">
-            <Navbar />
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-20 py-8">
+            <SuccessToast
+            open={showSuccessPopup}
+            message={successMessage}
+            onClose={() => setShowSuccessPopup(false)}
+            />
+
+
+            <ConfirmLeaveModal
+            open={showExitConfirm}
+            title="Batalkan Perubahan?"
+            description="Jika keluar sekarang, semua perubahan akan hilang."
+            onConfirm={confirmExit}
+            onCancel={cancelExit}
+            />
+
+            <div className="fixed top-10 left-4 sm:left-6 z-40">
+                <button
+                    onClick={() => router.back()}
+                    className="flex items-center justify-center w-10 h-10 text-blue-950 hover:backdrop-blur-sm rounded-full transition-all duration-200 hover:shadow-md active:scale-95 cursor-pointer"
+                >
+                    <ArrowLeft size={24}/>
+                </button>
+            </div>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-10 py-8">
                 <div className="flex justify-between lg:justify-center items-center pb-6 sm:pb-8">
-                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-blue-950">
+                    <h1 className="text-2xl pl-12 lg:pl-0 sm:text-3xl lg:text-4xl font-bold text-blue-950">
                         {currentPage === "profile"? "My Profile":"History"}
                     </h1>
                     
                     <button 
                         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                        className="lg:hidden p-2 rounded-lg bg-white border border-gray-200 shadow-sm"
+                        className="lg:hidden p-2 rounded-lg bg-white border border-gray-200 shadow-sm cursor-pointer hover:shadow-md"
                     >
-                        {isSidebarOpen ? <X size={24} className="text-blue-950" /> : <Menu size={24} className="text-blue-950" />}
+                        {isSidebarOpen ? <X size={20} className="text-blue-950" /> : <Menu size={24} className="text-blue-950" />}
                     </button>
                 </div>
 
@@ -85,7 +143,7 @@ export default function Profile(){
                                 onClick={() => setIsSidebarOpen(false)}
                                 className="lg:hidden absolute top-4 right-4 p-2"
                             >
-                                <X size={20} className="text-gray-500" />
+                                <X size={20} className="text-gray-500 cursor-pointer hover:text-gray-600" />
                             </button>
 
                             <div className="text-center pt-8 lg:pt-0">
@@ -179,10 +237,11 @@ export default function Profile(){
                 {isEditPersonalInformation && (
                     <EditPersonalInformation
                         initialData={profileData}
-                        onClose={() => setIsEditPersonalInformation(false)}
+                        onClose={() => handleCloseEdit("personal")} 
                         onSave={(updatedData) => {
                             setProfileData(updatedData);
                             setIsEditPersonalInformation(false);
+                            showSuccess("Data profil berhasil diperbarui"); 
                         }}
                     />
                 )}
@@ -194,7 +253,7 @@ export default function Profile(){
                             city: profileData.city,
                             address: profileData.address,
                         }}
-                        onClose={() => setIsEditAddress(false)}
+                        onClose={() => handleCloseEdit("address")} 
                         onSave={(data) => {
                             setProfileData(prev => ({
                                 ...prev,
@@ -203,6 +262,7 @@ export default function Profile(){
                                 address: data.address,
                             }));
                             setIsEditAddress(false);
+                            showSuccess("Alamat berhasil diperbarui"); 
                         }}
                     />
                 )}
@@ -324,26 +384,25 @@ function HistoryContent() {
                     {/* Mobile Card View */}
                     <div className="md:hidden divide-y divide-gray-100">
                         {historyData.map((item) => (
-                            <div key={item.id} className="p-4 space-y-2 hover:bg-blue-50 transition-colors">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <p className="text-xs text-gray-500">Tanggal</p>
-                                        <p className="text-sm font-medium text-blue-950">{item.tanggal}</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-xs text-gray-500">Jadwal</p>
-                                        <p className="text-sm font-medium text-blue-950">{item.jadwal}</p>
-                                    </div>
+                            <div key={item.id} className="p-4 space-y-3 hover:bg-blue-50 transition-colors">
+                                <p className="text-base font-bold text-blue-950">{item.tanggal}</p>
+                                
+                                <div className="flex items-start gap-2">
+                                    <p className="text-sm text-gray-600 min-w-20">Layanan</p>
+                                    <p className="text-sm text-gray-600">:</p>
+                                    <p className="text-sm font-medium text-blue-950">{item.layanan}</p>
                                 </div>
-                                <div className="flex justify-between items-start pt-2">
-                                    <div>
-                                        <p className="text-xs text-gray-500">Layanan</p>
-                                        <p className="text-sm font-medium text-blue-950">{item.layanan}</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-xs text-gray-500">Psikolog</p>
-                                        <p className="text-sm font-medium text-blue-950">{item.psikolog}</p>
-                                    </div>
+                                
+                                <div className="flex items-start gap-2">
+                                    <p className="text-sm text-gray-600 min-w-20">Psikolog</p>
+                                    <p className="text-sm text-gray-600">:</p>
+                                    <p className="text-sm font-medium text-blue-950">{item.psikolog}</p>
+                                </div>
+                                
+                                <div className="flex items-start gap-2">
+                                    <p className="text-sm text-gray-600 min-w-20">Jadwal</p>
+                                    <p className="text-sm text-gray-600">:</p>
+                                    <p className="text-sm font-medium text-blue-950">{item.jadwal}</p>
                                 </div>
                             </div>
                         ))}

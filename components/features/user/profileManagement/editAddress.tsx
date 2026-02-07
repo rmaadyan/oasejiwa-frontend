@@ -83,7 +83,6 @@ export default function EditAddress({
             return;
         }
         onSave({country, city, address});
-        onClose();
     };
 
     return (

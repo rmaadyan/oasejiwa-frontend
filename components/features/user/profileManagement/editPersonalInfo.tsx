@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import FormField from "@/components/common/formField";
 import GenderSelect from "../genderSelect";
@@ -25,7 +25,7 @@ export default function EditPersonalInformation({
     initialData,
     onSave,
     onClose,
-    }: EditProfileProps) {
+}: EditProfileProps) {
     const [name, setName] = useState(initialData.fullName);
     const [telephone, setTelephone] = useState(initialData.phone);
     const [email, setEmail] = useState(initialData.email);
@@ -36,13 +36,33 @@ export default function EditPersonalInformation({
     const [city, setCity] = useState(initialData.city);
     const [error, setError] = useState("");
 
+    useEffect(() => {
+        setName(initialData.fullName);
+        setTelephone(initialData.phone);
+        setEmail(initialData.email);
+        setDate(initialData.birthday);
+        setGender(initialData.gender);
+        setAddress(initialData.address);
+        setCountry(initialData.country);
+        setCity(initialData.city);
+    }, [initialData]);
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!name || !telephone || !email || !date) {
-        setError("Lengkapi semua data!");
-        return;
+            setError("Lengkapi semua data!");
+            return;
         }
-        onClose();
+        onSave({
+            fullName: name,
+            gender,
+            birthday: date,
+            email,
+            phone: telephone,
+            address,
+            country,
+            city,
+        });
     };
 
     return (
@@ -123,12 +143,12 @@ export default function EditPersonalInformation({
                 type="button"
                 onClick={onClose}
                 className="px-4 py-2 rounded-lg border text-gray-700 hover:bg-gray-100 cursor-pointer">
-                Cancel
+                    Cancel
                 </button>
                 <button
                 type="submit"
                 className="px-4 py-2 rounded-lg bg-blue-900 hover:bg-blue-800 text-white font-semibold cursor-pointer">
-                Save
+                    Save
                 </button>
             </div>
             </form>
