@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import FormField from "@/components/common/formField";
 import GenderSelect from "../genderSelect";
 import CustomCalendar from "@/components/common/calendar";
+import { validateEmail } from "@/lib/email";
 
 type EditProfileProps = {
     initialData: {
@@ -51,6 +52,11 @@ export default function EditPersonalInformation({
         e.preventDefault();
         if (!name || !telephone || !email || !date) {
             setError("Lengkapi semua data!");
+            return;
+        }
+        const emailError = validateEmail(email);
+        if (emailError) {
+            setError(emailError); 
             return;
         }
         onSave({
@@ -120,14 +126,12 @@ export default function EditPersonalInformation({
                 name="email"
                 type="email"
                 value={email}
-                onChange={setEmail}
+                onChange={(val) => {
+                    setEmail(val);
+                    setError("");
+                }}
+                error={error} 
             />
-
-            {error && (
-                <p className="text-sm text-red-600 bg-red-50 p-2 rounded">
-                {error}
-                </p>
-            )}
 
             <div className="flex justify-end gap-3">
                 <button

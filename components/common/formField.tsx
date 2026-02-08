@@ -102,9 +102,9 @@ export default function FormField({
                     className="absolute inset-y-0 right-0 pr-3 flex items-center text-shadow-blue-950"
                     >
                         {showPassword? (
-                            <EyeOff className="h-5 w-5"/>
+                            <EyeOff className="h-5 w-5 cursor-pointer"/>
                         ):(
-                            <Eye className="h-5 w-5"/>
+                            <Eye className="h-5 w-5 cursor-pointer"/>
                         )}
                     </button>
                 )}

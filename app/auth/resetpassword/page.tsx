@@ -1,28 +1,30 @@
 'use client'
 import React, {useState} from "react";
-import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { Mail } from "lucide-react";
 import AuthLayout from "@/components/features/user/authLayout";
 import FormField from "@/components/common/formField";
 import ResetPassModal from "@/components/features/user/resetPassModal";
+import { validateEmail } from "@/lib/email";
 
 export default function ResetPassword(){
     const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
     const [showModal, setShowModal] = useState(false)
     const [error, setError] = useState("");
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
+        const emailError = validateEmail(email);
+
+        if (emailError) {
+            setError(emailError); 
+            return;
+        }
+
         setTimeout(() => {
-            if (email){
-                setShowModal(true);
-            } else{
-                setError("Email harus diisi!")
-                return;
-            }
+            setShowModal(true);
         }, 1000);
-    }
+    };
 
     return(
         <div>
@@ -39,8 +41,12 @@ export default function ResetPassword(){
                     autoComplete="email"
                     value={email}
                     placeholder="your@gmail.com"
-                    onChange={setEmail}
-                    icon={<Mail className="h-5 w-5"></Mail>}
+                    onChange={(val) => {
+                        setEmail(val);
+                        setError("");
+                    }}
+                    icon={<Mail className="h-5 w-5" />}
+                    error={error} 
                     />
                     <div className="w-full max-w-xl flex flex-col justify-center mt-8">
                         <button type="submit" className="font-bold text-white bg-blue-900 w-full py-2 border border-blue-950 rounded-2xl hover:bg-blue-800 hover:shadow cursor-pointer">Send</button>

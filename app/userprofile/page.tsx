@@ -43,7 +43,7 @@ export default function Profile(){
         gender: "female",
         birthday: "2004-02-02",
         email: "your@gmail.com",
-        phone: "+62 812 xxxx xxxx",
+        phone: "+62 812 8998 8791",
         address: "Lorem ipsum dolor sit amet consectetur adipisicing elit.",
         country: "Indonesia",
         city: "Malang",
