@@ -17,7 +17,7 @@ export default function ResetPassword(){
         const emailError = validateEmail(email);
 
         if (emailError) {
-            setError(emailError); // ⬅️ error dari validator
+            setError(emailError); 
             return;
         }
 
