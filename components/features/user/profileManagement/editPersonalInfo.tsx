@@ -6,6 +6,7 @@ import FormField from "@/components/common/formField";
 import GenderSelect from "../genderSelect";
 import CustomCalendar from "@/components/common/calendar";
 import { validateEmail } from "@/lib/email";
+import { validatePhone } from "@/lib/phone";
 
 type EditProfileProps = {
     initialData: {
@@ -28,7 +29,8 @@ export default function EditPersonalInformation({
     onClose,
 }: EditProfileProps) {
     const [name, setName] = useState(initialData.fullName);
-    const [telephone, setTelephone] = useState(initialData.phone);
+    const [phone, setPhone] = useState(initialData.phone);
+    const [phoneError, setPhoneError] = useState("");
     const [email, setEmail] = useState(initialData.email);
     const [date, setDate] = useState("");
     const [gender, setGender] = useState<"male" | "female">(initialData.gender);
@@ -39,7 +41,7 @@ export default function EditPersonalInformation({
 
     useEffect(() => {
         setName(initialData.fullName);
-        setTelephone(initialData.phone);
+        setPhone(initialData.phone);
         setEmail(initialData.email);
         setDate(initialData.birthday);
         setGender(initialData.gender);
@@ -50,21 +52,31 @@ export default function EditPersonalInformation({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!name || !telephone || !email || !date) {
+        let hasError = false;
+        if (!name || !phone || !email || !date) {
             setError("Lengkapi semua data!");
             return;
+        }
+
+        const phoneErr = validatePhone(phone);
+        if (phoneErr) {
+            setPhoneError(phoneErr);
+            hasError = true;
         }
         const emailError = validateEmail(email);
         if (emailError) {
             setError(emailError); 
-            return;
+            hasError = true;
         }
+        
+        if (hasError) return;
+
         onSave({
             fullName: name,
             gender,
             birthday: date,
             email,
-            phone: telephone,
+            phone,
             address,
             country,
             city,
@@ -116,8 +128,13 @@ export default function EditPersonalInformation({
                 id="whatsapp"
                 name="number"
                 type="tel"
-                value={telephone}
-                onChange={setTelephone}
+                value={phone}
+                onChange={(val) => {
+                    const clean = val.replace(/\D/g, ""); 
+                    setPhone(clean);
+                    setPhoneError(""); 
+                }}
+                error={phoneError}
             />
 
             <FormField
