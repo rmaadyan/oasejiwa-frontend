@@ -26,7 +26,7 @@ export default function PsikologCard({
     const shouldTruncateSIPP = psikolog.licenseNumber.length > MAX_SIPP_LENGTH;
 
     return (
-        <div className="min-h-22 relative border border-gray-300 rounded-xl py-2 px-4 bg-white shadow w-full max-w-sm hover:bg-gray-100 cursor-pointer">
+        <div className="min-h-22 relative border border-gray-300 rounded-xl py-2 px-4 bg-white shadow w-full max-w-sm hover:bg-gray-50 cursor-pointer">
             <div className="flex gap-2 pr-14">
                 <div className="shrink-0">
                     {psikolog.photo ? (

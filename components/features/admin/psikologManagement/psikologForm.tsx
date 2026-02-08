@@ -4,6 +4,7 @@ import {User, Pencil, Camera, Upload, Crop, Image as ImageIcon } from "lucide-re
 import { Calendar, Trash2, Plus, X, AlertCircle, Check } from 'lucide-react';
 import CustomCalendar from "@/components/common/calendar";
 import Cropper from "react-easy-crop";
+import { validateEmail } from "@/lib/email";
 
 interface Education {
     id: string;
@@ -36,7 +37,7 @@ export interface PsychologistData {
     expertise: Experience[];
     experiences: Experience[];
     schedules: Schedule[];
-    consultationFee: string;
+    // consultationFee: string;
     photo?: string | null;
 }
 
@@ -71,7 +72,7 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
     const expertiseRef = useRef<HTMLInputElement>(null);
     const experienceRef = useRef<HTMLInputElement>(null);
     const scheduleRef = useRef<HTMLDivElement>(null);
-    const consultationFeeRef = useRef<HTMLInputElement>(null);
+    // const consultationFeeRef = useRef<HTMLInputElement>(null);
     
     const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -89,7 +90,7 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
     const [email, setEmail] = useState(initialData?.email || '');
     const [licenseNumber, setLicenseNumber] = useState(initialData?.licenseNumber || '');
     const [bio, setBio] = useState(initialData?.bio || '');
-    const [consultationFee, setConsultationFee] = useState(initialData?.consultationFee || '');
+    // const [consultationFee, setConsultationFee] = useState(initialData?.consultationFee || '');
 
     // Education States
     const [educations, setEducations] = useState<Education[]>(initialData?.educations || []);
@@ -144,7 +145,7 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
         expertise,
         experiences,
         schedules,
-        consultationFee,
+        // consultationFee,
         photo
     ]);
 
@@ -201,6 +202,14 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
     };
 
     const handleDeleteEducation = (id: string) => {
+        if (editingEducationId === id) {
+            setUniversity('');
+            setDegree('');
+            setStartYear('');
+            setEndYear('');
+            setCity('');
+            setEditingEducationId(null);
+        }
         setEducations(educations.filter(edu => edu.id !== id));
     };
 
@@ -243,6 +252,10 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
     };
 
     const handleDeleteSpecialization = (id: string) => {
+        if (editingSpecializationId === id) {
+            setSpecializationInput('');
+            setEditingSpecializationId(null);
+        }
         setSpecializations(specializations.filter(spec => spec.id !== id));
     };
 
@@ -285,6 +298,10 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
     };
 
     const handleDeleteExpertise = (id: string) => {
+        if (editingExpertiseId === id) {
+            setExpertiseInput('');
+            setEditingExpertiseId(null);
+        }
         setExpertise(expertise.filter(exp => exp.id !== id));
     };
 
@@ -327,6 +344,10 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
     };
 
     const handleDeleteExperience = (id: string) => {
+        if (editingExperienceId === id) {
+            setExperienceInput('');
+            setEditingExperienceId(null);
+        }
         setExperiences(experiences.filter(exp => exp.id !== id));
     };
 
@@ -376,6 +397,12 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
     };
 
     const handleDeleteSchedule = (id: string) => {
+        if (editingScheduleId === id) {
+            setScheduleDate('');
+            setScheduleTime('');
+            setScheduleDuration('');
+            setEditingScheduleId(null);
+        }
         setSchedules(schedules.filter(sch => sch.id !== id));
     };
 
@@ -391,7 +418,7 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
             expertise: experienceRef,
             experiences: expertiseRef,
             schedules: scheduleRef,
-            consultationFee: consultationFeeRef,
+            // consultationFee: consultationFeeRef,
         };
 
         const ref = refMap[fieldName];
@@ -478,10 +505,9 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
         if (!photo) newErrors.photo = "Foto profil wajib diunggah";
         if (!name.trim()) newErrors.name = "Nama wajib diisi";
 
-        if (!email.trim()) {
-            newErrors.email = "Email wajib diisi";
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            newErrors.email = "Format email tidak valid";
+        const emailError = validateEmail(email);
+        if (emailError) {
+            newErrors.email = emailError;
         }
 
         if (!licenseNumber.trim()) newErrors.licenseNumber = "Nomor sertifikasi wajib diisi";
@@ -507,11 +533,11 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
             newErrors.schedules = "Minimal 1 jadwal praktik harus diisi";
         }
 
-        if (!consultationFee.trim()) {
-            newErrors.consultationFee = "Biaya konsultasi wajib diisi";
-        } else if (parseFloat(consultationFee) <= 0) {
-            newErrors.consultationFee = "Biaya konsultasi harus lebih dari 0";
-        }
+        // if (!consultationFee.trim()) {
+        //     newErrors.consultationFee = "Biaya konsultasi wajib diisi";
+        // } else if (parseFloat(consultationFee) <= 0) {
+        //     newErrors.consultationFee = "Biaya konsultasi harus lebih dari 0";
+        // }
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
@@ -535,13 +561,9 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
             expertise: finalExpertise,
             experiences: finalExperiences,
             schedules: finalSchedules,
-            consultationFee,
+            // consultationFee,
             photo,
         };
-
-        console.log("Data yang akan disimpan:", formData);
-        console.log("Educations:", finalEducations);
-        console.log("Schedules:", finalSchedules);
         
         onSubmit(formData);
         onDirtyChange?.(false);
@@ -562,7 +584,7 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
             setEmail('');
             setLicenseNumber('');
             setBio('');
-            setConsultationFee('');
+            // setConsultationFee('');
             setEducations([]);
             setSpecializations([]);
             setExpertise([]);
@@ -576,7 +598,7 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
         setEmail(initialData.email);
         setLicenseNumber(initialData.licenseNumber);
         setBio(initialData.bio);
-        setConsultationFee(initialData.consultationFee);
+        // setConsultationFee(initialData.consultationFee);
         setEducations(initialData.educations || []);
         setSpecializations(initialData.specializations || []);
         setExpertise(initialData.expertise || []);
@@ -673,7 +695,7 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
                             fileInputRef.current?.click(); 
                             }
                         }}
-                        className="absolute bottom-1 right-1 bg-blue-900 p-2 rounded-full shadow hover:bg-blue-800 transition"
+                        className="absolute bottom-1 right-1 bg-blue-900 p-2 rounded-full shadow hover:bg-blue-800 transition cursor-pointer"
                         >
                             <Pencil size={16} className=" text-white"/>
                         </button>
@@ -758,10 +780,14 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
                                 ref={licenseRef}
                                 type="text"
                                 value={licenseNumber}
-                                onChange={(e) => {setLicenseNumber(e.target.value);
-                                    clearError('licenseNumber');
+                                onChange={(e) => {
+                                    const clean = e.target.value.replace(/\D/g, ""); 
+                                    setLicenseNumber(clean);
+                                    clearError("licenseNumber");
                                 }}
-                                placeholder="SIPP-010015"
+                                placeholder="010015"
+                                inputMode="numeric"    
+                                pattern="[0-9]*" 
                                 className={`w-full px-4 py-2 border border-[#234463] rounded-md text-blue-950 focus:outline-none focus:ring-1 focus:border-transparent
                                     ${errors.licenseNumber 
                                         ? 'border-red-500 focus:ring-red-200' 
@@ -855,16 +881,26 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
                                     <input
                                     type="text"
                                     value={startYear}
-                                    onChange={(e) => setStartYear(e.target.value)}
+                                    onChange={(e) => {
+                                        const clean = e.target.value.replace(/\D/g, "").slice(0, 4); 
+                                        setStartYear(clean);
+                                    }}
                                     placeholder="Tahun Mulai"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
                                     className="px-4 py-2 border border-[#234463] rounded-md text-blue-950 focus:outline-none focus:ring-1 focus:border-transparent"
                                     />
 
                                     <input
                                     type="text"
                                     value={endYear}
-                                    onChange={(e) => setEndYear(e.target.value)}
+                                    onChange={(e) => {
+                                        const clean = e.target.value.replace(/\D/g, "").slice(0, 4); 
+                                        setEndYear(clean);
+                                    }}
                                     placeholder="Tahun Selesai"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
                                     className="px-4 py-2 border border-[#234463] rounded-md text-blue-950 focus:outline-none focus:ring-1 focus:border-transparent"
                                     />
                                 </div>
@@ -888,7 +924,7 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
                                     type="button"
                                     onClick={handleAddEducation}
                                     title={editingEducationId ? "Update Pendidikan" : "Tambah Pendidikan"}
-                                    className="p-2 bg-[#1f3b5b] text-white rounded-full hover:bg-blue-900 transition-colors font-medium"
+                                    className="p-2 bg-[#1f3b5b] text-white rounded-full hover:bg-blue-900 transition-colors font-medium cursor-pointer"
                                     >
                                     {editingEducationId ? <Check size={18} /> : <Plus size={18} />}
                                 </button>
@@ -900,9 +936,13 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
                                     <div
                                         key={edu.id}
                                         className="relative border border-gray-300 rounded-full px-4 py-2 hover:border-[#234463] hover:bg-blue-50 transition-colors cursor-pointer"
-                                        onClick={() => handleEditEducation(edu)}
+                                        onClick={() => {
+                                            handleEditEducation(edu);
+                                            setHoveredEducationId(edu.id);
+                                        }}
                                     >
-                                        <button
+                                        {hoveredEducationId === edu.id && (
+                                            <button
                                             type="button"
                                             onClick={(e) => {
                                                 e.stopPropagation();
@@ -910,9 +950,9 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
                                             }}
                                             className="absolute -top-1 -right-1 p-1 bg-red-400 text-white rounded-full hover:bg-red-600 cursor-pointer"
                                             >
-                                            <Trash2 size={12} />
-                                        </button>
-
+                                                <Trash2 size={12} />
+                                            </button>
+                                        )}
                                         <div className="gap-2 text-sm">
                                             <p className="font-medium text-gray-700 text-center">{edu.degree}, {edu.university}, {edu.city},  {edu.endYear}</p>
                                         </div>
@@ -962,7 +1002,7 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
                                 type="button"
                                 onClick={handleAddSpecialization}
                                 title={editingSpecializationId ? 'Update Spesialisasi' : '+ Tambah Spesialisasi'}
-                                className="p-2 bg-[#234463] text-white rounded-full hover:bg-blue-950 transition-colors font-medium"
+                                className="p-2 bg-[#234463] text-white rounded-full hover:bg-blue-950 transition-colors font-medium cursor-pointer"
                                 >
                                     {editingSpecializationId ? <Check size={18} /> : <Plus size={18} />}
                                 </button>
@@ -1029,7 +1069,7 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
                                 type="button"
                                 onClick={handleAddExpertise}
                                 title={editingExpertiseId ? 'Update Keahlian' : '+ Tambah Keahlian'}
-                                className="p-2 bg-[#234463] text-white rounded-full hover:bg-blue-950 transition-colors font-medium"
+                                className="p-2 bg-[#234463] text-white rounded-full hover:bg-blue-950 transition-colors font-medium cursor-pointer"
                                 >
                                     {editingExpertiseId ? <Check size={18} /> : <Plus size={18} />}
                                 </button>
@@ -1095,7 +1135,7 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
                                 type="button"
                                 onClick={handleAddExperience}
                                 title={editingExperienceId ? 'Update Pengalaman' : '+ Tambah Pengalaman'}
-                                className="p-2 bg-[#234463] text-white rounded-full hover:bg-blue-950 transition-colors font-medium"
+                                className="p-2 bg-[#234463] text-white rounded-full hover:bg-blue-950 transition-colors font-medium cursor-pointer"
                                 >
                                     {editingExperienceId ? <Check size={18} /> : <Plus size={18} />}
                                 </button>
@@ -1153,7 +1193,7 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
                                 value={scheduleDate}
                                 onChange={(date) => setScheduleDate(date)}
                                 placeholder="Pilih tanggal"
-                                error={!!errors.schedules}
+                                error={errors.schedules}
                                 />
                             </div>
 
@@ -1198,7 +1238,7 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
                                 type="button"
                                 onClick={handleAddSchedule}
                                 title={editingScheduleId ? 'Update Jadwal' : '+ Tambah Jadwal'}
-                                className="p-2 bg-[#234463] text-white rounded-full hover:bg-blue-950 transition-colors font-medium"
+                                className="p-2 bg-[#234463] text-white rounded-full hover:bg-blue-950 transition-colors font-medium cursor-pointer"
                                 >
                                     {editingScheduleId ? <Check size={18} /> : <Plus size={18} />}
                                 </button>
@@ -1239,7 +1279,7 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
                         </div>
                     </div>
 
-                    {/* Consultation Fee */}
+                    {/* Consultation Fee
                     <div className="bg-white md:rounded-lg md:shadow-sm md:p-6">
                         <div className="space-y-4">
                             <div className="rounded-xl bg-[#234463] py-1">
@@ -1274,7 +1314,7 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
                                 )}
                             </div>
                         </div>
-                    </div>
+                    </div> */}
 
                     {/*Submit*/}
                     <div className="flex justify-center md:justify-end pb-12">

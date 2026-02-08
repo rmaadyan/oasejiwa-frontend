@@ -113,7 +113,7 @@ export default function ManagePsikolog() {
     };
 
     return (
-        <div className="flex h-screen overflow-hidden bg-gray-50">
+        <div className="flex h-screen overflow-hidden">
             <AdminSidebar isOpen={SidebarOpen} onClose={() => setSidebarOpen(false)}/>
             
             <div className="flex-1 flex flex-col overflow-hidden lg:ml-74">
@@ -126,7 +126,7 @@ export default function ManagePsikolog() {
                     </button>
                 </header>
 
-                <main className="flex-1 overflow-y-auto bg-gray-50">
+                <main className="flex-1 overflow-y-auto">
                     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                         {showToast && (
                             <div className={`fixed top-6 right-6 z-50 flex items-center gap-1 sm:gap-3 px-2 sm:px-6 py-2 sm:py-4 rounded-lg shadow-lg transition-all duration-300 ${
@@ -160,7 +160,7 @@ export default function ManagePsikolog() {
                                 {psikologs.length > 0 && (
                                     <button
                                     onClick={handleToggleForm}
-                                    className="fixed bottom-4 right-4 sm:bottom-8 sm:right-8 bg-[#1f3b5b] p-3 sm:p-4 rounded-full shadow-lg hover:bg-blue-900 transition-all duration-200 z-50"
+                                    className="fixed bottom-4 right-4 sm:bottom-8 sm:right-8 bg-[#1f3b5b] p-3 sm:p-4 rounded-full shadow-lg hover:bg-blue-900 transition-all duration-200 z-50 cursor-pointer"
                                     aria-label="Tambah psikolog baru"
                                     >
                                         <Plus size={24} className="text-white" />
@@ -175,7 +175,7 @@ export default function ManagePsikolog() {
                                     </p>
                                     <button
                                     onClick={() => setShowForm(true)}
-                                        className="bg-[#1f3b5b] px-6 py-3 rounded-full flex items-center gap-2 hover:bg-blue-900 transition-colors mx-auto"
+                                        className="bg-[#1f3b5b] px-6 py-3 rounded-full flex items-center gap-2 hover:bg-blue-900 transition-colors mx-auto cursor-pointer"
                                     >
                                         <Plus size={20} className="text-white" />
                                         <p className="text-white text-sm">Tambah Psikolog Pertama</p>
