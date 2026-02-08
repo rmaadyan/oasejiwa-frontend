@@ -6,6 +6,7 @@ import GenderSelect from "@/components/features/user/genderSelect";
 import {useRouter} from "next/navigation";
 import CustomCalendar from "@/components/common/calendar";
 import { useAuthValidation } from "@/hooks/use-auth-validation";
+import { validatePhone } from "@/lib/phone";
 
 export default function SignUp(){
     const [name, setName] = useState("");
@@ -64,11 +65,9 @@ export default function SignUp(){
             hasError = true;
         }
 
-        if (!telephone.trim()) {
-            setTelephoneError("Nomor WhatsApp harus diisi");
-            hasError = true;
-        } else if (!/^\+?[0-9]{10,15}$/.test(telephone.replace(/\s/g, ''))) {
-            setTelephoneError("Format nomor tidak valid (10-15 digit)");
+        const phoneError = validatePhone(telephone);
+        if (phoneError) {
+            setTelephoneError(phoneError);
             hasError = true;
         }
 

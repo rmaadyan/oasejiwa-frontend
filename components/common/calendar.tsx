@@ -154,7 +154,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
                         <select
                             value={currentMonth}
                             onChange={(e) => setCurrentMonth(parseInt(e.target.value))}
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-gray-200"
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-gray-200 cursor-pointer"
                         >
                             {months.map((month, index) => (
                                 <option key={month} value={index}>
@@ -166,7 +166,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
                         <select
                             value={currentYear}
                             onChange={(e) => setCurrentYear(parseInt(e.target.value))}
-                            className="w-24 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-gray-200"
+                            className="w-24 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-gray-200 cursor-pointer"
                         >
                             {years.map((year) => (
                                 <option key={year} value={year}>
