@@ -106,7 +106,7 @@ export default function PsikologDetail(){
                                     <BadgeCheck className="w-5 h-h text-blue-950 mt-1"/>
                                     <div>
                                         <p className="text-sm font-semibold text-blue-950">
-                                            Nomor Izin Praktik
+                                            SIPP
                                         </p>
                                         <p className="text-sm text-gray-600">
                                             {psikolog.nomorIzin}

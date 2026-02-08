@@ -85,7 +85,7 @@ export default function PsikologList() {
                                         <BadgeCheck className="w-5 h-5 text-blue-950 mt-0.5 shrink-0" />
                                         <div className="flex-1">
                                             <p className="text-sm font-semibold text-blue-950">
-                                                Nomor Izin Praktek
+                                                SIPP
                                             </p>
                                             <p className="text-sm text-gray-600">
                                                 {psikolog.nomorIzin}

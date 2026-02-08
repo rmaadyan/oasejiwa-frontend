@@ -129,23 +129,34 @@ export default function ManagePsikolog() {
                 <main className="flex-1 overflow-y-auto">
                     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                         {showToast && (
-                            <div className={`fixed top-6 right-6 z-50 flex items-center gap-1 sm:gap-3 px-2 sm:px-6 py-2 sm:py-4 rounded-lg shadow-lg transition-all duration-300 ${
-                                toastType === 'success' 
-                                    ? 'bg-green-500 text-[#E6F7F1]' 
-                                    : 'bg-red-500 text-white'
-                            }`}>
-                                {toastType === 'success' ? (
-                                    <Check size={26} />
-                                ) : (
-                                    <AlertCircle size={26} />
-                                )}
-                                <p className="font-semibold text-sm sm:text-base text-white">{toastMessage}</p>
-                                <button
-                                    onClick={() => setShowToast(false)}
-                                    className="ml-2 hover:bg-white/20 rounded p-1 transition-colors"
-                                >
-                                    <X size={20} className="text-gray-200 hover:text-white cursor-pointer"/>
-                                </button>
+                            <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 pointer-events-none">
+                                <div className="bg-white border border-gray-200 rounded-xl shadow-2xl p-2 flex items-center gap-3 max-w-md animate-slide-down pointer-events-auto">
+                                    <div className={`p-2 rounded-full ${
+                                        toastType === 'success' 
+                                            ? 'bg-green-100' 
+                                            : 'bg-red-100'
+                                    }`}>
+                                        {toastType === 'success' ? (
+                                            <Check size={24} className="text-green-600" />
+                                        ) : (
+                                            <AlertCircle size={24} className="text-red-600" />
+                                        )}
+                                    </div>
+                                    
+                                    <div className="flex-1">
+                                        <p className="font-semibold text-gray-900">
+                                            {toastType === 'success' ? 'Berhasil!' : 'Gagal!'}
+                                        </p>
+                                        <p className="text-sm text-gray-600">{toastMessage}</p>
+                                    </div>
+                                    
+                                    <button
+                                        onClick={() => setShowToast(false)}
+                                        className="p-1 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+                                    >
+                                        <X size={20} className="text-gray-400" />
+                                    </button>
+                                </div>
                             </div>
                         )}
                         <div className="py-6">

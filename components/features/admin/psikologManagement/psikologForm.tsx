@@ -655,22 +655,26 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
     return (
         <div className="max-w-6xl mx-auto p-6 min-h-screen">
             {showErrorToast && (
-                <div className="fixed top-6 right-4 z-50 ml-2 sm:ml-0 bg-red-500 text-white px-2 sm:px-6 py-2 sm:py-4 rounded-lg shadow-lg flex items-center gap-2 sm:gap-3 animate-slide-in">
-                    <AlertCircle size={24} />
-                    <div>
-                        <p className="font-semibold text-sm sm:text-base">Data tidak lengkap!</p>
-                        <p className="text-sm">Mohon lengkapi semua field yang wajib diisi</p>
+                <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 pointer-events-none">
+                    <div className="bg-white border border-gray-200 rounded-xl shadow-2xl p-2 flex items-center gap-3 max-w-md animate-slide-down pointer-events-auto">
+                        <div className="p-2 bg-red-100 rounded-full">
+                            <AlertCircle size={24} className="text-red-600" />
+                        </div>
+                        <div className="flex-1">
+                            <p className="font-semibold text-gray-900">Data tidak lengkap!</p>
+                            <p className="text-sm text-gray-600">Mohon lengkapi semua field yang wajib diisi</p>
+                        </div>
+                        <button 
+                            onClick={() => setShowErrorToast(false)}
+                            className="p-1 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+                        >
+                            <X size={20} className="text-gray-400"/>
+                        </button>
                     </div>
-                    <button 
-                        onClick={() => setShowErrorToast(false)}
-                        className="ml-2 hover:bg-white/20 rounded p-1 transition-colors cursor-pointer"
-                    >
-                        <X size={20} className="text-gray-200 hover:text-white"/>
-                    </button>
                 </div>
             )}
             <form onSubmit={handleSubmit} noValidate className="space-y-6 flex flex-col lg:flex-row gap-8 ">
-                <div className="flex justify-center lg:justify-start">
+                <div className="flex flex-col justify-center items-center lg:justify-start">
                     <div className="relative w-28 h-28 sm:w-32 sm:h-32">
                         <div ref={photoRef} className="w-full h-full rounded-full  flex items-center justify-center overflow-hidden bg-gray-100">
                             {photo ? (
@@ -679,13 +683,7 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
                                 <User size={80} className=" text-gray-400"/>
                             )}
                         </div>
-                        {errors.photo && (
-                                <p className="mt-2 text-red-500 text-sm flex items-center gap-1 justify-center">
-                                    <AlertCircle size={14} />
-                                    {errors.photo}
-                                </p>
-                        )}
-                        
+
                         <button
                         type="button"
                         onClick={() => {
@@ -707,6 +705,12 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
                         className="hidden"
                         />
                     </div>
+                    {errors.photo && (
+                                <p className="mt-2 text-red-500 text-sm flex items-center gap-1 justify-center">
+                                    <AlertCircle size={18} />
+                                    {errors.photo}
+                                </p>
+                        )}
                 </div>
 
                 <div className="w-full space-y-8">
@@ -774,7 +778,7 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
 
                             <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] items-center gap-2 md:gap-4">
                                 <label className="flex text-sm font-bold text-[#234463]">
-                                    Nomor Sertifikasi <span className="text-red-500 ml-1">*</span>
+                                    SIPP <span className="text-red-500 ml-1">*</span>
                                 </label>
                                 <input
                                 ref={licenseRef}
