@@ -148,7 +148,11 @@ export default function SignUp(){
                         type="tel"
                         value={telephone}
                         placeholder="+62"
-                        onChange={setTelephone}
+                        onChange={(val) => {
+                            const clean = val.replace(/\D/g, "");
+                            setTelephone(clean);
+                            setTelephoneError(""); 
+                        }}
                         error={telephoneError}
                         onClearError={() => setTelephoneError("")}
                         ></FormField>
