@@ -79,8 +79,6 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
 
     const handleDateClick = (day: number) => {
         const date = new Date(currentYear, currentMonth, day);
-        if (date > new Date()) return;
-
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const dayStr = String(date.getDate()).padStart(2, '0');
@@ -121,18 +119,17 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
     };
 
     return (
-        <div ref={calendarRef} className="relative">
+        <div ref={calendarRef} className={`relative w-full ${className}`}>
             <div
                 onClick={() => setIsOpen(!isOpen)}
                 className={`
-                    w-full max-w-xl sm:max-w-xl px-4 py-2 border rounded-md cursor-pointer
+                    w-full px-4 py-2 border rounded-md cursor-pointer
                     flex items-center justify-between
                     focus:outline-none focus:ring-1 focus:border-transparent
                     ${error 
                         ? 'border-red-500 focus:ring-red-200' 
                         : 'border-[#234463] focus:ring-blue-200'
                     }
-                    ${className}
                 `}
             >
                 <span className={value ? 'text-blue-950' : 'text-gray-400'}>

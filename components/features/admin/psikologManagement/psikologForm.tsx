@@ -1250,7 +1250,7 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
 
                             {/* Schedule List */}
                             {schedules.length > 0 && (
-                            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3 mt-4">
+                            <div className="grid gap-3 mt-4">
                                 {schedules.map((sch) => (
                                 <div key={sch.id} className="space-y-2">
                                     <div
@@ -1271,7 +1271,7 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
                                                 <Trash2 size={12} />
                                             </button>
                                         )}
-                                        <div className="text-sm text-gray-600 flex flex-col items-center sm:flex-row md:flex-col xl:flex-row gap-1 sm:gap-2">
+                                        <div className="text-sm text-gray-600 flex items-center gap-1 sm:gap-2">
                                             <span>{formatDate(sch.date)}</span>
                                             <span>{sch.startTime} ({sch.duration} menit)</span>
                                         </div>
