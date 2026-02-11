@@ -1,183 +1,221 @@
-import { 
-  Users, 
-  Calendar, 
-  CreditCard, 
-  TrendingUp
-} from "lucide-react";
+"use client";
 
-// ✅ Import dari components/features/admin/dashboard
-import StatCard from "@/app/components/features/admin/dashboard/statcard";
-import RecentBookings from "@/app/components/features/admin/dashboard/recentbookings";
-import TodaySchedule from "@/app/components/features/admin/dashboard/todayschedule";
-import PendingPayments from "@/app/components/features/admin/dashboard/pendingpayments";
+import { useState, useEffect } from "react";
+import { Download } from "lucide-react";
+import AnalyticsStats from "@/app/components/features/admin/analytics/AnalyticsStats";
+import BookingChart from "@/app/components/features/admin/analytics/bookingchart";
+import MonthlyChart from "@/app/components/features/admin/analytics/monthlychart";
+import PatientTable from "@/app/components/features/admin/analytics/PatientTable";
+import { mockAnalyticsData, type AnalyticsData } from "@/lib/data/mock-ui-data";
+import { downloadToExcel } from "@/lib/utils/csv-export";
 
-// Import API layer
-import { getAllDashboardData } from "@/lib/api/dashboard";
+export default function AnalyticsPage() {
+  const [data, setData] = useState<AnalyticsData>(mockAnalyticsData);
+  const [selectedYear, setSelectedYear] = useState("2026");
+  const [bookingFilter, setBookingFilter] = useState("Bulan Ini");
 
-// Import mock UI data untuk development/preview
-import { 
-  mockDashboardStats, 
-  mockRecentBookings, 
-  mockPendingPayments, 
-  mockTodaySchedule, 
-  mockAlerts 
-} from "@/lib/data/mock-ui-data";
+  useEffect(() => {
+    // TODO: Fetch data dari API berdasarkan filter
+    console.log("Filter changed:", { selectedYear, bookingFilter });
+  }, [selectedYear, bookingFilter]);
 
-export default async function Dashboard() {
-  let dashboardData = null;
-  let error = null;
-  const showMockUI = process.env.NEXT_PUBLIC_SHOW_MOCK_UI === 'true';
-
-  try {
-    // Fetch data dari API layer (tidak hardcoded)
-    dashboardData = await getAllDashboardData();
-  } catch (err) {
-    error = err instanceof Error ? err.message : 'Gagal memuat data dashboard';
-    if (!showMockUI) {
-      console.error('Dashboard Error:', error);
-    }
-    
-    // Jika SHOW_MOCK_UI aktif, gunakan mock data untuk preview UI
-    if (showMockUI) {
-      dashboardData = {
-        stats: mockDashboardStats,
-        recentBookings: mockRecentBookings,
-        pendingPayments: mockPendingPayments,
-        todaySchedule: mockTodaySchedule,
-        alerts: mockAlerts
-      };
-      error = null; // Clear error jika menampilkan mock UI
-    }
-  }
-
-  // Jika SHOW_MOCK_UI aktif dan belum ada data, gunakan mock
-  if (showMockUI && !dashboardData) {
-    dashboardData = {
-      stats: mockDashboardStats,
-      recentBookings: mockRecentBookings,
-      pendingPayments: mockPendingPayments,
-      todaySchedule: mockTodaySchedule,
-      alerts: mockAlerts
+  const handleExportAll = () => {
+    const exportData = {
+      'Ringkasan': [
+        { Kategori: 'Total Pengguna', Nilai: data.stats.totalUsers },
+        { Kategori: 'Total Pengunjung', Nilai: data.stats.totalVisitors },
+        { Kategori: 'Klien Lama', Nilai: data.bookings.returning },
+        { Kategori: 'Klien Baru', Nilai: data.bookings.new },
+        { Kategori: 'Pendapatan Lunas', Nilai: `Rp ${data.revenue.paid.toLocaleString('id-ID')}` },
+        { Kategori: 'Pendapatan DP', Nilai: `Rp ${data.revenue.dp.toLocaleString('id-ID')}` },
+      ],
+      'Pasien Per Bulan': data.monthlyPatients.map(m => ({
+        Bulan: m.month,
+        'Jumlah Pasien': m.value
+      })),
+      'Tes Terbanyak': data.topTests.map(t => ({
+        Nama: t.name,
+        Persentase: `${t.percentage}%`
+      })),
+      'Layanan Terbanyak': data.topServices.map(s => ({
+        Nama: s.name,
+        Persentase: `${s.percentage}%`
+      })),
+      'Data Pasien': data.patients.map(p => ({
+        Nama: p.name,
+        Layanan: p.service,
+        Tanggal: p.date,
+        Keterangan: p.description || '-',
+        'Jumlah Booking': p.bookingCount || 0
+      }))
     };
-  }
 
-  // Jika error dan bukan mode mock UI, tampilkan pesan error
-  if (error || !dashboardData) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard Admin</h1>
-          <p className="text-gray-600 mt-1">
-            Selamat datang kembali! Berikut ringkasan hari ini
-          </p>
-        </div>
-
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-5 h-5 rounded-full bg-red-500" />
-            <h2 className="text-lg font-semibold text-red-900">Koneksi Backend Error</h2>
-          </div>
-          <p className="text-red-800 text-sm">
-            Tidak dapat terhubung ke server backend. Pastikan backend API berjalan di:
-            <code className="block mt-2 p-2 bg-red-100 rounded text-xs font-mono">
-              {process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}
-            </code>
-          </p>
-          <details className="mt-4 text-sm">
-            <summary className="cursor-pointer text-red-700 font-medium">Error Details</summary>
-            <pre className="mt-2 p-2 bg-red-100 rounded text-xs overflow-auto">
-              {error}
-            </pre>
-          </details>
-        </div>
-      </div>
-    );
-  }
-
-  const { stats, recentBookings, pendingPayments, todaySchedule, alerts } = dashboardData;
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0
-    }).format(amount);
+    downloadToExcel(exportData, `analytics-complete-${Date.now()}.xlsx`);
   };
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard Admin</h1>
-        <p className="text-gray-600 mt-1">
-          Selamat datang kembali! Berikut ringkasan hari ini
-        </p>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-[#2B5379]">Analytics</h1>
+          <p className="text-sm text-gray-600 mt-1">Laporan dan statistik platform</p>
+        </div>
+        <button
+          onClick={handleExportAll}
+          className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#2B5379] rounded-lg hover:bg-[#1e3d57] transition-colors"
+        >
+          <Download size={16} />
+          Export Lengkap
+        </button>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Total Pasien"
-          value={stats.totalPatients}
-          icon={Users}
-          iconBgColor="bg-blue-100"
-          iconColor="text-blue-600"
-          trend={{
-            value: `+${stats.newPatientsThisMonth}`,
-            label: "bulan ini",
-            isPositive: true
-          }}
+      {/* Top Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <AnalyticsStats 
+          label="Total Pengguna" 
+          value={data.stats.totalUsers} 
         />
-
-        <StatCard
-          title="Booking Hari Ini"
-          value={stats.todayBookings}
-          icon={Calendar}
-          iconBgColor="bg-green-100"
-          iconColor="text-green-600"
-          trend={{
-            value: `${stats.upcomingBookings} upcoming`,
-            label: "",
-            isPositive: true
-          }}
-        />
-
-        <StatCard
-          title="Pending Pembayaran"
-          value={stats.pendingPayments}
-          icon={CreditCard}
-          iconBgColor="bg-orange-100"
-          iconColor="text-orange-600"
-          subtitle="Perlu validasi"
-        />
-
-        <StatCard
-          title="Revenue Feb 2026"
-          value={formatCurrency(stats.monthlyRevenue)}
-          icon={TrendingUp}
-          iconBgColor="bg-emerald-100"
-          iconColor="text-emerald-600"
-          trend={{
-            value: `+${stats.revenueGrowth}%`,
-            label: "vs Januari",
-            isPositive: true
-          }}
+        <AnalyticsStats
+          label="Total Pengunjung"
+          value={data.stats.totalVisitors}
         />
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <RecentBookings bookings={recentBookings} />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Booking Pie Chart */}
+        <div className="lg:col-span-5">
+          <div className="bg-white rounded-xl border border-gray-200 p-6 h-full">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-[#2B5379]">Booking</h3>
+              <select
+                value={bookingFilter}
+                onChange={(e) => setBookingFilter(e.target.value)}
+                className="text-sm text-gray-600 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#2B5379] focus:border-transparent cursor-pointer bg-white"
+              >
+                <option>Bulan Ini</option>
+                <option>3 Bulan Terakhir</option>
+                <option>Tahun Ini</option>
+              </select>
+            </div>
+            <BookingChart data={data.bookings} />
+          </div>
         </div>
 
-        <div>
-          <TodaySchedule schedule={todaySchedule} />
+        {/* Monthly Bar Chart */}
+        <div className="lg:col-span-7">
+          <div className="bg-white rounded-xl border border-gray-200 p-6 h-full">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-[#2B5379]">
+                Pasien Per Bulan
+              </h3>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+                className="text-sm text-gray-600 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#2B5379] focus:border-transparent cursor-pointer bg-white"
+              >
+                <option>2026</option>
+                <option>2025</option>
+                <option>2024</option>
+              </select>
+            </div>
+            <MonthlyChart data={data.monthlyPatients} height={280} />
+          </div>
         </div>
       </div>
 
-      {/* Pending Payments */}
-      <PendingPayments payments={pendingPayments} />
+      {/* Bottom Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Revenue */}
+        <div className="lg:col-span-3">
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-[#2B5379] mb-4">
+              Pendapatan
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <div className="text-sm text-gray-600 mb-1">Lunas</div>
+                <div className="text-xl font-semibold text-[#2B5379]">
+                  Rp {data.revenue.paid.toLocaleString("id-ID")}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-600 mb-1">DP</div>
+                <div className="text-xl font-semibold text-[#2B5379]">
+                  Rp {data.revenue.dp.toLocaleString("id-ID")}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Top Tests */}
+        <div className="lg:col-span-4">
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-[#2B5379] mb-4">
+              Tes Terbanyak
+            </h3>
+            <div className="space-y-3">
+              {data.topTests.map((item) => (
+                <div key={item.id}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-sm font-medium text-gray-900 truncate">
+                      {item.name}
+                    </span>
+                    <span className="text-sm text-gray-600 ml-2">
+                      {item.percentage}%
+                    </span>
+                  </div>
+                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-[#2B5379] rounded-full transition-all duration-500"
+                      style={{ width: `${item.percentage}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Top Services */}
+        <div className="lg:col-span-5">
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-[#2B5379] mb-4">
+              Layanan Terbanyak
+            </h3>
+            <div className="space-y-3">
+              {data.topServices.map((item) => (
+                <div key={item.id}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-sm font-medium text-gray-900 truncate">
+                      {item.name}
+                    </span>
+                    <span className="text-sm text-gray-600 ml-2">
+                      {item.percentage}%
+                    </span>
+                  </div>
+                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-[#2B5379] rounded-full transition-all duration-500"
+                      style={{ width: `${item.percentage}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Patient Table */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <PatientTable 
+          data={data.patients} 
+          fullAnalyticsData={data}
+        />
+      </div>
     </div>
   );
 }

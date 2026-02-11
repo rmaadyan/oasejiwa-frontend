@@ -2,6 +2,36 @@
 // 🔧 CONFIG: Backend API Configuration
 // ========================================
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+export interface AnalyticsFilters {
+  bookingMonth?: string; // Format: "2026-02"
+  patientYear?: number;  // Format: 2026
+}
+
+export async function getAnalytics(filters?: AnalyticsFilters) {
+  try {
+    const params = new URLSearchParams();
+    
+    if (filters?.bookingMonth) {
+      params.append('bookingMonth', filters.bookingMonth);
+    }
+    
+    if (filters?.patientYear) {
+      params.append('patientYear', filters.patientYear.toString());
+    }
+
+    // TODO: Ganti dengan API endpoint real Anda
+    const response = await fetch(`/api/analytics?${params.toString()}`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch analytics');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching analytics:', error);
+    throw error;
+  }
+}
 
 // ========================================
 // 📊 GET: Analytics Stats

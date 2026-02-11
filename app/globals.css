@@ -19,3 +19,60 @@
     background-color: rgba(0, 0, 0, 0.3);
   }
 }
+
+/* Tambahkan di bagian bawah file globals.css */
+
+/* Custom DatePicker Styles */
+.react-datepicker-wrapper {
+  display: inline-block;
+  width: auto;
+}
+
+.react-datepicker__input-container input {
+  text-align: center;
+}
+
+.react-datepicker {
+  font-family: inherit;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+}
+
+.react-datepicker__header {
+  background-color: #2B5379;
+  border-bottom: none;
+  border-radius: 0.5rem 0.5rem 0 0;
+  padding-top: 0.5rem;
+}
+
+.react-datepicker__current-month {
+  color: white;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.react-datepicker__month-wrapper {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.react-datepicker__month-text {
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s;
+}
+
+.react-datepicker__month-text:hover {
+  background-color: #D1EAFF;
+  color: #2B5379;
+}
+
+.react-datepicker__month-text--keyboard-selected {
+  background-color: #2B5379;
+  color: white;
+}
+
+.react-datepicker__month-text--keyboard-selected:hover {
+  background-color: #1e3d57;
+}

@@ -19,23 +19,25 @@ export default function SecondaryStatCard({
   links
 }: SecondaryStatCardProps) {
   return (
-    <div className={`${gradient} rounded-xl p-6 border`}>
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <p className="text-sm font-medium opacity-80">{title}</p>
-          <p className="text-2xl font-bold mt-1">{value}</p>
-          {subtitle && <p className="text-xs mt-1 opacity-70">{subtitle}</p>}
+    <div className={`${gradient} rounded-xl p-6 border border-gray-200`}>
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-gray-700">{title}</p>
+          <p className="text-3xl font-bold text-[#2B5379] mt-2">{value}</p>
+          {subtitle && <p className="text-xs mt-1 text-gray-600">{subtitle}</p>}
         </div>
-        <Icon className="h-10 w-10 opacity-80" />
+        <div className="h-12 w-12 bg-white rounded-lg flex items-center justify-center">
+          <Icon className="h-6 w-6 text-[#2B5379]" />
+        </div>
       </div>
       
       {links && (
-        <div className="space-y-2 mt-3">
+        <div className="space-y-2 mt-4 pt-4 border-t border-gray-200">
           {links.map((link, idx) => (
             <Link 
               key={idx}
               href={link.href}
-              className="block text-xs font-medium hover:opacity-70 transition-opacity"
+              className="block text-xs font-medium text-[#2B5379] hover:text-[#1e3d57] transition-colors"
             >
               → {link.label}
             </Link>
