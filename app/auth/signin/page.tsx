@@ -5,72 +5,7 @@ import FormField from "@/components/common/formField";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthLayout from "@/components/features/user/authLayout";
-
-const PASSWORD_RULES = [
-    { label: "Minimal 8 karakter",              test: (p: string) => p.length >= 8 },
-    { label: "Maksimal 64 karakter",            test: (p: string) => p.length <= 64 },
-    { label: "Mengandung huruf kapital (A-Z)",  test: (p: string) => /[A-Z]/.test(p) },
-    { label: "Mengandung huruf kecil (a-z)",    test: (p: string) => /[a-z]/.test(p) },
-    { label: "Mengandung angka (0-9)",          test: (p: string) => /[0-9]/.test(p) },
-    { label: "Mengandung karakter khusus (!@#$%^&*)",  test: (p: string) => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(p) },
-];
-
-const POPULAR_DOMAINS = [
-    "gmail.com", "yahoo.com", "hotmail.com", "outlook.com",
-    "mail.com", "protonmail.com", "icloud.com", "aol.com",
-
-    "zoho.com", "fastmail.com", "mailbox.org", "tutanota.com",
-    "yandex.com", "rediff.com", "gmx.com",
-
-    "yahoo.co.id", "yahoo.co.uk", "yahoo.co.jp",
-    "outlook.co.id",
-];
-
-function validateEmail(email: string): string {
-    if (!email.trim()) return "Email tidak boleh kosong";
-    if (/\s/.test(email)) return "Email tidak boleh mengandung spasi";
-    const atCount = (email.match(/@/g) || []).length;
-    if (atCount === 0) return "Email harus mengandung '@'";
-    if (atCount > 1)  return "Email hanya boleh mengandung satu '@'";
-
-    const [local, domain] = email.split("@");
-    if (!local)                          return "Bagian sebelum '@' tidak boleh kosong";
-    if (local.length > 64)               return "Bagian sebelum '@' maksimal 64 karakter";
-    if (local.startsWith("."))           return "Bagian sebelum '@' tidak boleh dimulai dengan titik";
-    if (local.endsWith("."))             return "Bagian sebelum '@' tidak boleh diakhiri dengan titik";
-    if (/\.\./.test(local))              return "Bagian sebelum '@' tidak boleh mengandung dua titik berurutan";
-    if (!/^[a-zA-Z0-9._%+\-]+$/.test(local)) return "Bagian sebelum '@' mengandung karakter yang tidak diizinkan";
-
-    if (!domain)                         return "Bagian domain tidak boleh kosong";
-    if (!domain.includes("."))           return "Domain harus mengandung minimal satu titik (misal: gmail.com)";
-    if (domain.startsWith("."))          return "Domain tidak boleh dimulai dengan titik";
-    if (domain.endsWith("."))            return "Domain tidak boleh diakhiri dengan titik";
-    if (/\.\./.test(domain))             return "Domain tidak boleh mengandung dua titik berurutan";
-
-    const domainParts = domain.split(".");
-    for (const part of domainParts) {
-        if (!part)                                          return "Domain tidak boleh mengandung bagian kosong";
-        if (!/^[a-zA-Z0-9\-]+$/.test(part))                return "Domain hanya boleh mengandung huruf, angka, dan tanda hubung (-)";
-        if (part.startsWith("-") || part.endsWith("-"))     return "Setiap bagian domain tidak boleh dimulai atau diakhiri dengan tanda hubung (-)";
-    }
-
-    const ALLOWED_TLDS = [
-    "com", "org", "net", "edu", "gov", "mil",
-    "co", "io", "id", "us", "uk", "au", "ca", "de", "fr", "jp", "sg",
-    "info", "biz", "me", "tv", "dev", "app", "cloud",
-    "web", "store", "online", "site", "tech", "xyz",
-    ];
-
-    const tld = domainParts[domainParts.length - 1].toLowerCase();
-    if (!ALLOWED_TLDS.includes(tld)) return `TLD "${tld}" tidak dikenali. Gunakan TLD yang valid (misal: com, org, id)`;
-
-    const fullDomain = domain.toLowerCase();
-    if (!POPULAR_DOMAINS.includes(fullDomain)) {
-        return `Domain "${fullDomain}" tidak dikenali. Gunakan email dari provider resmi (misal: gmail.com, yahoo.com)`;
-    }
-
-    return ""; 
-}
+import { useAuthValidation } from "@/hooks/use-auth-validation";
 
 export default function SignIn() {
     const [email, setEmail] = useState("");
@@ -78,46 +13,32 @@ export default function SignIn() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
     const router = useRouter();
-    const [emailError, setEmailError]     = useState("");
-    const [passwordError, setPasswordError] = useState("");
 
-    const passwordRuleStatus = PASSWORD_RULES.map((rule) => ({
-        ...rule,
-        passed: rule.test(password),
-    }));
+    const {
+        emailError,
+        passwordError,
+        setEmailError,
+        setPasswordError,
+        validate,
+        getPasswordRuleStatus,
+    } = useAuthValidation();
 
-    const allPasswordRulesPassed = passwordRuleStatus.every((r) => r.passed);
+    const passwordRules = getPasswordRuleStatus(password);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
-        setEmailError("");
-        setPasswordError("");
         setIsLoading(true);
 
-        const emailErr = validateEmail(email);
-        if (emailErr) {
-            setEmailError(emailErr);
+        const isValid = validate(email, password);
+            if (!isValid) {
             setIsLoading(false);
             return;
         }
 
-        if (!password) {
-            setPasswordError("Password tidak boleh kosong");
-            setIsLoading(false);
-            return;
-        }
-        if (!allPasswordRulesPassed) {
-            setPasswordError("Password tidak memenuhi semua ketentuan di atas");
-            setIsLoading(false);
-            return;
-        }
-
-        setTimeout(() => {
-            router.push("/userprofile");
-            setIsLoading(false);
-        }, 100);
+        router.push("/userprofile");
+        setIsLoading(false);
     };
+
     return (
         <div>
             <AuthLayout
@@ -154,7 +75,7 @@ export default function SignIn() {
                             enableToggle={true}
                             error={passwordError}
                             onClearError={() => setPasswordError("")}
-                            passwordRules={password.length > 0 ? passwordRuleStatus : undefined}  
+                            passwordRules={password.length > 0 ? passwordRules : undefined}  
                         />
 
                             {error && (
