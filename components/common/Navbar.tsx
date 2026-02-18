@@ -7,7 +7,7 @@ import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 export default function Navbar() {
-  const [isSpecialPage, setIsSpecialPage] = useState(false); // About atau Booking
+  const [isSpecialPage, setIsSpecialPage] = useState(false); 
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -15,9 +15,8 @@ export default function Navbar() {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
-    // Deteksi jika di halaman about atau booking
     const pathname = window.location.pathname;
-    setIsSpecialPage(pathname === "/about" || pathname.startsWith("/booking"));
+    setIsSpecialPage(pathname === "/about" || pathname.startsWith("/booking") || pathname.startsWith("/layanan") || pathname.startsWith("/psikologlist") || pathname.startsWith("/psikologdetail"));
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -25,9 +24,9 @@ export default function Navbar() {
   const navItems = [
     { name: "Beranda", href: "/" },
     { name: "Tentang Kami", href: "/about" },
-    { name: "Layanan Kami", href: "/booking" },
-    { name: "Testimoni", href: "#testimonials" },
-    { name: "FAQ", href: "#faq" },
+    { name: "Layanan Kami", href: "/layanan" },
+    { name: "Psikolog", href: "/psikologlist" },
+    { name: "Tes Psikologi", href: "#faq" },
   ];
 
   return (

@@ -13,7 +13,7 @@ export default function CeoMessageSection() {
           <div className="flex justify-center lg:justify-start">
             <div className="relative w-[250px] h-[350px] md:w-[302px] md:h-[415px] rounded-[700px] overflow-hidden shadow-2xl ring-4 ring-white/50 hover:ring-[#2B5379]/30 transition-all duration-300 group">
               <Image
-                src="/assets/about-us/about-us.jpg"
+                src="/assets/about-us/founder.JPG"
                 alt="CEO"
                 fill
                 className="object-cover transition-transform duration-500 group-hover:scale-105"

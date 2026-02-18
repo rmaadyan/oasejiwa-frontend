@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef } from "react"
 import {BadgeCheck, GraduationCap, Stethoscope, Calendar, ChevronLeft, ChevronRight} from "lucide-react";
-import Navbar from "@/components/common/navbar";
+import Navbar from "@/components/common/Navbar";
 
 const scrollAmount = 150;
 
