@@ -8,7 +8,8 @@ import {
   CreditCard, 
   BarChart3, 
   LogOut,
-  ChevronRight
+  ChevronRight,
+  FileText,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -51,6 +52,11 @@ export default function AdminSidebar({ onClose }: AdminSidebarProps) {
       label: "Validasi Pembayaran", 
       href: "/admin/payments" 
     },
+    { 
+      icon: FileText,
+      label: "Manajemen Tes",
+      href: "/admin/tests",
+    },
   ];
 
   // Check if current path matches menu item
@@ -62,7 +68,7 @@ export default function AdminSidebar({ onClose }: AdminSidebarProps) {
   };
 
   return (
-    <aside className="h-screen w-72 bg-gradient-to-b from-white to-gray-50 border-r border-gray-200 shadow-sm">
+    <aside className="h-screen w-72 bg-linear-to-b from-white to-gray-50 border-r border-gray-200 shadow-sm">
       <div className="flex h-full flex-col">
         {/* Logo Section - Simple */}
         <div className="border-b border-gray-200 px-6 py-6">
