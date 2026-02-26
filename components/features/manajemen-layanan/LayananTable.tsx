@@ -90,7 +90,7 @@ export default function LayananTable({
   return (
     <div className="rounded-2xl bg-white p-4 shadow-sm">
       {/* Header: 5 kolom (No + 3 field + Aksi) */}
-      <div className="grid grid-cols-5 px-6 py-3 text-sm font-medium text-gray-500">
+      <div className="grid grid-cols-[50px_2fr_1fr_1fr_100px] px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-400 border-b border-dashed border-gray-200">
         <div>No</div>
 
         <button
@@ -98,7 +98,7 @@ export default function LayananTable({
           className="flex items-center text-left"
           onClick={() => handleSort("nama")}
         >
-          <span>Nama Layanan</span>
+          <span>Layanan</span>
           {renderSortIcon("nama")}
         </button>
 
@@ -107,7 +107,7 @@ export default function LayananTable({
           className="flex items-center text-left"
           onClick={() => handleSort("harga")}
         >
-          <span>Harga (Rp)</span>
+          <span>Investasi</span>
           {renderSortIcon("harga")}
         </button>
 
@@ -123,63 +123,94 @@ export default function LayananTable({
         <div className="text-right">Aksi</div>
       </div>
 
-      {/* Isi tabel: 5 kolom */}
-      <div className="space-y-3">
+      {/* Isi tabel */}
+      <div className="space-y-3 mt-3">
         {sortedData.length === 0 ? (
-          <div className="px-6 py-10 text-center text-sm text-gray-400">
-            Data tidak ditemukan
+          <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+              <Eye className="w-6 h-6 text-gray-300" />
+            </div>
+            <p className="text-gray-500 font-medium">Belum ada layanan</p>
+            <p className="text-sm text-gray-400 mt-1">Silakan tambahkan layanan baru</p>
           </div>
         ) : (
           sortedData.map((item, index) => (
             <div
               key={item.id}
-              className="grid grid-cols-5 items-center rounded-xl border bg-white px-6 py-4 shadow-sm"
+              className="group grid grid-cols-[50px_2fr_1fr_1fr_100px] items-center rounded-2xl border border-gray-100 bg-white px-6 py-4 transition-all duration-300 hover:shadow-lg hover:border-[#E8F6FF] hover:-translate-y-0.5"
             >
-              <div className="text-sm text-gray-400">
+              <div className="text-sm font-medium text-gray-400 group-hover:text-[#2B5379]">
                 {startIndex + index}
               </div>
 
-              <div className="text-sm font-medium text-gray-700">
-                {item.nama}
+              <div className="flex items-center gap-4 pr-4">
+                {/* Image / Icon Placeholder */}
+                <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl bg-gray-100 ring-1 ring-gray-100 group-hover:ring-[#2B5379]/20 transition-all">
+                  {item.coverUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.coverUrl}
+                      alt={item.nama}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 text-gray-400">
+                      <span className="text-[10px] font-bold">OJ</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="min-w-0">
+                  <div className="truncate text-base font-semibold text-gray-800 group-hover:text-[#2B5379] transition-colors">
+                    {item.nama}
+                  </div>
+                  <div className="mt-0.5 flex flex-wrap gap-2 text-xs text-gray-500">
+                    <span className="truncate max-w-[200px]">{item.jenis}</span>
+                    <span className="text-gray-300">•</span>
+                    <span className="bg-gray-50 px-1.5 py-0.5 rounded text-[10px] uppercase font-medium tracking-wide border border-gray-100">
+                      {item.kategori}
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              <div className="text-sm text-gray-700">
-                {item.harga.toLocaleString("id-ID")}
+              <div className="text-sm font-semibold text-[#2B5379]">
+                Rp {item.harga.toLocaleString("id-ID")}
               </div>
 
               <div>
                 <span
-                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                    item.status === "Aktif"
-                      ? "bg-emerald-50 text-emerald-600"
-                      : "bg-yellow-50 text-yellow-700"
-                  }`}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold tracking-wide border ${item.status === "Aktif"
+                    ? "bg-emerald-50 text-emerald-600 border-emerald-100/50"
+                    : "bg-gray-50 text-gray-600 border-gray-200"
+                    }`}
                 >
+                  <span className={`h-1.5 w-1.5 rounded-full ${item.status === "Aktif" ? "bg-emerald-500" : "bg-gray-400"}`}></span>
                   {item.status}
                 </span>
               </div>
 
-              <div className="flex justify-end gap-3 text-gray-500">
+              <div className="flex justify-end gap-2 text-gray-400 opacity-80 group-hover:opacity-100 transition-opacity">
                 <button
-                  className="hover:text-blue-600"
+                  className="p-2 rounded-lg hover:bg-blue-50 hover:text-[#2B5379] transition-colors"
                   aria-label="Edit"
                   onClick={() => onEdit(item)}
                 >
-                  <Pencil size={18} />
+                  <Pencil size={16} />
                 </button>
                 <button
-                  className="hover:text-gray-800"
+                  className="p-2 rounded-lg hover:bg-gray-50 hover:text-gray-800 transition-colors"
                   aria-label="View"
                   onClick={() => onPreview(item)}
                 >
-                  <Eye size={18} />
+                  <Eye size={16} />
                 </button>
                 <button
-                  className="hover:text-red-600"
+                  className="p-2 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors"
                   aria-label="Delete"
                   onClick={() => onDelete(item)}
                 >
-                  <Trash2 size={18} />
+                  <Trash2 size={16} />
                 </button>
               </div>
             </div>

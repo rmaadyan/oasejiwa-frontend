@@ -38,7 +38,7 @@ function PaymentMethodInner({
   };
 
   return (
-    <>
+    <main className="min-h-screen bg-[#f5f7fb]">
       <BookingHero
         title={
           <>
@@ -51,7 +51,7 @@ function PaymentMethodInner({
 
       <section className="max-w-5xl mx-auto px-4 py-8">
         <div className="mb-8 animate-fadeIn stagger-2">
-          <BookingStepper currentStep={5} />
+          <BookingStepper currentStep={4} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -83,7 +83,7 @@ function PaymentMethodInner({
           </button>
         </div>
       </section>
-    </>
+    </main>
   );
 }
 
@@ -91,7 +91,7 @@ export default function PaymentMethodContent(props: PaymentMethodContentProps) {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="min-h-screen bg-[#f5f7fb] flex items-center justify-center">
           <div className="animate-spin w-8 h-8 border-4 border-[#2B5379] border-t-transparent rounded-full" />
         </div>
       }

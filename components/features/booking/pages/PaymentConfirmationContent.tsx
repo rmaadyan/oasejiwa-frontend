@@ -105,7 +105,7 @@ function PaymentConfirmationInner({
   }
 
   return (
-    <>
+    <main className="min-h-screen bg-[#f5f7fb]">
       <BookingHero
         title={
           <>
@@ -145,7 +145,7 @@ function PaymentConfirmationInner({
 
         <PaymentHelpSection />
       </section>
-    </>
+    </main>
   );
 }
 
@@ -155,7 +155,7 @@ export default function PaymentConfirmationContent(
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="min-h-screen bg-[#f5f7fb] flex items-center justify-center">
           <div className="animate-spin w-8 h-8 border-4 border-[#2B5379] border-t-transparent rounded-full" />
         </div>
       }

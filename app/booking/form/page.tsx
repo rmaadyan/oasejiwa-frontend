@@ -4,6 +4,8 @@ import { useState, Suspense, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import BookingStepper from "@/components/booking/BookingStepper";
 import { z } from "zod";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas-pro";
 import {
   User,
   Calendar,
@@ -19,7 +21,6 @@ import {
   FileText,
   Shield,
   PenTool,
-  Printer,
   Download,
 } from "lucide-react";
 
@@ -129,8 +130,8 @@ function ConsultationFormContent() {
     agreedToTerms: false,
   });
 
-  // Print preview state
-  const [showPrintPreview, setShowPrintPreview] = useState(false);
+  // PDF download state
+  const [isDownloading, setIsDownloading] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
   // Generate booking ID
@@ -278,9 +279,133 @@ function ConsultationFormContent() {
     }
   };
 
-  // Print handler
-  const handlePrint = () => {
-    window.print();
+  // PDF download handler (matching HasilTesPage style)
+  const generatePDF = async () => {
+    setIsDownloading(true);
+    try {
+      const element = document.getElementById("booking-form-pdf-content");
+      if (!element) {
+        setIsDownloading(false);
+        return;
+      }
+
+      const cloneElement = element.cloneNode(true) as HTMLElement;
+
+      const tempWrapper = document.createElement("div");
+      tempWrapper.style.position = "absolute";
+      tempWrapper.style.left = "-9999px";
+      tempWrapper.style.top = "-9999px";
+      tempWrapper.style.backgroundColor = "#ffffff";
+      tempWrapper.style.padding = "0";
+      tempWrapper.style.width = "900px";
+      tempWrapper.appendChild(cloneElement);
+      document.body.appendChild(tempWrapper);
+
+      const allElements = cloneElement.querySelectorAll<HTMLElement>("*");
+      allElements.forEach((el) => {
+        const computed = window.getComputedStyle(el);
+        const bg = computed.backgroundColor;
+        const col = computed.color;
+        const border = computed.borderColor;
+
+        if (bg && bg !== "rgba(0, 0, 0, 0)") el.style.backgroundColor = bg;
+        if (col && col !== "rgba(0, 0, 0, 0)") el.style.color = col;
+        if (border && border !== "rgba(0, 0, 0, 0)") el.style.borderColor = border;
+      });
+
+      const styleTags = cloneElement.querySelectorAll("style");
+      styleTags.forEach((tag) => tag.remove());
+
+      const canvas = await html2canvas(cloneElement, {
+        scale: 2,
+        backgroundColor: "#ffffff",
+        allowTaint: true,
+        useCORS: true,
+        logging: false,
+        width: 900,
+        ignoreElements: (el) =>
+          el.tagName === "SCRIPT" || el.tagName === "NOSCRIPT",
+        onclone: (clonedDoc) => {
+          const imgs = clonedDoc.querySelectorAll("img");
+          imgs.forEach((img) => {
+            if (!img.getAttribute("crossorigin")) {
+              img.setAttribute("crossorigin", "anonymous");
+            }
+          });
+        },
+      });
+
+      document.body.removeChild(tempWrapper);
+
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 7;
+      const contentWidth = pageWidth - margin * 2;
+      const contentHeight = pageHeight - margin * 2;
+
+      // Calculate how tall the image would be in mm when scaled to fit content width
+      const scaledImgHeightMm = (canvas.height * contentWidth) / canvas.width;
+
+      // Calculate the canvas pixel height that corresponds to one PDF page
+      const pageCanvasHeight = Math.floor(
+        (contentHeight / scaledImgHeightMm) * canvas.height
+      );
+
+      const totalPages = Math.ceil(canvas.height / pageCanvasHeight);
+
+      for (let page = 0; page < totalPages; page++) {
+        if (page > 0) {
+          pdf.addPage();
+        }
+
+        // Calculate the slice of the source canvas for this page
+        const sourceY = page * pageCanvasHeight;
+        const sourceH = Math.min(pageCanvasHeight, canvas.height - sourceY);
+
+        // Create a temporary canvas for this page slice
+        const pageCanvas = document.createElement("canvas");
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = sourceH;
+        const pageCtx = pageCanvas.getContext("2d");
+        if (!pageCtx) continue;
+
+        // Fill with white background, then draw the slice
+        pageCtx.fillStyle = "#ffffff";
+        pageCtx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+        pageCtx.drawImage(
+          canvas,
+          0, sourceY, canvas.width, sourceH,
+          0, 0, canvas.width, sourceH
+        );
+
+        const pageImgData = pageCanvas.toDataURL("image/png");
+        const sliceHeightMm = (sourceH * contentWidth) / canvas.width;
+
+        pdf.addImage(
+          pageImgData,
+          "PNG",
+          margin,
+          margin,
+          contentWidth,
+          sliceHeightMm
+        );
+      }
+
+      const safeName = dummyClientData.fullName.replace(/[\\/:*?"<>|]/g, "_");
+      const fileName = `Formulir-Konsultasi-${safeName}.pdf`;
+
+      pdf.save(fileName);
+    } catch (err) {
+      console.error("PDF Error:", err);
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   // Helper functions for print labels
@@ -307,235 +432,319 @@ function ConsultationFormContent() {
     return labels[field]?.[value || ""] || value || "-";
   };
 
-  // Printable Form Component
+  // Printable Form Component (matching HasilTesPage style)
   const renderPrintableForm = () => (
-    <div ref={printRef} className="print-content hidden print:block bg-white">
-      {/* Print Header - Letterhead */}
-      <div className="print-header border-b-2 border-[#2B5379] pb-4 mb-6">
-        <div className="flex justify-between items-start">
+    <div
+      id="booking-form-pdf-content"
+      className="rounded-xl bg-white p-8 shadow-sm"
+      style={{ fontFamily: "Arial, sans-serif", position: "absolute", left: "-9999px", top: "-9999px", width: "900px" }}
+    >
+      {/* HEADER DENGAN LOGO - matching HasilTesPage */}
+      <div className="mb-5 flex items-start justify-between border-b border-gray-200 pb-3">
+        <div className="flex items-center gap-4">
+          <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-white">
+            <img
+              src="\assets\oasejiwalogo.png"
+              alt="Logo Oase Jiwa"
+              crossOrigin="anonymous"
+              className="h-12 w-12 object-contain"
+              style={{ display: "block" }}
+            />
+          </div>
           <div>
-            <h1 className="text-2xl font-bold text-[#2B5379]">OASE JIWA</h1>
-            <p className="text-sm text-gray-600">Layanan Konseling Psikologi Profesional</p>
+            <h1 className="text-xl font-bold text-[#1964ae]">
+              Oase Jiwa
+            </h1>
+            <p className="text-[11px] text-gray-600">
+              Kenali Dirimu, Pulihkan Jiwamu
+            </p>
           </div>
-          <div className="text-right text-sm">
-            <p><strong>ID Booking:</strong> {bookingId}</p>
-            <p><strong>Tanggal Cetak:</strong> {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</p>
+        </div>
+        <div className="text-right text-[11px] text-gray-600">
+          <p className="font-semibold text-[#1964ae]">
+            Biro Psikologi Oase Jiwa
+          </p>
+          <p>Perumahan d&apos; soeta residence D no.1</p>
+          <p>Desa Tegalgondo, Kec. Karangploso, Kab. Malang</p>
+        </div>
+      </div>
+
+      {/* DATA KLIEN - matching HasilTesPage style */}
+      <div className="mb-4 border-b border-gray-200 pb-3">
+        <p className="mb-2 text-xs font-semibold text-[#1964ae]">
+          Data Klien
+        </p>
+        <div className="space-y-1 text-xs text-gray-800">
+          <div className="flex gap-2">
+            <span className="w-28 font-semibold text-[#1f3b5b]">Tanggal</span>
+            <span>:</span>
+            <span>
+              {new Date().toLocaleDateString("id-ID", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })}{" "}
+              ({new Date().toLocaleTimeString("id-ID", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })})
+            </span>
+          </div>
+          <div className="flex gap-2">
+            <span className="w-28 font-semibold text-[#1f3b5b]">ID Booking</span>
+            <span>:</span>
+            <span>{bookingId}</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="w-28 font-semibold text-[#1f3b5b]">Nama</span>
+            <span>:</span>
+            <span>{dummyClientData.fullName}</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="w-28 font-semibold text-[#1f3b5b]">Jenis Kelamin</span>
+            <span>:</span>
+            <span>{getLabelForValue("gender", dummyClientData.gender)}</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="w-28 font-semibold text-[#1f3b5b]">Tanggal Lahir</span>
+            <span>:</span>
+            <span>{new Date(dummyClientData.birthDate).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="w-28 font-semibold text-[#1f3b5b]">Usia</span>
+            <span>:</span>
+            <span>{dummyClientData.age} tahun</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="w-28 font-semibold text-[#1f3b5b]">Alamat</span>
+            <span>:</span>
+            <span>{dummyClientData.address}</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="w-28 font-semibold text-[#1f3b5b]">Telepon</span>
+            <span>:</span>
+            <span>{dummyClientData.phone}</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="w-28 font-semibold text-[#1f3b5b]">Email</span>
+            <span>:</span>
+            <span>{dummyClientData.email}</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="w-28 font-semibold text-[#1f3b5b]">Pekerjaan</span>
+            <span>:</span>
+            <span>{dummyClientData.occupation}</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="w-28 font-semibold text-[#1f3b5b]">Status</span>
+            <span>:</span>
+            <span>{getLabelForValue("maritalStatus", dummyClientData.maritalStatus)}</span>
           </div>
         </div>
       </div>
 
-      <h2 className="text-lg font-bold text-center text-[#234463] mb-6 uppercase tracking-wide">
-        Formulir Konsultasi Psikologi
-      </h2>
-
-      {/* A. Data Diri Klien - 2 Column Layout */}
-      <div className="mb-6">
-        <h3 className="text-base font-semibold text-[#234463] border-b border-gray-300 pb-1 mb-3">
-          A. Data Diri Klien
-        </h3>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
-          <div className="flex">
-            <span className="w-32 text-gray-600">Nama Lengkap</span>
-            <span className="font-medium">: {dummyClientData.fullName}</span>
-          </div>
-          <div className="flex">
-            <span className="w-32 text-gray-600">Jenis Kelamin</span>
-            <span className="font-medium">: {getLabelForValue("gender", dummyClientData.gender)}</span>
-          </div>
-          <div className="flex">
-            <span className="w-32 text-gray-600">Tanggal Lahir</span>
-            <span className="font-medium">: {new Date(dummyClientData.birthDate).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</span>
-          </div>
-          <div className="flex">
-            <span className="w-32 text-gray-600">Usia</span>
-            <span className="font-medium">: {dummyClientData.age} tahun</span>
-          </div>
-          <div className="flex col-span-2">
-            <span className="w-32 text-gray-600">Alamat</span>
-            <span className="font-medium">: {dummyClientData.address}</span>
-          </div>
-          <div className="flex">
-            <span className="w-32 text-gray-600">No. Telepon</span>
-            <span className="font-medium">: {dummyClientData.phone}</span>
-          </div>
-          <div className="flex">
-            <span className="w-32 text-gray-600">Email</span>
-            <span className="font-medium">: {dummyClientData.email}</span>
-          </div>
-          <div className="flex">
-            <span className="w-32 text-gray-600">Pekerjaan</span>
-            <span className="font-medium">: {dummyClientData.occupation}</span>
-          </div>
-          <div className="flex">
-            <span className="w-32 text-gray-600">Status Pernikahan</span>
-            <span className="font-medium">: {getLabelForValue("maritalStatus", dummyClientData.maritalStatus)}</span>
-          </div>
-          <div className="flex col-span-2">
-            <span className="w-32 text-gray-600">Kunjungan Pertama</span>
-            <span className="font-medium">: {dummyClientData.isFirstVisit ? "[✓] Ya" : "[ ] Ya"}</span>
-          </div>
-        </div>
+      {/* RINGKASAN JUDUL - matching HasilTesPage summary box */}
+      <div className="mb-5 rounded-lg bg-green-50 px-4 py-3 border border-purple-100">
+        <p className="text-center text-sm font-semibold text-gray-800">
+          Formulir Konsultasi Psikologi
+        </p>
+        <p className="mt-1 text-center text-xs text-gray-700">
+          ID Booking: {bookingId}
+        </p>
       </div>
 
-      {/* B. Alasan Konsultasi */}
-      <div className="mb-6">
-        <h3 className="text-base font-semibold text-[#234463] border-b border-gray-300 pb-1 mb-3">
+      {/* B. Alasan Konsultasi - table style matching HasilTesPage */}
+      <div className="mb-7 overflow-hidden rounded-lg border border-gray-300">
+        <div className="bg-[#1f3b5b] px-5 py-3 text-sm font-bold text-white">
           B. Alasan Konsultasi
-        </h3>
-        <div className="space-y-2 text-sm">
-          <div>
-            <p className="text-gray-600 mb-1">Alasan utama mencari layanan:</p>
-            <p className="font-medium pl-4 border-l-2 border-[#2B5379]">{consultationData.mainReason || "-"}</p>
+        </div>
+        <div className="space-y-0 text-sm">
+          <div className="px-5 py-3 border-t border-gray-200 bg-gray-50">
+            <p className="text-xs font-semibold text-[#1f3b5b] mb-1">Alasan utama mencari layanan:</p>
+            <p className="text-gray-800">{consultationData.mainReason || "-"}</p>
           </div>
-          <div className="flex">
-            <span className="w-64 text-gray-600">Sedang mengonsumsi obat psikiatri</span>
-            <span className="font-medium">: {consultationData.takingPsychiatricMeds === "yes" ? "[✓] Ya" : consultationData.takingPsychiatricMeds === "no" ? "[✓] Tidak" : "-"}</span>
+          <div className="px-5 py-2 border-t border-gray-200 bg-white flex gap-2">
+            <span className="w-64 font-semibold text-[#1f3b5b] text-xs">Obat psikiatri</span>
+            <span className="text-xs">:</span>
+            <span className="text-xs text-gray-800">{getLabelForValue("takingPsychiatricMeds", consultationData.takingPsychiatricMeds)}</span>
           </div>
-          <div className="flex">
-            <span className="w-64 text-gray-600">Durasi masalah</span>
-            <span className="font-medium">: {getLabelForValue("problemDuration", consultationData.problemDuration)}</span>
+          <div className="px-5 py-2 border-t border-gray-200 bg-gray-50 flex gap-2">
+            <span className="w-64 font-semibold text-[#1f3b5b] text-xs">Durasi masalah</span>
+            <span className="text-xs">:</span>
+            <span className="text-xs text-gray-800">{getLabelForValue("problemDuration", consultationData.problemDuration)}</span>
           </div>
-          <div className="flex">
-            <span className="w-64 text-gray-600">Frekuensi gejala</span>
-            <span className="font-medium">: {getLabelForValue("symptomFrequency", consultationData.symptomFrequency)}</span>
+          <div className="px-5 py-2 border-t border-gray-200 bg-white flex gap-2">
+            <span className="w-64 font-semibold text-[#1f3b5b] text-xs">Frekuensi gejala</span>
+            <span className="text-xs">:</span>
+            <span className="text-xs text-gray-800">{getLabelForValue("symptomFrequency", consultationData.symptomFrequency)}</span>
           </div>
-          <div className="flex">
-            <span className="w-64 text-gray-600">Dampak terhadap aktivitas harian</span>
-            <span className="font-medium">: {getLabelForValue("dailyImpact", consultationData.dailyImpact)}</span>
+          <div className="px-5 py-2 border-t border-gray-200 bg-gray-50 flex gap-2">
+            <span className="w-64 font-semibold text-[#1f3b5b] text-xs">Dampak aktivitas harian</span>
+            <span className="text-xs">:</span>
+            <span className="text-xs text-gray-800">{getLabelForValue("dailyImpact", consultationData.dailyImpact)}</span>
           </div>
         </div>
       </div>
 
       {/* C. Riwayat Psikologis & Kesehatan */}
-      <div className="mb-6">
-        <h3 className="text-base font-semibold text-[#234463] border-b border-gray-300 pb-1 mb-3">
-          C. Riwayat Psikologis & Kesehatan
-        </h3>
-        <div className="space-y-2 text-sm">
-          <div>
-            <span className="text-gray-600">Riwayat masalah serupa: </span>
-            <span className="font-medium">{consultationData.hasSimilarHistory === "yes" ? "[✓] Ya" : "[✓] Tidak"}</span>
-            {consultationData.hasSimilarHistory === "yes" && consultationData.similarHistoryDetail && (
-              <p className="pl-4 mt-1 text-gray-700">→ {consultationData.similarHistoryDetail}</p>
-            )}
+      <div className="mb-7 overflow-hidden rounded-lg border border-gray-300">
+        <div className="bg-[#1f3b5b] px-5 py-3 text-sm font-bold text-white">
+          C. Riwayat Psikologis &amp; Kesehatan
+        </div>
+        <div className="space-y-0 text-sm">
+          <div className="px-5 py-2 border-t border-gray-200 bg-gray-50 flex gap-2">
+            <span className="w-64 font-semibold text-[#1f3b5b] text-xs">Riwayat masalah serupa</span>
+            <span className="text-xs">:</span>
+            <span className="text-xs text-gray-800">
+              {consultationData.hasSimilarHistory === "yes" ? "Ya" : "Tidak"}
+              {consultationData.hasSimilarHistory === "yes" && consultationData.similarHistoryDetail && ` — ${consultationData.similarHistoryDetail}`}
+            </span>
           </div>
-          <div>
-            <span className="text-gray-600">Riwayat keluarga dengan masalah kesehatan mental: </span>
-            <span className="font-medium">{consultationData.hasFamilyHistory === "yes" ? "[✓] Ya" : "[✓] Tidak"}</span>
-            {consultationData.hasFamilyHistory === "yes" && consultationData.familyHistoryDetail && (
-              <p className="pl-4 mt-1 text-gray-700">→ {consultationData.familyHistoryDetail}</p>
-            )}
+          <div className="px-5 py-2 border-t border-gray-200 bg-white flex gap-2">
+            <span className="w-64 font-semibold text-[#1f3b5b] text-xs">Riwayat keluarga</span>
+            <span className="text-xs">:</span>
+            <span className="text-xs text-gray-800">
+              {consultationData.hasFamilyHistory === "yes" ? "Ya" : "Tidak"}
+              {consultationData.hasFamilyHistory === "yes" && consultationData.familyHistoryDetail && ` — ${consultationData.familyHistoryDetail}`}
+            </span>
           </div>
-          <div>
-            <span className="text-gray-600">Sedang dalam pengobatan medis: </span>
-            <span className="font-medium">{consultationData.hasMedicalTreatment === "yes" ? "[✓] Ya" : "[✓] Tidak"}</span>
-            {consultationData.hasMedicalTreatment === "yes" && consultationData.medicalTreatmentDetail && (
-              <p className="pl-4 mt-1 text-gray-700">→ {consultationData.medicalTreatmentDetail}</p>
-            )}
+          <div className="px-5 py-2 border-t border-gray-200 bg-gray-50 flex gap-2">
+            <span className="w-64 font-semibold text-[#1f3b5b] text-xs">Pengobatan medis</span>
+            <span className="text-xs">:</span>
+            <span className="text-xs text-gray-800">
+              {consultationData.hasMedicalTreatment === "yes" ? "Ya" : "Tidak"}
+              {consultationData.hasMedicalTreatment === "yes" && consultationData.medicalTreatmentDetail && ` — ${consultationData.medicalTreatmentDetail}`}
+            </span>
           </div>
-          <div>
-            <span className="text-gray-600">Pernah mengalami kejadian traumatis: </span>
-            <span className="font-medium">{consultationData.hasTraumaticEvent === "yes" ? "[✓] Ya" : "[✓] Tidak"}</span>
-            {consultationData.hasTraumaticEvent === "yes" && consultationData.traumaticEventDetail && (
-              <p className="pl-4 mt-1 text-gray-700">→ {consultationData.traumaticEventDetail}</p>
-            )}
+          <div className="px-5 py-2 border-t border-gray-200 bg-white flex gap-2">
+            <span className="w-64 font-semibold text-[#1f3b5b] text-xs">Kejadian traumatis</span>
+            <span className="text-xs">:</span>
+            <span className="text-xs text-gray-800">
+              {consultationData.hasTraumaticEvent === "yes" ? "Ya" : "Tidak"}
+              {consultationData.hasTraumaticEvent === "yes" && consultationData.traumaticEventDetail && ` — ${consultationData.traumaticEventDetail}`}
+            </span>
           </div>
-          <div className="flex">
-            <span className="w-64 text-gray-600">Kualitas tidur</span>
-            <span className="font-medium">: {getLabelForValue("sleepQuality", consultationData.sleepQuality)}</span>
+          <div className="px-5 py-2 border-t border-gray-200 bg-gray-50 flex gap-2">
+            <span className="w-64 font-semibold text-[#1f3b5b] text-xs">Kualitas tidur</span>
+            <span className="text-xs">:</span>
+            <span className="text-xs text-gray-800">{getLabelForValue("sleepQuality", consultationData.sleepQuality)}</span>
           </div>
-          <div className="flex">
-            <span className="w-64 text-gray-600">Pemikiran menyakiti diri sendiri</span>
-            <span className="font-medium">: {getLabelForValue("selfHarmThoughts", consultationData.selfHarmThoughts)}</span>
+          <div className="px-5 py-2 border-t border-gray-200 bg-white flex gap-2">
+            <span className="w-64 font-semibold text-[#1f3b5b] text-xs">Pemikiran menyakiti diri</span>
+            <span className="text-xs">:</span>
+            <span className="text-xs text-gray-800">{getLabelForValue("selfHarmThoughts", consultationData.selfHarmThoughts)}</span>
           </div>
         </div>
       </div>
 
       {/* D. Kebiasaan & Gaya Hidup */}
-      <div className="mb-6">
-        <h3 className="text-base font-semibold text-[#234463] border-b border-gray-300 pb-1 mb-3">
-          D. Kebiasaan & Gaya Hidup
-        </h3>
-        <div className="space-y-2 text-sm">
-          <div>
-            <span className="text-gray-600">Konsumsi zat adiktif: </span>
-            <span className="font-medium">{consultationData.usesAddictiveSubstances === "yes" ? "[✓] Ya" : "[✓] Tidak"}</span>
-            {consultationData.usesAddictiveSubstances === "yes" && consultationData.addictiveSubstancesDetail && (
-              <p className="pl-4 mt-1 text-gray-700">→ {consultationData.addictiveSubstancesDetail}</p>
-            )}
+      <div className="mb-7 overflow-hidden rounded-lg border border-gray-300">
+        <div className="bg-[#1f3b5b] px-5 py-3 text-sm font-bold text-white">
+          D. Kebiasaan &amp; Gaya Hidup
+        </div>
+        <div className="space-y-0 text-sm">
+          <div className="px-5 py-2 border-t border-gray-200 bg-gray-50 flex gap-2">
+            <span className="w-64 font-semibold text-[#1f3b5b] text-xs">Zat adiktif</span>
+            <span className="text-xs">:</span>
+            <span className="text-xs text-gray-800">
+              {consultationData.usesAddictiveSubstances === "yes" ? "Ya" : "Tidak"}
+              {consultationData.usesAddictiveSubstances === "yes" && consultationData.addictiveSubstancesDetail && ` — ${consultationData.addictiveSubstancesDetail}`}
+            </span>
           </div>
-          <div className="flex">
-            <span className="w-64 text-gray-600">Pola makan</span>
-            <span className="font-medium">: {getLabelForValue("eatingPattern", consultationData.eatingPattern)}</span>
+          <div className="px-5 py-2 border-t border-gray-200 bg-white flex gap-2">
+            <span className="w-64 font-semibold text-[#1f3b5b] text-xs">Pola makan</span>
+            <span className="text-xs">:</span>
+            <span className="text-xs text-gray-800">{getLabelForValue("eatingPattern", consultationData.eatingPattern)}</span>
           </div>
-          <div className="flex">
-            <span className="w-64 text-gray-600">Frekuensi olahraga</span>
-            <span className="font-medium">: {getLabelForValue("exerciseFrequency", consultationData.exerciseFrequency)}</span>
+          <div className="px-5 py-2 border-t border-gray-200 bg-gray-50 flex gap-2">
+            <span className="w-64 font-semibold text-[#1f3b5b] text-xs">Frekuensi olahraga</span>
+            <span className="text-xs">:</span>
+            <span className="text-xs text-gray-800">{getLabelForValue("exerciseFrequency", consultationData.exerciseFrequency)}</span>
           </div>
-          <div className="flex">
-            <span className="w-64 text-gray-600">Tingkat stres</span>
-            <span className="font-medium">: {getLabelForValue("stressLevel", consultationData.stressLevel)}</span>
+          <div className="px-5 py-2 border-t border-gray-200 bg-white flex gap-2">
+            <span className="w-64 font-semibold text-[#1f3b5b] text-xs">Tingkat stres</span>
+            <span className="text-xs">:</span>
+            <span className="text-xs text-gray-800">{getLabelForValue("stressLevel", consultationData.stressLevel)}</span>
           </div>
         </div>
       </div>
 
       {/* E. Tujuan Konsultasi */}
-      <div className="mb-6">
-        <h3 className="text-base font-semibold text-[#234463] border-b border-gray-300 pb-1 mb-3">
+      <div className="mb-7 overflow-hidden rounded-lg border border-gray-300">
+        <div className="bg-[#1f3b5b] px-5 py-3 text-sm font-bold text-white">
           E. Tujuan Konsultasi
-        </h3>
-        <div className="space-y-2 text-sm">
-          <div>
-            <p className="text-gray-600 mb-2">Tujuan yang ingin dicapai:</p>
-            <ul className="pl-4 space-y-1">
-              {[
-                "Mengatasi kecemasan atau kekhawatiran",
-                "Mengelola stres dengan lebih baik",
-                "Memperbaiki kualitas tidur",
-                "Meningkatkan kepercayaan diri",
-                "Mengatasi depresi atau kesedihan",
-                "Memperbaiki hubungan interpersonal",
-                "Mengembangkan keterampilan komunikasi",
-                "Mengatasi trauma masa lalu",
-                "Menemukan tujuan hidup",
-                "Lainnya",
-              ].map((goal) => (
-                <li key={goal} className={`${(consultationData.consultationGoals || []).includes(goal) ? "font-medium" : "text-gray-400"}`}>
-                  {(consultationData.consultationGoals || []).includes(goal) ? "[✓]" : "[ ]"} {goal}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="flex mt-3">
-            <span className="w-64 text-gray-600">Preferensi pendekatan terapi</span>
-            <span className="font-medium">: {getLabelForValue("therapyPreference", consultationData.therapyPreference)}</span>
-          </div>
+        </div>
+        <div className="px-5 py-3 border-t border-gray-200 bg-gray-50">
+          <p className="text-xs font-semibold text-[#1f3b5b] mb-2">Tujuan yang ingin dicapai:</p>
+          <ul className="space-y-1 text-xs text-gray-800">
+            {[
+              "Mengatasi kecemasan atau kekhawatiran",
+              "Mengelola stres dengan lebih baik",
+              "Memperbaiki kualitas tidur",
+              "Meningkatkan kepercayaan diri",
+              "Mengatasi depresi atau kesedihan",
+              "Memperbaiki hubungan interpersonal",
+              "Mengembangkan keterampilan komunikasi",
+              "Mengatasi trauma masa lalu",
+              "Menemukan tujuan hidup",
+              "Lainnya",
+            ].map((goal) => (
+              <li key={goal} className={`${(consultationData.consultationGoals || []).includes(goal) ? "font-semibold" : "text-gray-400"}`}>
+                {(consultationData.consultationGoals || []).includes(goal) ? "[✓]" : "[ ]"} {goal}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="px-5 py-2 border-t border-gray-200 bg-white flex gap-2">
+          <span className="w-64 font-semibold text-[#1f3b5b] text-xs">Preferensi terapi</span>
+          <span className="text-xs">:</span>
+          <span className="text-xs text-gray-800">{getLabelForValue("therapyPreference", consultationData.therapyPreference)}</span>
         </div>
       </div>
 
-      {/* Print Footer - Signature */}
-      <div className="print-footer mt-8 pt-4 border-t border-gray-300">
-        <div className="flex justify-between items-end">
-          <div className="text-xs text-gray-500">
-            <p>Dokumen ini dicetak secara digital dari sistem Oase Jiwa.</p>
-            <p>Informasi bersifat rahasia dan dilindungi.</p>
+      {/* CATATAN PENTING - matching HasilTesPage */}
+      <div className="mt-6 rounded-lg border border-[#f8b4b4] bg-[#fff5f5] px-5 py-4 text-xs leading-relaxed text-[#7f1d1d]">
+        <div className="mb-2 flex items-center gap-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#f97373] text-[11px] font-bold text-white">
+            !
+          </span>
+          <p className="text-sm font-semibold text-[#991b1b]">
+            Penting untuk diperhatikan!
+          </p>
+        </div>
+        <ul className="ml-4 list-disc space-y-1.5">
+          <li>Seluruh informasi yang disampaikan bersifat rahasia dan dilindungi oleh kode etik profesi.</li>
+          <li>Formulir ini merupakan bagian dari proses asesmen awal dan bukan merupakan diagnosis.</li>
+          <li>Sangat dianjurkan untuk meminta saran pada profesional psikiater/psikolog untuk pemeriksaan lanjutan jika diperlukan.</li>
+        </ul>
+      </div>
+
+      {/* FOOTER - matching HasilTesPage */}
+      <div className="mt-6 flex items-end justify-between border-t border-gray-300 pt-4 text-xs text-gray-600">
+        <div>
+          <p>Dokumen ini digenerate secara otomatis.</p>
+          <p>
+            {new Date().toLocaleDateString("id-ID", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+          </p>
+        </div>
+        <div className="text-right">
+          <div className="border-b border-gray-400 w-48 mb-1 pb-8">
+            {useTextSignature ? (
+              <p className="text-lg font-medium" style={{ fontFamily: "'Brush Script MT', cursive" }}>
+                {consentData.signature || consentData.clientNameConfirmation}
+              </p>
+            ) : (
+              consentData.signature && (
+                <img src={consentData.signature} alt="Tanda tangan" className="h-12 object-contain" />
+              )
+            )}
           </div>
-          <div className="text-right">
-            <p className="text-sm text-gray-600 mb-2">Jakarta, {new Date(consentData.consentDate || "").toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</p>
-            <div className="border-b border-gray-400 w-48 mb-1 pb-8">
-              {useTextSignature ? (
-                <p className="text-lg font-medium" style={{ fontFamily: "'Brush Script MT', cursive" }}>
-                  {consentData.signature || consentData.clientNameConfirmation}
-                </p>
-              ) : (
-                consentData.signature && (
-                  <img src={consentData.signature} alt="Tanda tangan" className="h-12 object-contain" />
-                )
-              )}
-            </div>
-            <p className="text-sm font-medium">{consentData.clientNameConfirmation || dummyClientData.fullName}</p>
-            <p className="text-xs text-gray-500">Klien</p>
-          </div>
+          <p className="text-sm font-medium">{consentData.clientNameConfirmation || dummyClientData.fullName}</p>
+          <p className="text-xs text-gray-500">Klien</p>
         </div>
       </div>
     </div>
@@ -548,10 +757,9 @@ function ConsultationFormContent() {
           <div
             className={`
               w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all duration-300
-              ${
-                step === formStep
-                  ? "bg-[#2B5379] text-white"
-                  : step < formStep
+              ${step === formStep
+                ? "bg-[#2B5379] text-white"
+                : step < formStep
                   ? "bg-green-500 text-white"
                   : "bg-gray-200 text-gray-500"
               }
@@ -565,9 +773,8 @@ function ConsultationFormContent() {
           </div>
           {step < 3 && (
             <div
-              className={`w-16 md:w-24 h-1 mx-2 rounded-full transition-colors duration-300 ${
-                step < formStep ? "bg-green-500" : "bg-gray-200"
-              }`}
+              className={`w-16 md:w-24 h-1 mx-2 rounded-full transition-colors duration-300 ${step < formStep ? "bg-green-500" : "bg-gray-200"
+                }`}
             />
           )}
         </div>
@@ -738,8 +945,8 @@ function ConsultationFormContent() {
               dummyClientData.maritalStatus === "single"
                 ? "Belum Menikah"
                 : dummyClientData.maritalStatus === "married"
-                ? "Menikah"
-                : "Cerai"
+                  ? "Menikah"
+                  : "Cerai"
             }
             disabled
             className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-100 text-gray-600 cursor-not-allowed"
@@ -790,9 +997,8 @@ function ConsultationFormContent() {
             onChange={(e) => handleConsultationChange("mainReason", e.target.value)}
             rows={4}
             placeholder="Ceritakan alasan utama Anda ingin berkonsultasi..."
-            className={`w-full px-4 py-3 rounded-xl border ${
-              errors.mainReason ? "border-red-500" : "border-gray-200"
-            } focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none transition-all resize-none`}
+            className={`w-full px-4 py-3 rounded-xl border ${errors.mainReason ? "border-red-500" : "border-gray-200"
+              } focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none transition-all resize-none`}
           />
           {errors.mainReason && (
             <p className="text-sm text-red-500 mt-1">{errors.mainReason}</p>
@@ -811,11 +1017,10 @@ function ConsultationFormContent() {
             ].map((option) => (
               <label
                 key={option.value}
-                className={`flex items-center gap-2 px-4 py-3 rounded-xl border cursor-pointer transition-all ${
-                  consultationData.takingPsychiatricMeds === option.value
-                    ? "border-[#2B5379] bg-[#E8F6FF]"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
+                className={`flex items-center gap-2 px-4 py-3 rounded-xl border cursor-pointer transition-all ${consultationData.takingPsychiatricMeds === option.value
+                  ? "border-[#2B5379] bg-[#E8F6FF]"
+                  : "border-gray-200 hover:border-gray-300"
+                  }`}
               >
                 <input
                   type="radio"
@@ -850,11 +1055,10 @@ function ConsultationFormContent() {
             ].map((option) => (
               <label
                 key={option.value}
-                className={`flex items-center justify-center px-4 py-3 rounded-xl border cursor-pointer transition-all text-center ${
-                  consultationData.problemDuration === option.value
-                    ? "border-[#2B5379] bg-[#E8F6FF]"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
+                className={`flex items-center justify-center px-4 py-3 rounded-xl border cursor-pointer transition-all text-center ${consultationData.problemDuration === option.value
+                  ? "border-[#2B5379] bg-[#E8F6FF]"
+                  : "border-gray-200 hover:border-gray-300"
+                  }`}
               >
                 <input
                   type="radio"
@@ -887,11 +1091,10 @@ function ConsultationFormContent() {
             ].map((option) => (
               <label
                 key={option.value}
-                className={`flex items-center justify-center px-4 py-3 rounded-xl border cursor-pointer transition-all text-center ${
-                  consultationData.symptomFrequency === option.value
-                    ? "border-[#2B5379] bg-[#E8F6FF]"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
+                className={`flex items-center justify-center px-4 py-3 rounded-xl border cursor-pointer transition-all text-center ${consultationData.symptomFrequency === option.value
+                  ? "border-[#2B5379] bg-[#E8F6FF]"
+                  : "border-gray-200 hover:border-gray-300"
+                  }`}
               >
                 <input
                   type="radio"
@@ -924,11 +1127,10 @@ function ConsultationFormContent() {
             ].map((option) => (
               <label
                 key={option.value}
-                className={`flex items-center justify-center px-4 py-3 rounded-xl border cursor-pointer transition-all text-center ${
-                  consultationData.dailyImpact === option.value
-                    ? "border-[#2B5379] bg-[#E8F6FF]"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
+                className={`flex items-center justify-center px-4 py-3 rounded-xl border cursor-pointer transition-all text-center ${consultationData.dailyImpact === option.value
+                  ? "border-[#2B5379] bg-[#E8F6FF]"
+                  : "border-gray-200 hover:border-gray-300"
+                  }`}
               >
                 <input
                   type="radio"
@@ -966,11 +1168,10 @@ function ConsultationFormContent() {
             ].map((option) => (
               <label
                 key={option.value}
-                className={`flex items-center gap-2 px-4 py-3 rounded-xl border cursor-pointer transition-all ${
-                  consultationData.hasSimilarHistory === option.value
-                    ? "border-[#2B5379] bg-[#E8F6FF]"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
+                className={`flex items-center gap-2 px-4 py-3 rounded-xl border cursor-pointer transition-all ${consultationData.hasSimilarHistory === option.value
+                  ? "border-[#2B5379] bg-[#E8F6FF]"
+                  : "border-gray-200 hover:border-gray-300"
+                  }`}
               >
                 <input
                   type="radio"
@@ -1009,11 +1210,10 @@ function ConsultationFormContent() {
             ].map((option) => (
               <label
                 key={option.value}
-                className={`flex items-center gap-2 px-4 py-3 rounded-xl border cursor-pointer transition-all ${
-                  consultationData.hasFamilyHistory === option.value
-                    ? "border-[#2B5379] bg-[#E8F6FF]"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
+                className={`flex items-center gap-2 px-4 py-3 rounded-xl border cursor-pointer transition-all ${consultationData.hasFamilyHistory === option.value
+                  ? "border-[#2B5379] bg-[#E8F6FF]"
+                  : "border-gray-200 hover:border-gray-300"
+                  }`}
               >
                 <input
                   type="radio"
@@ -1052,11 +1252,10 @@ function ConsultationFormContent() {
             ].map((option) => (
               <label
                 key={option.value}
-                className={`flex items-center gap-2 px-4 py-3 rounded-xl border cursor-pointer transition-all ${
-                  consultationData.hasMedicalTreatment === option.value
-                    ? "border-[#2B5379] bg-[#E8F6FF]"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
+                className={`flex items-center gap-2 px-4 py-3 rounded-xl border cursor-pointer transition-all ${consultationData.hasMedicalTreatment === option.value
+                  ? "border-[#2B5379] bg-[#E8F6FF]"
+                  : "border-gray-200 hover:border-gray-300"
+                  }`}
               >
                 <input
                   type="radio"
@@ -1095,11 +1294,10 @@ function ConsultationFormContent() {
             ].map((option) => (
               <label
                 key={option.value}
-                className={`flex items-center gap-2 px-4 py-3 rounded-xl border cursor-pointer transition-all ${
-                  consultationData.hasTraumaticEvent === option.value
-                    ? "border-[#2B5379] bg-[#E8F6FF]"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
+                className={`flex items-center gap-2 px-4 py-3 rounded-xl border cursor-pointer transition-all ${consultationData.hasTraumaticEvent === option.value
+                  ? "border-[#2B5379] bg-[#E8F6FF]"
+                  : "border-gray-200 hover:border-gray-300"
+                  }`}
               >
                 <input
                   type="radio"
@@ -1140,11 +1338,10 @@ function ConsultationFormContent() {
             ].map((option) => (
               <label
                 key={option.value}
-                className={`flex items-center justify-center px-4 py-3 rounded-xl border cursor-pointer transition-all text-center ${
-                  consultationData.sleepQuality === option.value
-                    ? "border-[#2B5379] bg-[#E8F6FF]"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
+                className={`flex items-center justify-center px-4 py-3 rounded-xl border cursor-pointer transition-all text-center ${consultationData.sleepQuality === option.value
+                  ? "border-[#2B5379] bg-[#E8F6FF]"
+                  : "border-gray-200 hover:border-gray-300"
+                  }`}
               >
                 <input
                   type="radio"
@@ -1176,11 +1373,10 @@ function ConsultationFormContent() {
             ].map((option) => (
               <label
                 key={option.value}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all ${
-                  consultationData.selfHarmThoughts === option.value
-                    ? "border-[#2B5379] bg-[#E8F6FF]"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all ${consultationData.selfHarmThoughts === option.value
+                  ? "border-[#2B5379] bg-[#E8F6FF]"
+                  : "border-gray-200 hover:border-gray-300"
+                  }`}
               >
                 <input
                   type="radio"
@@ -1231,11 +1427,10 @@ function ConsultationFormContent() {
             ].map((option) => (
               <label
                 key={option.value}
-                className={`flex items-center gap-2 px-4 py-3 rounded-xl border cursor-pointer transition-all ${
-                  consultationData.usesAddictiveSubstances === option.value
-                    ? "border-[#2B5379] bg-[#E8F6FF]"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
+                className={`flex items-center gap-2 px-4 py-3 rounded-xl border cursor-pointer transition-all ${consultationData.usesAddictiveSubstances === option.value
+                  ? "border-[#2B5379] bg-[#E8F6FF]"
+                  : "border-gray-200 hover:border-gray-300"
+                  }`}
               >
                 <input
                   type="radio"
@@ -1276,11 +1471,10 @@ function ConsultationFormContent() {
             ].map((option) => (
               <label
                 key={option.value}
-                className={`flex items-center justify-center px-4 py-3 rounded-xl border cursor-pointer transition-all text-center ${
-                  consultationData.eatingPattern === option.value
-                    ? "border-[#2B5379] bg-[#E8F6FF]"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
+                className={`flex items-center justify-center px-4 py-3 rounded-xl border cursor-pointer transition-all text-center ${consultationData.eatingPattern === option.value
+                  ? "border-[#2B5379] bg-[#E8F6FF]"
+                  : "border-gray-200 hover:border-gray-300"
+                  }`}
               >
                 <input
                   type="radio"
@@ -1313,11 +1507,10 @@ function ConsultationFormContent() {
             ].map((option) => (
               <label
                 key={option.value}
-                className={`flex items-center justify-center px-4 py-3 rounded-xl border cursor-pointer transition-all text-center ${
-                  consultationData.exerciseFrequency === option.value
-                    ? "border-[#2B5379] bg-[#E8F6FF]"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
+                className={`flex items-center justify-center px-4 py-3 rounded-xl border cursor-pointer transition-all text-center ${consultationData.exerciseFrequency === option.value
+                  ? "border-[#2B5379] bg-[#E8F6FF]"
+                  : "border-gray-200 hover:border-gray-300"
+                  }`}
               >
                 <input
                   type="radio"
@@ -1350,11 +1543,10 @@ function ConsultationFormContent() {
             ].map((option) => (
               <label
                 key={option.value}
-                className={`flex items-center justify-center px-4 py-3 rounded-xl border cursor-pointer transition-all text-center ${
-                  consultationData.stressLevel === option.value
-                    ? "border-[#2B5379] bg-[#E8F6FF]"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
+                className={`flex items-center justify-center px-4 py-3 rounded-xl border cursor-pointer transition-all text-center ${consultationData.stressLevel === option.value
+                  ? "border-[#2B5379] bg-[#E8F6FF]"
+                  : "border-gray-200 hover:border-gray-300"
+                  }`}
               >
                 <input
                   type="radio"
@@ -1401,11 +1593,10 @@ function ConsultationFormContent() {
             ].map((goal) => (
               <label
                 key={goal}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all ${
-                  (consultationData.consultationGoals || []).includes(goal)
-                    ? "border-[#2B5379] bg-[#E8F6FF]"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all ${(consultationData.consultationGoals || []).includes(goal)
+                  ? "border-[#2B5379] bg-[#E8F6FF]"
+                  : "border-gray-200 hover:border-gray-300"
+                  }`}
               >
                 <input
                   type="checkbox"
@@ -1435,11 +1626,10 @@ function ConsultationFormContent() {
             ].map((option) => (
               <label
                 key={option.value}
-                className={`flex items-start gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all ${
-                  consultationData.therapyPreference === option.value
-                    ? "border-[#2B5379] bg-[#E8F6FF]"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
+                className={`flex items-start gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all ${consultationData.therapyPreference === option.value
+                  ? "border-[#2B5379] bg-[#E8F6FF]"
+                  : "border-gray-200 hover:border-gray-300"
+                  }`}
               >
                 <input
                   type="radio"
@@ -1482,9 +1672,9 @@ function ConsultationFormContent() {
           <div>
             <h4 className="font-semibold text-slate-800 mb-2">1. Kerahasiaan (Confidentiality)</h4>
             <p className="leading-relaxed">
-              Seluruh informasi yang Anda sampaikan dalam sesi konseling bersifat rahasia dan dilindungi. 
-              Psikolog kami terikat dengan kode etik profesi untuk menjaga kerahasiaan informasi klien. 
-              Informasi hanya akan dibagikan kepada pihak ketiga dengan persetujuan tertulis dari Anda, 
+              Seluruh informasi yang Anda sampaikan dalam sesi konseling bersifat rahasia dan dilindungi.
+              Psikolog kami terikat dengan kode etik profesi untuk menjaga kerahasiaan informasi klien.
+              Informasi hanya akan dibagikan kepada pihak ketiga dengan persetujuan tertulis dari Anda,
               kecuali dalam kondisi yang diatur oleh hukum atau ketika ada ancaman keselamatan.
             </p>
           </div>
@@ -1492,9 +1682,9 @@ function ConsultationFormContent() {
           <div>
             <h4 className="font-semibold text-slate-800 mb-2">2. Pengecualian Kerahasiaan</h4>
             <p className="leading-relaxed">
-              Kerahasiaan dapat dibatalkan dalam kondisi berikut: (a) Adanya ancaman serius terhadap 
-              keselamatan diri sendiri atau orang lain; (b) Dugaan kekerasan atau penelantaran terhadap 
-              anak, lansia, atau individu rentan; (c) Perintah pengadilan atau kewajiban hukum lainnya; 
+              Kerahasiaan dapat dibatalkan dalam kondisi berikut: (a) Adanya ancaman serius terhadap
+              keselamatan diri sendiri atau orang lain; (b) Dugaan kekerasan atau penelantaran terhadap
+              anak, lansia, atau individu rentan; (c) Perintah pengadilan atau kewajiban hukum lainnya;
               (d) Klien memberikan izin tertulis untuk pengungkapan informasi kepada pihak tertentu.
             </p>
           </div>
@@ -1502,9 +1692,9 @@ function ConsultationFormContent() {
           <div>
             <h4 className="font-semibold text-slate-800 mb-2">3. Keamanan Data</h4>
             <p className="leading-relaxed">
-              Data pribadi dan rekam medis Anda disimpan dengan sistem keamanan berlapis dan terenkripsi. 
-              Akses terhadap data dibatasi hanya untuk personel yang berwenang. Kami mengikuti standar 
-              keamanan data kesehatan yang berlaku di Indonesia dan secara berkala melakukan audit 
+              Data pribadi dan rekam medis Anda disimpan dengan sistem keamanan berlapis dan terenkripsi.
+              Akses terhadap data dibatasi hanya untuk personel yang berwenang. Kami mengikuti standar
+              keamanan data kesehatan yang berlaku di Indonesia dan secara berkala melakukan audit
               keamanan sistem.
             </p>
           </div>
@@ -1512,10 +1702,10 @@ function ConsultationFormContent() {
           <div>
             <h4 className="font-semibold text-slate-800 mb-2">4. Hak Klien</h4>
             <p className="leading-relaxed">
-              Sebagai klien, Anda memiliki hak untuk: (a) Mendapatkan informasi lengkap tentang layanan 
-              dan prosedur yang akan dilakukan; (b) Menolak atau menghentikan layanan kapan saja; 
-              (c) Meminta akses atau salinan rekam psikologis Anda; (d) Mengajukan keluhan jika merasa 
-              tidak puas dengan layanan; (e) Mendapatkan rujukan ke profesional lain jika diperlukan; 
+              Sebagai klien, Anda memiliki hak untuk: (a) Mendapatkan informasi lengkap tentang layanan
+              dan prosedur yang akan dilakukan; (b) Menolak atau menghentikan layanan kapan saja;
+              (c) Meminta akses atau salinan rekam psikologis Anda; (d) Mengajukan keluhan jika merasa
+              tidak puas dengan layanan; (e) Mendapatkan rujukan ke profesional lain jika diperlukan;
               (f) Mendapatkan layanan tanpa diskriminasi.
             </p>
           </div>
@@ -1523,8 +1713,8 @@ function ConsultationFormContent() {
           <div>
             <h4 className="font-semibold text-slate-800 mb-2">5. Ketentuan Pembatalan</h4>
             <p className="leading-relaxed">
-              Pembatalan sesi harus dilakukan minimal 24 jam sebelum jadwal konsultasi. Pembatalan 
-              yang dilakukan kurang dari 24 jam akan dikenakan biaya administrasi sebesar 50% dari 
+              Pembatalan sesi harus dilakukan minimal 24 jam sebelum jadwal konsultasi. Pembatalan
+              yang dilakukan kurang dari 24 jam akan dikenakan biaya administrasi sebesar 50% dari
               harga sesi. Ketidakhadiran tanpa pemberitahuan akan dikenakan biaya penuh.
             </p>
           </div>
@@ -1532,9 +1722,9 @@ function ConsultationFormContent() {
           <div>
             <h4 className="font-semibold text-slate-800 mb-2">6. Batasan Layanan</h4>
             <p className="leading-relaxed">
-              Layanan konseling yang kami berikan bukan pengganti perawatan medis atau psikiatri. 
-              Jika kondisi Anda memerlukan penanganan medis atau psikiatri, psikolog akan memberikan 
-              rujukan ke profesional kesehatan yang sesuai. Dalam keadaan darurat, segera hubungi 
+              Layanan konseling yang kami berikan bukan pengganti perawatan medis atau psikiatri.
+              Jika kondisi Anda memerlukan penanganan medis atau psikiatri, psikolog akan memberikan
+              rujukan ke profesional kesehatan yang sesuai. Dalam keadaan darurat, segera hubungi
               layanan darurat atau kunjungi IGD rumah sakit terdekat.
             </p>
           </div>
@@ -1572,9 +1762,8 @@ function ConsultationFormContent() {
               setConsentData((prev) => ({ ...prev, clientNameConfirmation: e.target.value }))
             }
             placeholder="Masukkan nama lengkap Anda sebagai konfirmasi"
-            className={`w-full px-4 py-3 rounded-xl border ${
-              errors.clientNameConfirmation ? "border-red-500" : "border-gray-200"
-            } focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none transition-all`}
+            className={`w-full px-4 py-3 rounded-xl border ${errors.clientNameConfirmation ? "border-red-500" : "border-gray-200"
+              } focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none transition-all`}
           />
           {errors.clientNameConfirmation && (
             <p className="text-sm text-red-500 mt-1">{errors.clientNameConfirmation}</p>
@@ -1592,22 +1781,20 @@ function ConsultationFormContent() {
             <button
               type="button"
               onClick={() => setUseTextSignature(true)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-                useTextSignature
-                  ? "bg-[#2B5379] text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${useTextSignature
+                ? "bg-[#2B5379] text-white"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
             >
               <span className="text-sm">Ketik Nama</span>
             </button>
             <button
               type="button"
               onClick={() => setUseTextSignature(false)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-                !useTextSignature
-                  ? "bg-[#2B5379] text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${!useTextSignature
+                ? "bg-[#2B5379] text-white"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
             >
               <PenTool className="w-4 h-4" />
               <span className="text-sm">Gambar Tanda Tangan</span>
@@ -1622,9 +1809,8 @@ function ConsultationFormContent() {
                 setConsentData((prev) => ({ ...prev, signature: e.target.value }))
               }
               placeholder="Ketik nama lengkap Anda sebagai tanda tangan digital"
-              className={`w-full px-4 py-3 rounded-xl border ${
-                errors.signature ? "border-red-500" : "border-gray-200"
-              } focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none transition-all font-signature text-xl`}
+              className={`w-full px-4 py-3 rounded-xl border ${errors.signature ? "border-red-500" : "border-gray-200"
+                } focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none transition-all font-signature text-xl`}
               style={{ fontFamily: "'Brush Script MT', cursive" }}
             />
           ) : (
@@ -1658,13 +1844,12 @@ function ConsultationFormContent() {
         {/* Agreement Checkbox */}
         <div>
           <label
-            className={`flex items-start gap-3 px-4 py-4 rounded-xl border cursor-pointer transition-all ${
-              consentData.agreedToTerms
-                ? "border-[#2B5379] bg-[#E8F6FF]"
-                : errors.agreedToTerms
+            className={`flex items-start gap-3 px-4 py-4 rounded-xl border cursor-pointer transition-all ${consentData.agreedToTerms
+              ? "border-[#2B5379] bg-[#E8F6FF]"
+              : errors.agreedToTerms
                 ? "border-red-500 bg-red-50"
                 : "border-gray-200 hover:border-gray-300"
-            }`}
+              }`}
           >
             <input
               type="checkbox"
@@ -1675,9 +1860,9 @@ function ConsultationFormContent() {
               className="w-5 h-5 rounded text-[#2B5379] mt-0.5"
             />
             <span className="text-gray-700 text-sm leading-relaxed">
-              Saya menyatakan bahwa seluruh informasi yang saya berikan adalah benar dan akurat. 
-              Saya telah membaca, memahami, dan menyetujui seluruh ketentuan dan kebijakan layanan 
-              yang tercantum di atas. Saya memberikan persetujuan untuk menerima layanan konseling 
+              Saya menyatakan bahwa seluruh informasi yang saya berikan adalah benar dan akurat.
+              Saya telah membaca, memahami, dan menyetujui seluruh ketentuan dan kebijakan layanan
+              yang tercantum di atas. Saya memberikan persetujuan untuk menerima layanan konseling
               psikologi dari OaseJiwa.
             </span>
           </label>
@@ -1686,25 +1871,18 @@ function ConsultationFormContent() {
           )}
         </div>
 
-        {/* Print/Download Buttons */}
+        {/* Download PDF Button */}
         <div className="mt-6 pt-4 border-t border-gray-100">
           <p className="text-sm text-gray-600 mb-3">Simpan formulir untuk arsip Anda:</p>
           <div className="flex gap-3">
             <button
               type="button"
-              onClick={handlePrint}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#2B5379] text-[#2B5379] hover:bg-[#E8F6FF] transition-colors text-sm font-medium no-print"
-            >
-              <Printer className="w-4 h-4" />
-              Cetak Formulir
-            </button>
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors text-sm font-medium no-print"
+              onClick={generatePDF}
+              disabled={isDownloading}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#2B5379] text-[#2B5379] hover:bg-[#E8F6FF] transition-colors text-sm font-medium no-print disabled:opacity-60"
             >
               <Download className="w-4 h-4" />
-              Download PDF
+              {isDownloading ? "Mengunduh..." : "Download PDF"}
             </button>
           </div>
         </div>
@@ -1713,12 +1891,12 @@ function ConsultationFormContent() {
   );
 
   return (
-    <main className="min-h-screen bg-white font-[var(--font-poppins)] no-print-main">
-      {/* Printable Form - Hidden on screen, shown on print */}
+    <main className="min-h-screen bg-[#f5f7fb] font-[var(--font-poppins)] no-print-main">
+      {/* Hidden PDF content for html2canvas capture */}
       {renderPrintableForm()}
 
       {/* Hero Section */}
-      <section className="relative pt-24 pb-12 px-6 lg:px-16 bg-gradient-to-b from-[#E8F6FF] to-white no-print">
+      <section className="relative pt-24 pb-12 px-6 lg:px-16 bg-gradient-to-b from-[#E8F6FF] to-[#f5f7fb] no-print">
         <div className="max-w-5xl mx-auto text-center">
           <h1 className="text-[40px] md:text-[48px] font-semibold mb-4 animate-fade-in-up">
             <span className="text-[#000000]">Formulir </span>
@@ -1734,7 +1912,7 @@ function ConsultationFormContent() {
       <section className="max-w-4xl mx-auto px-4 py-8 no-print">
         {/* Main Booking Stepper */}
         <div className="mb-8 animate-fadeIn stagger-2">
-          <BookingStepper currentStep={4} />
+          <BookingStepper currentStep={3} />
         </div>
 
         {/* Form Container */}
@@ -1745,23 +1923,20 @@ function ConsultationFormContent() {
           {/* Step Labels */}
           <div className="flex justify-between mb-8 text-sm">
             <span
-              className={`transition-colors ${
-                formStep === 1 ? "text-[#2B5379] font-medium" : "text-gray-400"
-              }`}
+              className={`transition-colors ${formStep === 1 ? "text-[#2B5379] font-medium" : "text-gray-400"
+                }`}
             >
               Informasi Klien
             </span>
             <span
-              className={`transition-colors ${
-                formStep === 2 ? "text-[#2B5379] font-medium" : "text-gray-400"
-              }`}
+              className={`transition-colors ${formStep === 2 ? "text-[#2B5379] font-medium" : "text-gray-400"
+                }`}
             >
               Formulir Konsultasi
             </span>
             <span
-              className={`transition-colors ${
-                formStep === 3 ? "text-[#2B5379] font-medium" : "text-gray-400"
-              }`}
+              className={`transition-colors ${formStep === 3 ? "text-[#2B5379] font-medium" : "text-gray-400"
+                }`}
             >
               Persetujuan
             </span>
@@ -1799,7 +1974,7 @@ export default function ConsultationFormPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="min-h-screen bg-[#f5f7fb] flex items-center justify-center">
           <div className="animate-spin w-8 h-8 border-4 border-[#2B5379] border-t-transparent rounded-full" />
         </div>
       }

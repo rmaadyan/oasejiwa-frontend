@@ -79,11 +79,7 @@ export default function TesTable({
 
   const renderSortIcon = (key: SortKey) => {
     if (sortKey !== key) {
-      return (
-        <span className="ml-1 text-[10px] text-gray-300">
-          ↕
-        </span>
-      );
+      return <span className="ml-1 text-[10px] text-gray-300">↕</span>;
     }
     return sortDir === "asc" ? (
       <ChevronUp size={12} className="ml-1 text-gray-500" />
@@ -93,9 +89,9 @@ export default function TesTable({
   };
 
   return (
-    <div className="rounded-2xl bg-white p-4 shadow-sm">
-      {/* Header kolom */}
-      <div className="grid grid-cols-5 px-6 py-3 text-sm font-medium text-gray-500">
+    <div className="rounded-2xl bg-white p-4">
+      {/* Header: 5 kolom */}
+      <div className="grid grid-cols-[50px_2fr_1fr_1fr_100px] px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-400 border-b border-dashed border-gray-200">
         <div>No</div>
 
         <button
@@ -129,48 +125,83 @@ export default function TesTable({
       </div>
 
       {/* Isi tabel */}
-      <div className="space-y-3">
+      <div className="space-y-3 mt-3">
         {sortedData.length === 0 ? (
-          <div className="px-6 py-10 text-center text-sm text-gray-400">
-            Data tidak ditemukan
+          <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+              <Eye className="w-6 h-6 text-gray-300" />
+            </div>
+            <p className="text-gray-500 font-medium">Belum ada tes</p>
+            <p className="text-sm text-gray-400 mt-1">Silakan tambahkan tes baru</p>
           </div>
         ) : (
           sortedData.map((item, index) => (
             <div
               key={item.id}
-              className="grid grid-cols-5 items-center rounded-xl border bg-white px-6 py-4 shadow-sm"
+              className="group grid grid-cols-[50px_2fr_1fr_1fr_100px] items-center rounded-2xl border border-gray-100 bg-white px-6 py-4 transition-all duration-300 hover:shadow-lg hover:border-[#E8F6FF] hover:-translate-y-0.5"
             >
-              <div className="text-sm text-gray-400">
+              <div className="text-sm font-medium text-gray-400 group-hover:text-[#2B5379]">
                 {startIndex + index}
               </div>
-              <div className="text-sm font-medium text-gray-700">
-                {item.nama}
+
+              <div className="flex items-center gap-4 pr-4">
+                {/* Image / Icon Placeholder */}
+                <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl bg-gray-100 ring-1 ring-gray-100 group-hover:ring-[#2B5379]/20 transition-all">
+                  {item.coverUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.coverUrl}
+                      alt={item.nama}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 text-gray-400">
+                      <span className="text-[10px] font-bold">OJ</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="min-w-0">
+                  <div className="truncate text-base font-semibold text-gray-800 group-hover:text-[#2B5379] transition-colors">
+                    {item.nama}
+                  </div>
+                  {item.jenis && (
+                    <div className="mt-0.5 flex flex-wrap gap-2 text-xs text-gray-500">
+                      <span className="truncate max-w-[200px]">{item.jenis}</span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="text-sm text-gray-500">{item.jumlah}</div>
+
+              <div className="text-sm font-semibold text-[#2B5379]">
+                {item.jumlah} soal
+              </div>
+
               <div>
                 <StatusBadge status={item.status} />
               </div>
-              <div className="flex justify-end gap-3 text-gray-500">
+
+              <div className="flex justify-end gap-2 text-gray-400 opacity-80 group-hover:opacity-100 transition-opacity">
                 <button
-                  className="hover:text-blue-600"
+                  className="p-2 rounded-lg hover:bg-blue-50 hover:text-[#2B5379] transition-colors"
                   aria-label="Edit"
                   onClick={() => onEdit(item)}
                 >
-                  <Pencil size={18} />
+                  <Pencil size={16} />
                 </button>
                 <button
-                  className="hover:text-gray-800"
+                  className="p-2 rounded-lg hover:bg-gray-50 hover:text-gray-800 transition-colors"
                   aria-label="View"
                   onClick={() => onPreview(item)}
                 >
-                  <Eye size={18} />
+                  <Eye size={16} />
                 </button>
                 <button
-                  className="hover:text-red-600"
+                  className="p-2 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors"
                   aria-label="Delete"
                   onClick={() => onDelete(item)}
                 >
-                  <Trash2 size={18} />
+                  <Trash2 size={16} />
                 </button>
               </div>
             </div>

@@ -7,7 +7,7 @@ import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 export default function Navbar() {
-  const [isSpecialPage, setIsSpecialPage] = useState(false); 
+  const [isSpecialPage, setIsSpecialPage] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -16,7 +16,7 @@ export default function Navbar() {
       setIsScrolled(window.scrollY > 50);
     };
     const pathname = window.location.pathname;
-    setIsSpecialPage(pathname === "/about" || pathname.startsWith("/booking") || pathname.startsWith("/layanan") || pathname.startsWith("/psikologlist") || pathname.startsWith("/psikologdetail"));
+    setIsSpecialPage(pathname === "/about" || pathname.startsWith("/booking") || pathname.startsWith("/layanan") || pathname.startsWith("/psikologlist") || pathname.startsWith("/psikologdetail") || pathname.startsWith("/tes"));
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -26,16 +26,15 @@ export default function Navbar() {
     { name: "Tentang Kami", href: "/about" },
     { name: "Layanan Kami", href: "/layanan" },
     { name: "Psikolog", href: "/psikologlist" },
-    { name: "Tes Psikologi", href: "#faq" },
+    { name: "Tes Psikologi", href: "/tes" },
   ];
 
   return (
     <nav
-      className={`fixed top-0 w-full z-50 transition-all duration-300 font-poppins no-print ${
-        isScrolled
+      className={`fixed top-0 w-full z-50 transition-all duration-300 font-poppins no-print ${isScrolled
           ? "bg-[#D1EAFF] shadow-md"
           : "bg-transparent"
-      }`}
+        }`}
     >
       <div className="max-w-7xl mx-auto px-2 sm:px-3 lg:px-4">
         <div className="flex justify-between items-center h-20">
@@ -51,13 +50,12 @@ export default function Navbar() {
               />
             </div>
             <span
-              className={`text-2xl font-semibold transition-colors duration-300 ${
-                isScrolled
+              className={`text-2xl font-semibold transition-colors duration-300 ${isScrolled
                   ? "text-[#2B5379]"
                   : isSpecialPage
                     ? "text-[#234463]"
                     : "text-white"
-              }`}
+                }`}
             >
               Oase Jiwa
             </span>
@@ -69,14 +67,13 @@ export default function Navbar() {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`font-medium transition-colors duration-300 select-none ${
-                  isScrolled
+                className={`font-medium transition-colors duration-300 select-none ${isScrolled
                     ? "text-[#2B5379] hover:text-blue-600"
                     : isSpecialPage
                       ? "text-[#234463] hover:text-[#234463]/80"
                       : "text-white hover:text-white/80"
-                } active:text-white`}
-                
+                  } active:text-white`}
+
                 style={{
                   WebkitUserSelect: "none",
                   userSelect: "none",
@@ -86,13 +83,12 @@ export default function Navbar() {
               </Link>
             ))}
             <Button
-              className={`transition-all ${
-                isScrolled
+              className={`transition-all ${isScrolled
                   ? "bg-blue-600 text-[#234463] hover:bg-blue-700"
                   : isSpecialPage
                     ? "border-2 border-blue-600 !text-blue-600 hover:bg-blue-600/10 bg-transparent"
                     : "border-2 border-white text-white hover:bg-white/10 bg-transparent"
-              }`}
+                }`}
             >
               Login
             </Button>
@@ -101,13 +97,12 @@ export default function Navbar() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className={`md:hidden p-2 transition-colors duration-300 ${
-              isScrolled
+            className={`md:hidden p-2 transition-colors duration-300 ${isScrolled
                 ? "text-[#2B5379]"
                 : isSpecialPage
                   ? "text-[#234463]"
                   : "text-white"
-            }`}
+              }`}
           >
             {isOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -115,20 +110,18 @@ export default function Navbar() {
 
         {/* Mobile Menu */}
         {isOpen && (
-          <div className={`md:hidden pb-4 transition-all duration-300 ${
-            isScrolled ? "bg-[#D1EAFF]" : isSpecialPage ? "bg-white" : "bg-black/50"
-          }`}>
+          <div className={`md:hidden pb-4 transition-all duration-300 ${isScrolled ? "bg-[#D1EAFF]" : isSpecialPage ? "bg-white" : "bg-black/50"
+            }`}>
             {navItems.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
-                className={`block py-3 px-4 font-medium transition-colors ${
-                  isScrolled
+                className={`block py-3 px-4 font-medium transition-colors ${isScrolled
                     ? "text-[#2B5379] hover:text-blue-600"
                     : isSpecialPage
                       ? "text-[#234463] hover:text-[#234463]/80"
                       : "text-white hover:text-white/80"
-                }`}
+                  }`}
                 onClick={() => setIsOpen(false)}
               >
                 {item.name}

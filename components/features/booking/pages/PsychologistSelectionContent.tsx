@@ -59,7 +59,7 @@ function PsychologistSelectionInner({
   };
 
   return (
-    <>
+    <main className="min-h-screen bg-[#f5f7fb]">
       <BookingHero
         title={
           <>
@@ -73,7 +73,7 @@ function PsychologistSelectionInner({
 
       <section className="max-w-5xl mx-auto px-4 py-8">
         <div className="mb-8 animate-fadeIn stagger-2">
-          <BookingStepper currentStep={2} />
+          <BookingStepper currentStep={1} />
         </div>
 
         <PsychologistFilterBar
@@ -96,7 +96,7 @@ function PsychologistSelectionInner({
           isNextDisabled={!selectedPsychologist}
         />
       </section>
-    </>
+    </main>
   );
 }
 
@@ -106,7 +106,7 @@ export default function PsychologistSelectionContent(
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#F5F9FC] flex items-center justify-center">
+        <div className="min-h-screen bg-[#f5f7fb] flex items-center justify-center">
           <div className="animate-spin w-8 h-8 border-4 border-[#2B5379] border-t-transparent rounded-full" />
         </div>
       }

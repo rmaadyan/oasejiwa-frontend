@@ -48,7 +48,7 @@ function ScheduleSelectionInner({
   };
 
   return (
-    <>
+    <main className="min-h-screen bg-[#f5f7fb]">
       <BookingHero
         title={
           <>
@@ -61,7 +61,7 @@ function ScheduleSelectionInner({
 
       <section className="max-w-6xl mx-auto px-4 py-8">
         <div className="mb-8 animate-fadeIn stagger-2">
-          <BookingStepper currentStep={3} />
+          <BookingStepper currentStep={2} />
         </div>
 
         <ScheduleSection
@@ -90,7 +90,7 @@ function ScheduleSelectionInner({
           />
         </div>
       </section>
-    </>
+    </main>
   );
 }
 
@@ -100,7 +100,7 @@ export default function ScheduleSelectionContent(
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="min-h-screen bg-[#f5f7fb] flex items-center justify-center">
           <div className="animate-spin w-8 h-8 border-4 border-[#2B5379] border-t-transparent rounded-full" />
         </div>
       }

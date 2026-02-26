@@ -146,7 +146,6 @@ export default function HasilTesPage() {
 
       document.body.removeChild(tempWrapper);
 
-      const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
@@ -159,45 +158,52 @@ export default function HasilTesPage() {
       const contentWidth = pageWidth - margin * 2;
       const contentHeight = pageHeight - margin * 2;
 
-      const imgWidth = contentWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      // Calculate how tall the image would be in mm when scaled to fit content width
+      const scaledImgHeightMm = (canvas.height * contentWidth) / canvas.width;
 
-      const maxHeightFor2Pages = contentHeight * 2;
-      let finalImgWidth = imgWidth;
-      let finalImgHeight = imgHeight;
+      // Calculate the canvas pixel height that corresponds to one PDF page
+      const pageCanvasHeight = Math.floor(
+        (contentHeight / scaledImgHeightMm) * canvas.height
+      );
 
-      if (imgHeight > maxHeightFor2Pages) {
-        const scaleFactor = maxHeightFor2Pages / imgHeight;
-        finalImgWidth = imgWidth * scaleFactor;
-        finalImgHeight = imgHeight * scaleFactor;
-      }
+      const totalPages = Math.ceil(canvas.height / pageCanvasHeight);
 
-      const pageHeightInImageUnits =
-        (contentHeight / finalImgHeight) * finalImgHeight;
-
-      let remainingHeight = finalImgHeight;
-      let offsetY = 0;
-      let pageIndex = 0;
-
-      while (remainingHeight > 0 && pageIndex < 2) {
-        if (pageIndex > 0) {
+      for (let page = 0; page < totalPages; page++) {
+        if (page > 0) {
           pdf.addPage();
         }
 
-        const y = margin - (offsetY * finalImgWidth) / imgWidth;
+        // Calculate the slice of the source canvas for this page
+        const sourceY = page * pageCanvasHeight;
+        const sourceH = Math.min(pageCanvasHeight, canvas.height - sourceY);
 
-        pdf.addImage(
-          imgData,
-          "PNG",
-          (pageWidth - finalImgWidth) / 2,
-          y,
-          finalImgWidth,
-          finalImgHeight
+        // Create a temporary canvas for this page slice
+        const pageCanvas = document.createElement("canvas");
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = sourceH;
+        const pageCtx = pageCanvas.getContext("2d");
+        if (!pageCtx) continue;
+
+        // Fill with white background, then draw the slice
+        pageCtx.fillStyle = "#ffffff";
+        pageCtx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+        pageCtx.drawImage(
+          canvas,
+          0, sourceY, canvas.width, sourceH,
+          0, 0, canvas.width, sourceH
         );
 
-        remainingHeight -= pageHeightInImageUnits;
-        offsetY += pageHeightInImageUnits;
-        pageIndex += 1;
+        const pageImgData = pageCanvas.toDataURL("image/png");
+        const sliceHeightMm = (sourceH * contentWidth) / canvas.width;
+
+        pdf.addImage(
+          pageImgData,
+          "PNG",
+          margin,
+          margin,
+          contentWidth,
+          sliceHeightMm
+        );
       }
 
       const safeNamaTes =

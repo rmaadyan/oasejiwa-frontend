@@ -16,15 +16,6 @@ interface BookingStepperProps {
 const steps: Step[] = [
   {
     id: 1,
-    label: "Layanan",
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-      </svg>
-    ),
-  },
-  {
-    id: 2,
     label: "Psikolog",
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -33,7 +24,7 @@ const steps: Step[] = [
     ),
   },
   {
-    id: 3,
+    id: 2,
     label: "Jadwal",
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -42,7 +33,7 @@ const steps: Step[] = [
     ),
   },
   {
-    id: 4,
+    id: 3,
     label: "Formulir",
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -51,7 +42,7 @@ const steps: Step[] = [
     ),
   },
   {
-    id: 5,
+    id: 4,
     label: "Pembayaran",
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -79,10 +70,9 @@ export default function BookingStepper({ currentStep, className = "" }: BookingS
                 className={`
                   relative flex items-center justify-center w-12 h-12 rounded-full
                   transition-all duration-500 ease-out
-                  ${
-                    step.id < currentStep
-                      ? "bg-[#2B5379] text-white"
-                      : step.id === currentStep
+                  ${step.id < currentStep
+                    ? "bg-[#2B5379] text-white"
+                    : step.id === currentStep
                       ? "bg-white border-2 border-[#2B5379] text-[#2B5379]"
                       : "bg-gray-200 text-gray-400"
                   }
@@ -96,21 +86,20 @@ export default function BookingStepper({ currentStep, className = "" }: BookingS
                 ) : (
                   step.icon
                 )}
-                
+
                 {/* Pulse ring for active step */}
                 {step.id === currentStep && (
                   <span className="absolute inset-0 rounded-full border-2 border-[#2B5379] animate-ping opacity-30" />
                 )}
               </div>
-              
+
               {/* Label */}
               <span
                 className={`
                   mt-2 text-xs md:text-sm font-medium transition-colors duration-300
-                  ${
-                    step.id <= currentStep
-                      ? "text-[#234463]"
-                      : "text-gray-400"
+                  ${step.id <= currentStep
+                    ? "text-[#234463]"
+                    : "text-gray-400"
                   }
                 `}
               >

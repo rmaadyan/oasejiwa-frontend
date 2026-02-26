@@ -7,7 +7,7 @@ interface CustomCalendarProps {
     onChange: (date: string) => void;
     placeholder?: string;
     className?: string;
-    error?: boolean;
+    error?: string | boolean;
 }
 
 const CustomCalendar: React.FC<CustomCalendarProps> = ({
@@ -114,8 +114,8 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
                     w-full px-4 py-2 border rounded-md cursor-pointer
                     flex items-center justify-between
                     focus:outline-none focus:ring-1 focus:border-transparent
-                    ${error 
-                        ? 'border-red-500 focus:ring-red-200' 
+                    ${error
+                        ? 'border-red-500 focus:ring-red-200'
                         : 'border-[#234463] focus:ring-blue-200'
                     }
                     ${className}
@@ -182,8 +182,8 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
                                         ${isSelectedDate(day || 0)
                                             ? 'bg-[#234463] text-white font-semibold'
                                             : isToday(day || 0)
-                                            ? 'bg-blue-100 text-blue-950 font-medium'
-                                            : 'hover:bg-gray-100 text-gray-700'
+                                                ? 'bg-blue-100 text-blue-950 font-medium'
+                                                : 'hover:bg-gray-100 text-gray-700'
                                         }
                                         ${day ? 'cursor-pointer' : ''}
                                     `}
@@ -194,6 +194,9 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
                         </div>
                     </div>
                 </div>
+            )}
+            {typeof error === 'string' && error && (
+                <p className="mt-1.5 text-red-500 text-xs">{error}</p>
             )}
         </div>
     );

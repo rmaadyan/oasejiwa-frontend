@@ -8,7 +8,7 @@ export default function BookingPage() {
 
   useEffect(() => {
     // Redirect to services selection (step 1)
-    router.replace("/booking/services");
+    router.replace("/booking/psychologists");
   }, [router]);
 
   return (

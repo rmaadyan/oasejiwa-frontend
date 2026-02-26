@@ -1,54 +1,48 @@
-// components/features/manajemen-layanan/ManajemenLayananPage.tsx
+// components/features/manajemen-tes/DaftarTesPage.tsx
+
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { LayananItem } from "./types";
-import { INITIAL_LAYANAN } from "./dataDummy";
-import LayananForm from "./LayananForm";
-import LayananTable from "./LayananTable";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/Alert";
+import type { TesItem } from "./types";
+import { INITIAL_DATA } from "./dataDummy";
+import TesTable from "./TesTable";
+import {
+  Alert,
+  AlertTitle,
+  AlertDescription,
+} from "@/components/ui/Alert";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
-const STORAGE_KEY = "layanan-list";
+const STORAGE_KEY = "tes-list";
+const PAGE_SIZE_OPTIONS = [5, 10, 20];
 
-export default function ManajemenLayananPage() {
+export default function DaftarTesPage() {
   const router = useRouter();
-
-  const [items, setItems] = useState<LayananItem[]>([]);
-  const [pageSize, setPageSize] = useState(5);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [items, setItems] = useState<TesItem[]>([]);
+  const [pageSize, setPageSize] = useState<number>(5);
+  const [currentPage, setCurrentPage] = useState<number>(1);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  const [showForm, setShowForm] = useState(false);
-  const [formMode, setFormMode] = useState<"create" | "edit">("create");
-  const [editingItem, setEditingItem] = useState<LayananItem | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-
   const [search, setSearch] = useState("");
 
-  // load awal dari localStorage atau INITIAL_LAYANAN
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     try {
-      if (typeof window === "undefined") {
-        setItems(INITIAL_LAYANAN);
-        return;
-      }
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const parsed: LayananItem[] = JSON.parse(raw);
+        const parsed: TesItem[] = JSON.parse(raw);
         if (Array.isArray(parsed)) {
           setItems(parsed);
           return;
         }
       }
-      setItems(INITIAL_LAYANAN);
+      setItems(INITIAL_DATA);
     } catch (err) {
       console.error(err);
-      setErrorMsg(
-        "Gagal memuat data layanan dari penyimpanan lokal. Data dummy digunakan.",
-      );
-      setItems(INITIAL_LAYANAN);
+      setErrorMsg("Gagal memuat data tes dari penyimpanan lokal.");
+      setItems(INITIAL_DATA);
     }
   }, []);
 
@@ -84,18 +78,15 @@ export default function ManajemenLayananPage() {
     setCurrentPage(1);
   };
 
-  // PREVIEW: arahkan ke halaman preview/[id]
-  const handlePreview = (item: LayananItem) => {
-    router.push(`/manajemen-layanan/preview/${item.id}`);
+  const handlePreview = (item: TesItem) => {
+    router.push(`/manajemen-tes/preview/${item.id}`);
   };
 
-  const handleEdit = (item: LayananItem) => {
-    setFormMode("edit");
-    setEditingItem(item);
-    setShowForm(true);
+  const handleEdit = (item: TesItem) => {
+    router.push(`/manajemen-tes/edit/${item.id}`);
   };
 
-  const handleDelete = (item: LayananItem) => {
+  const handleDelete = (item: TesItem) => {
     setErrorMsg(null);
     setDeleteId(item.id);
   };
@@ -115,59 +106,18 @@ export default function ManajemenLayananPage() {
     setDeleteId(null);
   };
 
-  const handleTambah = () => {
-    setFormMode("create");
-    setEditingItem(null);
-    setShowForm(true);
-  };
-
-  const handleSubmitLocal = (layanan: LayananItem) => {
-    setItems((prev) => {
-      const exist = prev.some((l) => l.id === layanan.id);
-      let next: LayananItem[];
-      if (exist) {
-        next = prev.map((l) => (l.id === layanan.id ? layanan : l));
-      } else {
-        next = [...prev, layanan];
-      }
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      }
-      return next;
-    });
-    setShowForm(false);
-    setEditingItem(null);
-  };
-
   return (
     <>
       {/* Modal konfirmasi delete */}
       <ConfirmDialog
         open={deleteId !== null}
-        title="Hapus layanan?"
-        description="Apakah Anda yakin ingin menghapus layanan ini? Tindakan ini tidak dapat dibatalkan."
+        title="Hapus tes?"
+        description="Apakah Anda yakin ingin menghapus tes ini? Tindakan ini tidak dapat dibatalkan."
         confirmLabel="Hapus"
         cancelLabel="Batal"
         onConfirm={confirmDelete}
         onCancel={() => setDeleteId(null)}
       />
-
-      {/* Modal form tambah/edit */}
-      {showForm && (
-        <div className="fixed inset-0 z-40 flex items-start justify-center bg-black/30 py-10">
-          <div className="w-full max-w-3xl px-4">
-            <LayananForm
-              mode={formMode}
-              initialData={editingItem}
-              onCancel={() => {
-                setShowForm(false);
-                setEditingItem(null);
-              }}
-              onSubmitLocal={handleSubmitLocal}
-            />
-          </div>
-        </div>
-      )}
 
       <div className="min-h-screen bg-gradient-to-b from-white to-[#E8F6FF]/30 px-6 py-6 font-[var(--font-poppins)]">
         <div className="mx-auto max-w-7xl space-y-6">
@@ -181,10 +131,10 @@ export default function ManajemenLayananPage() {
           {/* Page Title */}
           <div className="animate-fade-in-up">
             <h1 className="text-[32px] md:text-[40px] font-semibold text-[#234463] mb-2">
-              Manajemen Layanan
+              Manajemen Tes
             </h1>
             <p className="text-[16px] text-[#4B4B4B]">
-              Kelola dan pantau semua layanan konsultasi Anda
+              Kelola daftar tes, lakukan edit, preview, atau hapus.
             </p>
           </div>
 
@@ -192,19 +142,19 @@ export default function ManajemenLayananPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in-up animation-delay-200">
             <div className="bg-[#E8F6FF] p-6 rounded-[22px] shadow-md border border-[#234463]/10 flex items-center justify-between transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group">
               <div>
-                <p className="text-[12px] font-semibold text-[#4B4B4B] uppercase tracking-wider mb-2">Total Layanan</p>
+                <p className="text-[12px] font-semibold text-[#4B4B4B] uppercase tracking-wider mb-2">Total Tes</p>
                 <p className="text-[32px] font-bold text-[#234463]">{items.length}</p>
               </div>
               <div className="h-14 w-14 bg-[#234463] rounded-full flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                 </svg>
               </div>
             </div>
 
             <div className="bg-[#E8F6FF] p-6 rounded-[22px] shadow-md border border-emerald-500/10 flex items-center justify-between transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group">
               <div>
-                <p className="text-[12px] font-semibold text-[#4B4B4B] uppercase tracking-wider mb-2">Layanan Aktif</p>
+                <p className="text-[12px] font-semibold text-[#4B4B4B] uppercase tracking-wider mb-2">Tes Aktif</p>
                 <p className="text-[32px] font-bold text-emerald-600">{items.filter(i => i.status === 'Aktif').length}</p>
               </div>
               <div className="h-14 w-14 bg-emerald-600 rounded-full flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-300">
@@ -232,9 +182,9 @@ export default function ManajemenLayananPage() {
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
               <div>
                 <h2 className="text-[24px] md:text-[28px] font-semibold text-[#234463]">
-                  Daftar Layanan
+                  Daftar Tes
                 </h2>
-                <p className="text-[14px] text-[#4B4B4B] mt-1">Kelola semua layanan konsultasi Anda di sini</p>
+                <p className="text-[14px] text-[#4B4B4B] mt-1">Kelola semua tes psikologi Anda di sini</p>
               </div>
               <div className="flex flex-col gap-3 md:flex-row md:items-center">
                 <div className="relative w-full max-w-xs group">
@@ -250,26 +200,27 @@ export default function ManajemenLayananPage() {
                       setCurrentPage(1);
                       setSearch(e.target.value);
                     }}
-                    placeholder="Cari layanan..."
+                    placeholder="Cari tes..."
                     className="w-full pl-12 pr-4 py-3 bg-[#E8F6FF]/50 border border-[#234463]/20 rounded-xl text-[14px] text-[#234463] placeholder:text-[#4B4B4B]/60 focus:outline-none focus:ring-2 focus:ring-[#234463]/30 focus:border-[#234463] focus:bg-[#E8F6FF] transition-all"
                   />
                 </div>
                 <button
-                  onClick={handleTambah}
+                  onClick={() => router.push("/manajemen-tes/tambah")}
                   className="flex items-center justify-center gap-2 rounded-xl bg-[#234463] px-6 py-3 text-[14px] font-semibold text-white hover:bg-[#2B5379] hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
-                  Tambah Layanan
+                  Tambah Tes
                 </button>
               </div>
             </div>
 
-            <LayananTable
+            {/* Tabel + pagination */}
+            <TesTable
               data={pagedItems}
               pageSize={pageSize}
-              totalItems={totalItems}
+              totalItems={filteredItems.length}
               currentPage={currentPage}
               onPreview={handlePreview}
               onEdit={handleEdit}
