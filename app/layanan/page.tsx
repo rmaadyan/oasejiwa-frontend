@@ -1,12 +1,12 @@
 "use client";
 // app/layanan/page.tsx
-import Navbar from "@/components/common/Navbar";
 import Footer from "@/components/common/Footer";
+import Navbar from "@/components/common/Navbar";
 
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import type { LayananItem } from "@/components/features/manajemen-layanan/types";
 import { INITIAL_LAYANAN } from "@/components/features/manajemen-layanan/dataDummy";
+import type { LayananItem } from "@/components/features/manajemen-layanan/types";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 const STORAGE_KEY = "layanan-list";
 
@@ -120,7 +120,7 @@ export default function LayananLandingPage() {
                 <img
                   src="/assets/newtes.PNG"
                   alt="Ilustrasi layanan psikologis"
-                  className="w-full object-contain drop-shadow-2xl"
+                  className="w-full object-contain"
                 />
               </div>
             </div>

@@ -1,4 +1,4 @@
-import AdminLayoutClient from "@/app/components/common/AdminLayoutClient";
+import AdminLayoutClient from "@/components/common/AdminLayoutClient";
 
 export default function AdminLayout({
   children,

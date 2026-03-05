@@ -1,12 +1,12 @@
 // app/tes/page.tsx
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import Navbar from "@/components/common/Navbar";
 import Footer from "@/components/common/Footer";
-import type { TesItem } from "@/components/features/manajemen-tes/types";
+import Navbar from "@/components/common/Navbar";
 import { INITIAL_DATA } from "@/components/features/manajemen-tes/dataDummy";
+import type { TesItem } from "@/components/features/manajemen-tes/types";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 const STORAGE_KEY = "tes-list";
 
@@ -112,7 +112,7 @@ export default function TesPsikologiUserPage() {
                 <img
                   src="/assets/newtes.PNG"
                   alt="Ilustrasi kesehatan mental"
-                  className="w-full object-contain drop-shadow-2xl"
+                  className="w-full object-contain"
                 />
               </div>
             </div>

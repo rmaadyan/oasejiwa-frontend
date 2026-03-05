@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import AnalyticsStats from "@/components/features/admin/analytics/AnalyticsStats";
+import { mockAnalyticsData } from "@/lib/data/mock-ui-data";
 import { Download } from "lucide-react";
-import AnalyticsStats from "@/app/components/features/admin/analytics/AnalyticsStats";
+import { useState } from "react";
 import BookingChart from "./bookingchart";
 import MonthlyChart from "./monthlychart";
-import { mockAnalyticsData } from "@/lib/data/mock-ui-data";
 
 export default function AnalyticsPage() {
   const data = mockAnalyticsData;

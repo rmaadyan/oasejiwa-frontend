@@ -1,12 +1,12 @@
 "use client";
 
+import AnalyticsStats from "@/components/features/admin/analytics/AnalyticsStats";
+import BookingChart from "@/components/features/admin/analytics/bookingchart";
+import MonthlyChart from "@/components/features/admin/analytics/monthlychart";
+import PatientTable from "@/components/features/admin/analytics/PatientTable";
 import { Download } from "lucide-react";
-import AnalyticsStats from "@/app/components/features/admin/analytics/AnalyticsStats";
-import BookingChart from "@/app/components/features/admin/analytics/bookingchart";
-import MonthlyChart from "@/app/components/features/admin/analytics/monthlychart";
-import PatientTable from "@/app/components/features/admin/analytics/PatientTable";
 
-import { 
+import {
   mockAnalyticsData,
   mockRecentPatients
 } from "@/lib/data/mock-ui-data";

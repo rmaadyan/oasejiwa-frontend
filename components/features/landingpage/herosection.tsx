@@ -1,9 +1,9 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
-import Link from "next/link";
-import { useState, useEffect } from "react";
 import { loadBgheroImages } from "@/lib/imageLoader";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export default function HeroSection() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -17,7 +17,7 @@ export default function HeroSection() {
         setImages(loadedImages);
       } catch (error) {
         console.error("Error loading images:", error);
-        setImages(["/assets/landingpage/gambar.jpg"]);
+        setImages(["/bghero/gambar.jpg"]);
       } finally {
         setIsLoading(false);
       }
@@ -53,9 +53,8 @@ export default function HeroSection() {
         {images.map((image, index) => (
           <div
             key={index}
-            className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${
-              index === currentImageIndex ? "opacity-100" : "opacity-0"
-            }`}
+            className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${index === currentImageIndex ? "opacity-100" : "opacity-0"
+              }`}
           >
             <div
               className="w-full h-full bg-cover bg-center bg-no-repeat"
@@ -69,14 +68,14 @@ export default function HeroSection() {
 
         {/* White gradient at bottom */}
         <div className="absolute bottom-0 left-0 right-0 h-24 bg-linear-to-t from-white to-transparent pointer-events-none" />
-        
+
         {/* Overlay gelap samar untuk kontras teks */}
         <div className="absolute inset-0 bg-black/10 pointer-events-none" />
       </div>
 
       {/* Content */}
       <div className="relative z-10 max-w-4xl mx-auto px-2 sm:px-3 lg:px-4 text-center">
-        <h1 
+        <h1
           className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6"
           style={{
             textShadow: '0 3px 10px rgba(0,0,0,0.4), 0 6px 20px rgba(0,0,0,0.3), 0 10px 40px rgba(0,0,0,0.2)'
@@ -86,7 +85,7 @@ export default function HeroSection() {
           <br />
           Pulihkan Jiwamu
         </h1>
-        <p 
+        <p
           className="text-lg md:text-xl text-white mb-10 max-w-2xl mx-auto"
           style={{
             textShadow: '0 2px 8px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.3)'
@@ -122,11 +121,10 @@ export default function HeroSection() {
             <button
               key={index}
               onClick={() => setCurrentImageIndex(index)}
-              className={`h-2 rounded-full transition-all ${
-                index === currentImageIndex
+              className={`h-2 rounded-full transition-all ${index === currentImageIndex
                   ? "bg-white w-8"
                   : "bg-white/50 w-2 hover:bg-white/75"
-              }`}
+                }`}
               aria-label={`Go to image ${index + 1}`}
             />
           ))}

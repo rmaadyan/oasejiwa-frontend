@@ -1,12 +1,9 @@
 "use client";
 
-import Image from "next/image";
-import { useMemo, useRef } from "react";
-import { Star } from "lucide-react";
-import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { testimonials } from "@/lib/data";
-import { bgTestimoniImages } from "@/lib/imageLoader";
+import { motion } from "framer-motion";
+import { ChevronLeft, ChevronRight, Star, User, UserRound } from "lucide-react";
+import { useMemo, useRef } from "react";
 
 function Stars({ rating }: { rating: number }) {
   return (
@@ -25,13 +22,33 @@ function Stars({ rating }: { rating: number }) {
   );
 }
 
+// Component untuk Gender Icon
+function GenderIcon({ gender }: { gender: "male" | "female" }) {
+  const isMale = gender === "male";
+
+  return (
+    <div
+      className={`
+        h-16 w-16 rounded-full flex items-center justify-center
+        ${isMale ? "bg-linear-to-br from-blue-400 to-blue-600" : "bg-linear-to-br from-pink-400 to-pink-600"}
+        ring-4 ring-white shadow-lg
+      `}
+    >
+      {isMale ? (
+        <User className="h-8 w-8 text-white" strokeWidth={2.5} />
+      ) : (
+        <UserRound className="h-8 w-8 text-white" strokeWidth={2.5} />
+      )}
+    </div>
+  );
+}
+
 export default function TestimonialsSection() {
   const scrollerRef = useRef<HTMLDivElement | null>(null);
 
   const items = useMemo(() => {
-    return testimonials.map((t: any, idx: number) => ({
+    return testimonials.map((t: typeof testimonials[0]) => ({
       ...t,
-      avatar: bgTestimoniImages[idx % bgTestimoniImages.length],
     }));
   }, []);
 
@@ -44,13 +61,13 @@ export default function TestimonialsSection() {
   };
 
   return (
-    <motion.section 
-      id="testimonials" 
+    <motion.section
+      id="testimonials"
       className="bg-[#F5FBFF] py-20"
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      viewport={{ once: true }}
+      viewport={{ once: false }}
     >
       <div className="mx-auto max-w-7xl px-2 sm:px-3 lg:px-4">
         <div className="mb-10 flex items-center justify-between gap-6">
@@ -82,29 +99,21 @@ export default function TestimonialsSection() {
           ref={scrollerRef}
           className="flex gap-6 overflow-x-auto pb-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden scroll-smooth snap-x snap-mandatory"
         >
-          {items.map((t: any) => (
+          {items.map((t: typeof items[0]) => (
             <article
               key={t.id}
               data-card
               className={[
                 "relative shrink-0 snap-start",
                 "w-full sm:max-w-xs lg:max-w-sm",
-                "pt-10", // ruang untuk avatar yang nyembul
+                "pt-10", // ruang untuk icon yang nyembul
               ].join(" ")}
             >
               {/* Card */}
               <div className="relative rounded-3xl bg-[#D1EAFF] px-7 pb-8 pt-14 border border-[#D1EAFF]/30">
-                {/* Avatar bubble */}
+                {/* Gender Icon - posisi di atas card */}
                 <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2">
-                  <div className="relative h-16 w-16 rounded-full bg-white ring-4 ring-white overflow-hidden border border-[#D1EAFF]">
-                    <Image
-                      src={t.avatar}
-                      alt={t.name}
-                      fill
-                      className="object-cover"
-                      sizes="64px"
-                    />
-                  </div>
+                  {t.gender && <GenderIcon gender={t.gender} />}
                 </div>
 
                 <h3 className="text-center text-xl font-semibold text-primary-text">
@@ -113,7 +122,7 @@ export default function TestimonialsSection() {
                 <p className="mt-1 text-center text-sm text-slate-500">{t.role}</p>
 
                 <p className="mt-5 text-center text-sm leading-relaxed text-slate-700">
-                  “{t.content}”
+                  "{t.content}"
                 </p>
 
                 <Stars rating={t.rating} />

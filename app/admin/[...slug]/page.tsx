@@ -1,13 +1,14 @@
-import { notFound } from "next/navigation";
 import Dashboard from "@/app/admin/dashboard";
-import Analytics from "@/app/admin/analytics";
+import Analytics from "@/components/features/admin/analytics/page";
+import { notFound } from "next/navigation";
 
-export default async function AdminCatchAllRouter({
+export default async function AdminRouter({
   params,
 }: {
-  params: Promise<{ slug: string[] }>;
+  params: Promise<{ slug?: string[] }>;
 }) {
-  const { slug } = await params;
+  const resolvedParams = await params;
+  const slug = resolvedParams?.slug;
   const pageName = slug?.[0] || "dashboard";
 
   // Master router logic

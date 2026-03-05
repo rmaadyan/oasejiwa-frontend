@@ -1,26 +1,26 @@
-import { 
-  Users, 
-  Calendar, 
-  CreditCard, 
+import {
+  Users,
+  Calendar,
+  CreditCard,
   TrendingUp
 } from "lucide-react";
 
 // ✅ Import dari components/features/admin/dashboard
-import StatCard from "@/app/components/features/admin/dashboard/statcard";
-import RecentBookings from "@/app/components/features/admin/dashboard/recentbookings";
-import TodaySchedule from "@/app/components/features/admin/dashboard/todayschedule";
-import PendingPayments from "@/app/components/features/admin/dashboard/pendingpayments";
+import StatCard from "@/components/features/admin/dashboard/statcard";
+import RecentBookings from "@/components/features/admin/dashboard/recentbookings";
+import TodaySchedule from "@/components/features/admin/dashboard/todayschedule";
+import PendingPayments from "@/components/features/admin/dashboard/pendingpayments";
 
 // Import API layer
 import { getAllDashboardData } from "@/lib/api/dashboard";
 
 // Import mock UI data untuk development/preview
-import { 
-  mockDashboardStats, 
-  mockRecentBookings, 
-  mockPendingPayments, 
-  mockTodaySchedule, 
-  mockAlerts 
+import {
+  mockDashboardStats,
+  mockRecentBookings,
+  mockPendingPayments,
+  mockTodaySchedule,
+  mockAlerts
 } from "@/lib/data/mock-ui-data";
 
 export default async function Dashboard() {
@@ -36,7 +36,7 @@ export default async function Dashboard() {
     if (!showMockUI) {
       console.error('Dashboard Error:', error);
     }
-    
+
     // Jika SHOW_MOCK_UI aktif, gunakan mock data untuk preview UI
     if (showMockUI) {
       dashboardData = {
