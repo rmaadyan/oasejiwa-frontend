@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
-import { Menu, User, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -10,18 +10,12 @@ export default function Navbar() {
   const [isSpecialPage, setIsSpecialPage] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
 
-    // Check login status
-    const loginStatus = localStorage.getItem("isLoggedIn");
-    if (loginStatus === "true") {
-      setIsLoggedIn(true);
-    }
     const pathname = window.location.pathname;
     setIsSpecialPage(pathname === "/about" || pathname.startsWith("/booking") || pathname.startsWith("/layanan") || pathname.startsWith("/psikologlist") || pathname.startsWith("/psikologdetail") || pathname.startsWith("/tes"));
     window.addEventListener("scroll", handleScroll);
@@ -89,24 +83,18 @@ export default function Navbar() {
                 {item.name}
               </Link>
             ))}
-            {isLoggedIn ? (
-              <Link href="/userprofile" className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 hover:bg-blue-200 transition-colors">
-                <User className="w-5 h-5 text-blue-900" />
-              </Link>
-            ) : (
-              <Link href="/auth/signin">
-                <Button
-                  className={`transition-all ${isScrolled
-                    ? "bg-blue-600 text-[#234463] hover:bg-blue-700"
-                    : isSpecialPage
-                      ? "border-2 border-blue-600 !text-blue-600 hover:bg-blue-600/10 bg-transparent"
-                      : "border-2 border-white text-white hover:bg-white/10 bg-transparent"
-                    }`}
-                >
-                  Login
-                </Button>
-              </Link>
-            )}
+            <Link href="/auth/signin">
+              <Button
+                className={`transition-all ${isScrolled
+                  ? "bg-blue-600 text-white hover:bg-blue-700"
+                  : isSpecialPage
+                    ? "border-2 border-blue-600 !text-blue-600 hover:bg-blue-600/10 bg-transparent"
+                    : "border-2 border-white text-white hover:bg-white/10 bg-transparent"
+                  }`}
+              >
+                Login
+              </Button>
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -143,20 +131,11 @@ export default function Navbar() {
               </Link>
             ))}
             <div className="px-4 pt-2">
-              {isLoggedIn ? (
-                <Link href="/userprofile" onClick={() => setIsOpen(false)}>
-                  <Button className={`w-full flex items-center justify-center gap-2 ${isScrolled ? "bg-blue-600 text-white hover:bg-blue-700" : isSpecialPage ? "border-2 border-blue-600 !text-blue-600 hover:bg-blue-600/10 bg-transparent" : "border-2 border-white text-white hover:bg-white/10 bg-transparent"}`}>
-                    <User className="w-4 h-4" />
-                    My Profile
-                  </Button>
-                </Link>
-              ) : (
-                <Link href="/auth/signin" onClick={() => setIsOpen(false)}>
-                  <Button className={`w-full ${isScrolled ? "bg-blue-600 text-white hover:bg-blue-700" : isSpecialPage ? "border-2 border-blue-600 !text-blue-600 hover:bg-blue-600/10 bg-transparent" : "border-2 border-white text-white hover:bg-white/10 bg-transparent"}`}>
-                    Login
-                  </Button>
-                </Link>
-              )}
+              <Link href="/auth/signin" onClick={() => setIsOpen(false)}>
+                <Button className={`w-full ${isScrolled ? "bg-blue-600 text-white hover:bg-blue-700" : isSpecialPage ? "border-2 border-blue-600 !text-blue-600 hover:bg-blue-600/10 bg-transparent" : "border-2 border-white text-white hover:bg-white/10 bg-transparent"}`}>
+                  Login
+                </Button>
+              </Link>
             </div>
           </div>
         )}
