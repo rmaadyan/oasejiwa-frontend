@@ -1,39 +1,39 @@
-import { BundlePackage, FAQ, Service, Testimonial } from "@/types";
+import { Service, Testimonial, FAQ, BundlePackage } from "@/app/types";
 
 export const services: Service[] = [
   {
     id: 1,
     name: "Konsultasi Psikologi",
     duration: "30 Menit",
-    description: "Mempunyai pertanyaan atau keresahan seputar kesehatan mental, hubungan, atau kehidupan sehari-hari? Konsultasi psikologi membantu anda menemukan jawaban dan panduan dari profesional.",
+    description: "Punya pertanyaan seputar kesehatan mental, hubungan, atau masalah sehari-hari? Dapatkan jawaban dan panduan dari psikolog profesional.",
     price: "Rp 150.000"
   },
   {
     id: 2,
     name: "Mental Health Check-Up",
     duration: "-",
-    description: "Layanan skrining psikologis singkat untuk mengetahui kondisi kesehatan mental, seperti stres, emosi, dan kesejahteraan psikologis. Hasilnya disertai gambaran umum dan rekomendasi tindak lanjut.",
+    description: "Cek kondisi kesehatan mental Anda seperti tingkat stres dan emosi. Hasil lengkap dengan gambaran umum dan rekomendasi langkah selanjutnya.",
     price: "Rp 150.000"
   },
   {
     id: 3,
     name: "Konseling Individu",
     duration: "60 Menit",
-    description: "Layanan pendampingan psikologis yang dilakukan secara bertahap bersama psikolog. Berfokus pada eksplorasi masalah yang lebih mendalam, pengelolaan emosi, perubahan pola pikir dan perilaku.",
+    description: "Pendampingan bertahap untuk menggali masalah lebih dalam, kelola emosi, dan ubah pola pikir menjadi lebih positif bersama psikolog.",
     price: "Rp 200.000"
   },
   {
     id: 4,
     name: "Konseling Pasangan (Pra-Nikah)",
     duration: "60 Menit",
-    description: "Bersiap membangun rumah tangga yang harmonis. Konseling ini membantu pasangan memperkuat komunikasi dan memahami perbedaan, agar siap menghadapi masa depan bersama.",
+    description: "Persiapkan pernikahan yang harmonis. Perkuat komunikasi, pahami perbedaan, dan hadapi masa depan bersama dengan lebih siap.",
     price: "Rp 499.000"
   },
   {
     id: 5,
     name: "Konseling Pasangan (Keluarga)",
     duration: "60 Menit",
-    description: "Layanan ini membantu anggota keluarga menemukan solusi atas konflik, memperbaiki kualitas komunikasi, serta membangun hubungan yang lebih sehat.",
+    description: "Atasi konflik keluarga, perbaiki komunikasi, dan bangun hubungan yang lebih sehat antar anggota keluarga.",
     price: "Rp 499.000"
   },
   {
