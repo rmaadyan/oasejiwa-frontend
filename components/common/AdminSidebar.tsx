@@ -55,7 +55,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
         {
             icon: FileText,
             label: "Manajemen Tes",
-            href: "/admin/tests"
+            href: "/admin/manajemen-tes"
         },
     ];
 

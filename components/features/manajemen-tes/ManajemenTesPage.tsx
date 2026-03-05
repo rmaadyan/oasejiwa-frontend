@@ -5,15 +5,15 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/Alert";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import TesTable from "./TesTable";
 import { INITIAL_DATA } from "./dataDummy";
 import type { TesItem } from "./types";
-import {
-  Alert,
-  AlertTitle,
-  AlertDescription,
-} from "@/components/ui/Alert";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 const STORAGE_KEY = "tes-list";
 const PAGE_SIZE_OPTIONS = [5, 10, 20];
@@ -79,11 +79,11 @@ export default function ManajemenTesPage() {
   };
 
   const handlePreview = (item: TesItem) => {
-    router.push(`/manajemen-tes/preview/${item.id}`);
+    router.push(`/admin/manajemen-tes/preview/${item.id}`);
   };
 
   const handleEdit = (item: TesItem) => {
-    router.push(`/manajemen-tes/edit/${item.id}`);
+    router.push(`/admin/manajemen-tes/edit/${item.id}`);
   };
 
   const handleDelete = (item: TesItem) => {
@@ -205,7 +205,7 @@ export default function ManajemenTesPage() {
                   />
                 </div>
                 <button
-                  onClick={() => router.push("/manajemen-tes/tambah")}
+                  onClick={() => router.push("/admin/manajemen-tes/tambah")}
                   className="flex items-center justify-center gap-2 rounded-xl bg-[#234463] px-6 py-3 text-[14px] font-semibold text-white hover:bg-[#2B5379] hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
