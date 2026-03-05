@@ -1,11 +1,11 @@
 'use client'
-import {useState} from "react";
-import {Mail, Phone, MapPin, User, Calendar, LogOut, History, Pencil, Check, Menu, X} from "lucide-react";
-import ProfileInformation from "@/components/features/user/profileManagement/profileInfo";
-import Navbar from "@/components//common/Navbar";
-import EditPersonalInformation from "@/components/features/user/profileManagement/editPersonalInfo";
 import EditAddress from "@/components/features/user/profileManagement/editAddress";
+import EditPersonalInformation from "@/components/features/user/profileManagement/editPersonalInfo";
+import ProfileInformation from "@/components/features/user/profileManagement/profileInfo";
+import { ArrowLeft, Calendar, Check, History, LogOut, Mail, Menu, Pencil, Phone, User, X } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 
 type profileData = {
@@ -19,7 +19,7 @@ type profileData = {
     city: string;
 };
 
-export default function Profile(){
+export default function Profile() {
 
     const [isEditPersonalInformation, setIsEditPersonalInformation] = useState(false);
     const [isEditAddress, setIsEditAddress] = useState(false);
@@ -28,11 +28,11 @@ export default function Profile(){
     const router = useRouter();
 
     const handleSubmit = () => {
-            setTimeout(() => {
-                setIsSidebarOpen(false);
-                router.push('/auth/signin')
-            }, 500);
-        }
+        setTimeout(() => {
+            setIsSidebarOpen(false);
+            router.push('/auth/signin')
+        }, 500);
+    }
 
     const [profileData, setProfileData] = useState<profileData>({
         fullName: "Amelia Agustin",
@@ -45,16 +45,19 @@ export default function Profile(){
         city: "Malang",
     });
 
-    return(
+    return (
         <div className="min-h-screen bg-gray-50">
-            <Navbar />
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-20 py-8">
-                <div className="flex justify-between lg:justify-center items-center pb-6 sm:pb-8">
-                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-blue-950">
-                        {currentPage === "profile"? "My Profile":"History"}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-10 py-8">
+                <div className="flex items-center pb-6 sm:pb-8 relative">
+                    <Link href="/" className="lg:absolute lg:left-0 p-2 rounded-lg bg-white border border-gray-200 shadow-sm hover:bg-gray-50 flex items-center justify-center mr-4 lg:mr-0 transition-colors">
+                        <ArrowLeft size={24} className="text-blue-950" />
+                    </Link>
+
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-blue-950 flex-1 lg:text-center">
+                        {currentPage === "profile" ? "My Profile" : "History"}
                     </h1>
-                    
-                    <button 
+
+                    <button
                         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                         className="lg:hidden p-2 rounded-lg bg-white border border-gray-200 shadow-sm"
                     >
@@ -69,9 +72,9 @@ export default function Profile(){
                         bg-black/50 lg:bg-transparent
                         transition-opacity duration-300
                         ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none lg:opacity-100 lg:pointer-events-auto'}`}
-                    onClick={() => setIsSidebarOpen(false)}
+                        onClick={() => setIsSidebarOpen(false)}
                     >
-                        <div 
+                        <div
                             className={`
                                 absolute lg:static right-0 top-0 h-full
                                 w-80 lg:w-full
@@ -81,7 +84,7 @@ export default function Profile(){
                                 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
                             `}
                             onClick={(e) => e.stopPropagation()}>
-                            <button 
+                            <button
                                 onClick={() => setIsSidebarOpen(false)}
                                 className="lg:hidden absolute top-4 right-4 p-2"
                             >
@@ -90,7 +93,7 @@ export default function Profile(){
 
                             <div className="text-center pt-8 lg:pt-0">
                                 <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-full bg-gray-200 flex items-center justify-center text-xl font-bold text-blue-950">
-                                    <User size={48} className="sm:w-14 sm:h-14"/>
+                                    <User size={48} className="sm:w-14 sm:h-14" />
                                 </div>
                                 <p className="mt-3 font-semibold text-blue-950 text-sm sm:text-base">{profileData.fullName}</p>
                                 <p className="text-xs sm:text-sm text-gray-500 break-all px-2">{profileData.email}</p>
@@ -98,27 +101,27 @@ export default function Profile(){
 
                             {/* Menu */}
                             <nav className="space-y-2 text-sm">
-                                <SidebarItem 
-                                    icon={<User size={16} />} 
-                                    label="My Profile" 
-                                    active={currentPage === "profile"} 
+                                <SidebarItem
+                                    icon={<User size={16} />}
+                                    label="My Profile"
+                                    active={currentPage === "profile"}
                                     onClick={() => {
                                         setCurrentPage("profile");
                                         setIsSidebarOpen(false);
                                     }}
                                 />
-                                <SidebarItem 
-                                    icon={<History size={16} />} 
-                                    label="History" 
+                                <SidebarItem
+                                    icon={<History size={16} />}
+                                    label="History"
                                     active={currentPage === "history"}
                                     onClick={() => {
                                         setCurrentPage("history");
                                         setIsSidebarOpen(false);
                                     }}
                                 />
-                                <SidebarItem 
-                                    icon={<LogOut size={16} />} 
-                                    label="Log Out" 
+                                <SidebarItem
+                                    icon={<LogOut size={16} />}
+                                    label="Log Out"
                                     danger
                                     onClick={handleSubmit}
                                 />
@@ -133,20 +136,20 @@ export default function Profile(){
                                 <div className="bg-white border border-gray-200 rounded-2xl shadow p-4 sm:p-6 space-y-4">
                                     <div className="flex flex-row justify-between sm:items-center gap-3">
                                         <h2 className="font-semibold text-blue-950 text-base sm:text-lg">Profile Information</h2>
-                                        <button 
+                                        <button
                                             onClick={() => setIsEditPersonalInformation(true)}
                                             className="flex items-center justify-center gap-2 text-sm bg-blue-900 text-white font-semibold rounded-lg px-4 py-2 hover:bg-blue-800 transition cursor-pointer w-auto">
-                                            <Pencil size={14}/>
+                                            <Pencil size={14} />
                                             Edit
                                         </button>
                                     </div>
                                     <div className="border-t border-gray-200" />
                                     <div className="space-y-3 sm:space-y-4">
-                                        <ProfileInformation label="Full Name" value={profileData.fullName}/>
-                                        <ProfileInformation label="Birthday" value={profileData.birthday} icon={<Calendar size={16}/>} />
-                                        <ProfileInformation label="Gender" value={profileData.gender} icon={<User size={16}/>}/>
-                                        <ProfileInformation label="Email" value={profileData.email} icon={<Mail size={16}/>}/>
-                                        <ProfileInformation label="Phone" value={profileData.phone} icon={<Phone size={16}/>}/>
+                                        <ProfileInformation label="Full Name" value={profileData.fullName} />
+                                        <ProfileInformation label="Birthday" value={profileData.birthday} icon={<Calendar size={16} />} />
+                                        <ProfileInformation label="Gender" value={profileData.gender} icon={<User size={16} />} />
+                                        <ProfileInformation label="Email" value={profileData.email} icon={<Mail size={16} />} />
+                                        <ProfileInformation label="Phone" value={profileData.phone} icon={<Phone size={16} />} />
                                     </div>
                                 </div>
 
@@ -154,18 +157,18 @@ export default function Profile(){
                                 <div className="bg-white border border-gray-200 rounded-2xl shadow p-4 sm:p-6 space-y-4">
                                     <div className="flex flex-row justify-between sm:items-center gap-3">
                                         <h2 className="font-semibold text-blue-950 text-base sm:text-lg">Address</h2>
-                                        <button 
+                                        <button
                                             onClick={() => setIsEditAddress(true)}
                                             className="flex items-center justify-center gap-2 text-sm bg-blue-900 text-white font-semibold rounded-lg px-4 py-2 hover:bg-blue-800 transition cursor-pointer w-auto"
                                         >
-                                            <Pencil size={14}/>
+                                            <Pencil size={14} />
                                             Edit
                                         </button>
                                     </div>
                                     <div className="border-t border-gray-200" />
                                     <div className="space-y-3 sm:space-y-4">
-                                        <ProfileInformation label="Country" value={profileData.country}/>
-                                        <ProfileInformation label="City" value={profileData.city}/>
+                                        <ProfileInformation label="Country" value={profileData.country} />
+                                        <ProfileInformation label="City" value={profileData.city} />
                                         <ProfileInformation label="Full Address" value={profileData.address} />
                                     </div>
                                 </div>
@@ -230,7 +233,7 @@ function SidebarItem({
             className={`flex items-center gap-3 px-3 py-2.5 sm:py-2 rounded-lg cursor-pointer transition-colors hover:bg-gray-100
                 ${active ? "bg-gray-100 text-blue-950 font-medium" : "text-gray-700"}
                 ${danger && "text-red-600"}`}
-            >
+        >
             {icon}
             {label}
         </div>

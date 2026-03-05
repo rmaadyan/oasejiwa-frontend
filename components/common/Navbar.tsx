@@ -1,20 +1,27 @@
 "use client";
 
-import Link from "next/link";
-import Image from "next/image";
-import { useState, useEffect } from "react";
-import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { Menu, User, X } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export default function Navbar() {
   const [isSpecialPage, setIsSpecialPage] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
+
+    // Check login status
+    const loginStatus = localStorage.getItem("isLoggedIn");
+    if (loginStatus === "true") {
+      setIsLoggedIn(true);
+    }
     const pathname = window.location.pathname;
     setIsSpecialPage(pathname === "/about" || pathname.startsWith("/booking") || pathname.startsWith("/layanan") || pathname.startsWith("/psikologlist") || pathname.startsWith("/psikologdetail") || pathname.startsWith("/tes"));
     window.addEventListener("scroll", handleScroll);
@@ -32,8 +39,8 @@ export default function Navbar() {
   return (
     <nav
       className={`fixed top-0 w-full z-50 transition-all duration-300 font-poppins no-print ${isScrolled
-          ? "bg-[#D1EAFF] shadow-md"
-          : "bg-transparent"
+        ? "bg-[#D1EAFF] shadow-md"
+        : "bg-transparent"
         }`}
     >
       <div className="max-w-7xl mx-auto px-2 sm:px-3 lg:px-4">
@@ -51,10 +58,10 @@ export default function Navbar() {
             </div>
             <span
               className={`text-2xl font-semibold transition-colors duration-300 ${isScrolled
-                  ? "text-[#2B5379]"
-                  : isSpecialPage
-                    ? "text-[#234463]"
-                    : "text-white"
+                ? "text-[#2B5379]"
+                : isSpecialPage
+                  ? "text-[#234463]"
+                  : "text-white"
                 }`}
             >
               Oase Jiwa
@@ -68,10 +75,10 @@ export default function Navbar() {
                 key={item.name}
                 href={item.href}
                 className={`font-medium transition-colors duration-300 select-none ${isScrolled
-                    ? "text-[#2B5379] hover:text-blue-600"
-                    : isSpecialPage
-                      ? "text-[#234463] hover:text-[#234463]/80"
-                      : "text-white hover:text-white/80"
+                  ? "text-[#2B5379] hover:text-blue-600"
+                  : isSpecialPage
+                    ? "text-[#234463] hover:text-[#234463]/80"
+                    : "text-white hover:text-white/80"
                   } active:text-white`}
 
                 style={{
@@ -82,26 +89,34 @@ export default function Navbar() {
                 {item.name}
               </Link>
             ))}
-            <Button
-              className={`transition-all ${isScrolled
-                  ? "bg-blue-600 text-[#234463] hover:bg-blue-700"
-                  : isSpecialPage
-                    ? "border-2 border-blue-600 !text-blue-600 hover:bg-blue-600/10 bg-transparent"
-                    : "border-2 border-white text-white hover:bg-white/10 bg-transparent"
-                }`}
-            >
-              Login
-            </Button>
+            {isLoggedIn ? (
+              <Link href="/userprofile" className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 hover:bg-blue-200 transition-colors">
+                <User className="w-5 h-5 text-blue-900" />
+              </Link>
+            ) : (
+              <Link href="/auth/signin">
+                <Button
+                  className={`transition-all ${isScrolled
+                    ? "bg-blue-600 text-[#234463] hover:bg-blue-700"
+                    : isSpecialPage
+                      ? "border-2 border-blue-600 !text-blue-600 hover:bg-blue-600/10 bg-transparent"
+                      : "border-2 border-white text-white hover:bg-white/10 bg-transparent"
+                    }`}
+                >
+                  Login
+                </Button>
+              </Link>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
             className={`md:hidden p-2 transition-colors duration-300 ${isScrolled
-                ? "text-[#2B5379]"
-                : isSpecialPage
-                  ? "text-[#234463]"
-                  : "text-white"
+              ? "text-[#2B5379]"
+              : isSpecialPage
+                ? "text-[#234463]"
+                : "text-white"
               }`}
           >
             {isOpen ? <X size={24} /> : <Menu size={24} />}
@@ -117,10 +132,10 @@ export default function Navbar() {
                 key={item.name}
                 href={item.href}
                 className={`block py-3 px-4 font-medium transition-colors ${isScrolled
-                    ? "text-[#2B5379] hover:text-blue-600"
-                    : isSpecialPage
-                      ? "text-[#234463] hover:text-[#234463]/80"
-                      : "text-white hover:text-white/80"
+                  ? "text-[#2B5379] hover:text-blue-600"
+                  : isSpecialPage
+                    ? "text-[#234463] hover:text-[#234463]/80"
+                    : "text-white hover:text-white/80"
                   }`}
                 onClick={() => setIsOpen(false)}
               >
@@ -128,9 +143,20 @@ export default function Navbar() {
               </Link>
             ))}
             <div className="px-4 pt-2">
-              <Button className={`w-full ${isScrolled ? "bg-blue-600 text-white hover:bg-blue-700" : isSpecialPage ? "border-2 border-blue-600 !text-blue-600 hover:bg-blue-600/10 bg-transparent" : "border-2 border-white text-white hover:bg-white/10 bg-transparent"}`}>
-                Login
-              </Button>
+              {isLoggedIn ? (
+                <Link href="/userprofile" onClick={() => setIsOpen(false)}>
+                  <Button className={`w-full flex items-center justify-center gap-2 ${isScrolled ? "bg-blue-600 text-white hover:bg-blue-700" : isSpecialPage ? "border-2 border-blue-600 !text-blue-600 hover:bg-blue-600/10 bg-transparent" : "border-2 border-white text-white hover:bg-white/10 bg-transparent"}`}>
+                    <User className="w-4 h-4" />
+                    My Profile
+                  </Button>
+                </Link>
+              ) : (
+                <Link href="/auth/signin" onClick={() => setIsOpen(false)}>
+                  <Button className={`w-full ${isScrolled ? "bg-blue-600 text-white hover:bg-blue-700" : isSpecialPage ? "border-2 border-blue-600 !text-blue-600 hover:bg-blue-600/10 bg-transparent" : "border-2 border-white text-white hover:bg-white/10 bg-transparent"}`}>
+                    Login
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         )}
