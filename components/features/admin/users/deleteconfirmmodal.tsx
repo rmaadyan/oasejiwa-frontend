@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import type { User } from "@/lib/types/users.ts";
 import { AlertTriangle, X } from "lucide-react";
-import type { User } from "@/lib/types/users";
+import { useState } from "react";
 
 interface DeleteConfirmModalProps {
   isOpen: boolean;
@@ -11,11 +11,11 @@ interface DeleteConfirmModalProps {
   user: User | null;
 }
 
-export default function DeleteConfirmModal({ 
-  isOpen, 
-  onClose, 
-  onConfirm, 
-  user 
+export default function DeleteConfirmModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  user
 }: DeleteConfirmModalProps) {
   const [loading, setLoading] = useState(false);
 
