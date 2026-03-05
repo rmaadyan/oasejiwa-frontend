@@ -154,7 +154,7 @@ export const faqs: FAQ[] = [
   {
     id: 2,
     question: "Bagaimana proses konsultasi psikologi berlangsung?",
-    answer: "Sesi pertama biasanya melibatkan asesmen awal, di mana saya akan mendengarkan permasalahan Anda, memahami kebutuhan Anda, dan menentukan pendekatan terapi yang sesuai. Sesi selanjutnya disesuaikan dengan perkembangan dan kebutuhan Anda."
+    answer: "Sesi pertama biasanya melibatkan asesmen awal, di mana psikolog akan mendengarkan permasalahan Anda, memahami kebutuhan Anda, dan menentukan pendekatan terapi yang sesuai. Sesi selanjutnya disesuaikan dengan perkembangan dan kebutuhan Anda."
   },
   {
     id: 3,
@@ -164,11 +164,11 @@ export const faqs: FAQ[] = [
   {
     id: 4,
     question: "Apakah saya bisa melakukan sesi konsultasi secara online?",
-    answer: "Ya, saya menyediakan layanan konsultasi secara tatap muka maupun online untuk memberikan fleksibilitas bagi klien yang tidak dapat hadir langsung ke tempat praktik."
+    answer: "Ya, kami menyediakan layanan konsultasi secara tatap muka maupun online untuk memberikan fleksibilitas bagi klien yang tidak dapat hadir langsung ke tempat praktik."
   },
   {
     id: 5,
     question: "Berapa biaya layanan yang ditawarkan?",
-    answer: "Biaya layanan bervariasi tergantung pada jenis layanan yang diambil. Anda dapat menghubungi saya untuk informasi lebih lanjut mengenai tarif dan metode pembayaran."
+    answer: "Biaya layanan bervariasi tergantung pada jenis layanan yang diambil. Anda dapat menghubungi kami untuk informasi lebih lanjut mengenai tarif dan metode pembayaran."
   }
 ];
