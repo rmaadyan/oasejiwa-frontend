@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Download, FileSpreadsheet } from "lucide-react";
-import { downloadToExcel } from "@/lib/utils/csv-export";
 
 interface Patient {
   id: number;
@@ -35,43 +33,6 @@ export default function PatientTable({ data, fullAnalyticsData }: PatientTablePr
 
   const years = ["2024", "2025", "2026"];
 
-  // Comprehensive Excel Export
-  const handleExportExcel = () => {
-    if (!fullAnalyticsData) return;
-
-    const exportData = {
-      'Ringkasan': [
-        { Kategori: 'Total Pengguna', Nilai: fullAnalyticsData.stats.totalUsers },
-        { Kategori: 'Total Pengunjung', Nilai: fullAnalyticsData.stats.totalVisitors },
-        { Kategori: 'Klien Lama', Nilai: fullAnalyticsData.bookings.returning },
-        { Kategori: 'Klien Baru', Nilai: fullAnalyticsData.bookings.new },
-        { Kategori: 'Pendapatan Lunas', Nilai: `Rp ${fullAnalyticsData.revenue.paid.toLocaleString('id-ID')}` },
-        { Kategori: 'Pendapatan DP', Nilai: `Rp ${fullAnalyticsData.revenue.dp.toLocaleString('id-ID')}` },
-      ],
-      'Pasien': data.map(p => ({
-        Nama: p.name,
-        Layanan: p.service,
-        Tanggal: p.date,
-        Keterangan: p.description || '-',
-        'Jumlah Booking': p.bookingCount || 0
-      })),
-      'Pasien Per Bulan': fullAnalyticsData.monthlyPatients.map((m: any) => ({
-        Bulan: m.month,
-        'Jumlah Pasien': m.value
-      })),
-      'Tes Terbanyak': fullAnalyticsData.topTests.map((t: any) => ({
-        Nama: t.name,
-        Persentase: `${t.percentage}%`
-      })),
-      'Layanan Terbanyak': fullAnalyticsData.topServices.map((s: any) => ({
-        Nama: s.name,
-        Persentase: `${s.percentage}%`
-      }))
-    };
-
-    downloadToExcel(exportData, `analytics-${selectedYear}-${Date.now()}.xlsx`);
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -96,14 +57,6 @@ export default function PatientTable({ data, fullAnalyticsData }: PatientTablePr
             <option value="bookings">Terbanyak Booking</option>
             <option value="recent">Terbaru</option>
           </select>
-          <button
-            onClick={handleExportExcel}
-            className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-white bg-[#2B5379] rounded-lg hover:bg-[#1e3d57] transition-colors"
-            title="Download lengkap (Excel)"
-          >
-            <FileSpreadsheet size={14} />
-            <span>Export Excel</span>
-          </button>
         </div>
       </div>
 

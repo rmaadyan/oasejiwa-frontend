@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Download } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import AnalyticsStats from "@/app/components/features/admin/analytics/AnalyticsStats";
@@ -9,7 +8,6 @@ import BookingChart from "@/app/components/features/admin/analytics/bookingchart
 import MonthlyChart from "@/app/components/features/admin/analytics/monthlychart";
 import PatientTable from "@/app/components/features/admin/analytics/PatientTable";
 import { mockAnalyticsData, type AnalyticsData } from "@/lib/data/mock-ui-data";
-import { downloadToExcel } from "@/lib/utils/csv-export";
 
 export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData>(mockAnalyticsData);
@@ -52,37 +50,6 @@ export default function AnalyticsPage() {
     fetchAnalyticsData();
   }, [bookingDate, patientYear]);
 
-  const handleExportAll = () => {
-    const exportData = {
-      'Ringkasan': [
-        { Kategori: 'Total Pengguna', Nilai: data.stats.totalUsers },
-        { Kategori: 'Total Pengunjung', Nilai: data.stats.totalVisitors },
-        { Kategori: 'Klien Lama', Nilai: data.bookings.returning },
-        { Kategori: 'Klien Baru', Nilai: data.bookings.new },
-        { Kategori: 'Pendapatan Lunas', Nilai: `Rp ${data.revenue.paid.toLocaleString('id-ID')}` },
-        { Kategori: 'Pendapatan DP', Nilai: `Rp ${data.revenue.dp.toLocaleString('id-ID')}` },
-      ],
-      'Pasien Per Bulan': data.monthlyPatients.map(m => ({
-        Bulan: m.month,
-        'Jumlah Pasien': m.value
-      })),
-      'Layanan Terbanyak': data.topServices.map(s => ({
-        Nama: s.name,
-        Persentase: `${s.percentage}%`
-      })),
-      'Data Pasien': data.patients.map(p => ({
-        Nama: p.name,
-        Layanan: p.service,
-        Tanggal: p.date,
-        Keterangan: p.description || '-',
-        'Jumlah Booking': p.bookingCount || 0
-      }))
-    };
-
-    const monthYear = bookingDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
-    downloadToExcel(exportData, `analytics-${monthYear}-${Date.now()}.xlsx`);
-  };
-
   // Generate array tahun untuk dropdown
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
@@ -105,28 +72,20 @@ export default function AnalyticsPage() {
             Data pasien: Tahun {patientYear}
           </p>
         </div>
-        <button
-          onClick={handleExportAll}
-          disabled={loading}
-          className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Download size={16} />
-          {loading ? 'Loading...' : 'Download CSV'}
-        </button>
       </div>
 
       {/* Main Layout Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
         {/* Left Column: Stats + Revenue */}
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
           {/* Pengguna & Pengunjung */}
           <div className="grid grid-cols-2 gap-4">
             <AnalyticsStats label="Pengguna" value={data.stats.totalUsers} />
             <AnalyticsStats label="Pengunjung" value={data.stats.totalVisitors} />
           </div>
 
-          {/* Pendapatan */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6 flex flex-col">
+          {/* Pendapatan — flex-1 agar mengisi sisa tinggi kolom */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6 flex flex-col flex-1">
             <h3 className="text-base font-semibold text-gray-900 mb-4">
               Pendapatan
             </h3>
@@ -148,7 +107,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Right Column: Monthly Chart */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 h-full">
           <div className="bg-white rounded-lg border border-gray-200 p-6 h-full">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-semibold text-gray-900">
@@ -200,7 +159,10 @@ export default function AnalyticsPage() {
               <div className="text-gray-500">Loading data...</div>
             </div>
           ) : (
-            <BookingChart data={data.bookings} compact={true} />
+            <div className="flex flex-col items-center justify-center">
+              {/* Wrapper untuk center konten booking */}
+              <BookingChart data={data.bookings} compact={true} />
+            </div>
           )}
         </div>
 
