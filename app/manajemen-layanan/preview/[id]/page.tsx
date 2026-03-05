@@ -154,10 +154,7 @@ export default function PreviewLayananPage() {
                 )}
               </div>
 
-              <button
-                className="w-full rounded-full bg-[#1f3b5b] px-6 py-2 text-sm font-semibold text-white hover:bg-blue-900 disabled:opacity-60"
-                onClick={() => router.push(`/booking/psychologists?service=${id}`)}
-              >
+              <button className="w-full rounded-full bg-[#1f3b5b] px-6 py-2 text-sm font-semibold text-white hover:bg-blue-900 disabled:opacity-60">
                 Booking Sesi
               </button>
 
