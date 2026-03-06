@@ -64,7 +64,7 @@ export default function LayananLandingPage() {
   const handleLihatDetail = (id: number) => {
     // sesuaikan dengan lokasi file preview:
     // app/manajemen-layanan/preview/[id]/page.tsx
-    router.push(`/manajemen-layanan/preview/${id}`);
+    router.push(`/layanan/layanan-preview/preview/${id}`);
   };
 
   if (loading) {

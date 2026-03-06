@@ -1,5 +1,5 @@
-import HasilTesPage from "@/components/features/manajemen-tes/HasilTesPage";
+import HasilTesPage1 from "@/components/features/manajemen-tes/HasilTesPage1";
 
 export default function Page() {
-  return <HasilTesPage />;
+  return <HasilTesPage1 />;
 }

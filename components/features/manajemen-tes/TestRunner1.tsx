@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
+
 import type {
   DiagnosisKategori,
   LikertOption,
@@ -12,6 +13,7 @@ import type {
   PertanyaanItem,
   SectionKategoriMap,
 } from "./types";
+
 import type { TesDetail } from "./DetailTesForm";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/Alert";
 
@@ -32,7 +34,7 @@ type SectionScore = {
   maks: number;
 };
 
-export default function TestRunner({ tes, onBack }: Props) {
+export default function TestRunner1({ tes, onBack }: Props) {
   const router = useRouter();
 
   const [jawaban, setJawaban] = useState<Jawaban>({});
@@ -44,14 +46,20 @@ export default function TestRunner({ tes, onBack }: Props) {
   const sectionKategori = tes.sectionKategori as SectionKategoriMap | undefined;
 
   const jumlahSoal = pertanyaan.length;
+
   const skorMaksPerSoal =
     likert.length > 0 ? Math.max(...likert.map((l) => l.value)) : 5;
+
   const skorMaksTes = jumlahSoal * skorMaksPerSoal;
 
   const questionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const handleJawab = (soalId: string, value: LikertValue) => {
-    setJawaban((prev) => ({ ...prev, [soalId]: value }));
+    setJawaban((prev) => ({
+      ...prev,
+      [soalId]: value,
+    }));
+
     setErrorMsg(null);
   };
 
@@ -63,45 +71,59 @@ export default function TestRunner({ tes, onBack }: Props) {
       return;
     }
 
-    // periksa jawaban yang masih undefined (0 tetap dianggap terisi)
     const firstUnanswered = pertanyaan.find(
-      (p) => jawaban[p.id] === undefined,
+      (p) => jawaban[p.id] === undefined
     );
 
     if (firstUnanswered) {
       setErrorMsg("Masih ada pertanyaan yang belum dijawab.");
+
       const node = questionRefs.current[firstUnanswered.id];
+
       if (node) {
-        node.scrollIntoView({ behavior: "smooth", block: "center" });
+        node.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
       }
+
       return;
     }
 
-    // total global (0 sah, pakai ??)
+    // Hitung total skor
     const total = Object.values(jawaban).reduce<number>(
       (sum, val) => sum + (val ?? 0),
-      0,
+      0
     );
+
     const maks = skorMaksTes;
+
     const persen = maks > 0 ? Math.round((total / maks) * 100) : 0;
 
     const kat = kategori.find(
-      (k) => persen >= k.minPersen && persen <= k.maxPersen,
+      (k) => persen >= k.minPersen && persen <= k.maxPersen
     );
 
-    // hitung per section (dimensi)
+    // Hitung skor per section
     const bySection = new Map<string, { total: number; count: number }>();
 
     pertanyaan.forEach((p) => {
       const sectionName = (p.section || "").trim();
+
       if (!sectionName) return;
 
       const jawab = jawaban[p.id];
-      if (jawab === undefined) return; // 0 tetap dihitung
 
-      const current = bySection.get(sectionName) || { total: 0, count: 0 };
+      if (jawab === undefined) return;
+
+      const current = bySection.get(sectionName) || {
+        total: 0,
+        count: 0,
+      };
+
       current.total += jawab;
       current.count += 1;
+
       bySection.set(sectionName, current);
     });
 
@@ -110,7 +132,7 @@ export default function TestRunner({ tes, onBack }: Props) {
         section,
         total: info.total,
         maks: info.count * skorMaksPerSoal,
-      }),
+      })
     );
 
     const result = {
@@ -126,10 +148,11 @@ export default function TestRunner({ tes, onBack }: Props) {
     };
 
     if (typeof window !== "undefined") {
-      window.localStorage.setItem(RESULT_KEY, JSON.stringify(result));
+      localStorage.setItem(RESULT_KEY, JSON.stringify(result));
     }
 
-    router.push(`/tes/pre-result/${tes.id ?? 0}`);
+    // Redirect ke halaman USER (bukan admin)
+    router.push(`/admin/manajemen-tes/pre-result/${tes.id ?? 0}`);
   };
 
   useEffect(() => {
@@ -140,55 +163,47 @@ export default function TestRunner({ tes, onBack }: Props) {
   return (
     <div className="flex min-h-screen flex-col bg-[#f5f7fb] px-4 py-6">
       <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col rounded-3xl bg-white shadow-sm ring-1 ring-slate-200">
-        {/* Header atas */}
+
+        {/* HEADER */}
         <div className="border-b border-slate-200 px-6 py-5">
+
           <div className="mb-3 flex items-center">
             <button
               type="button"
               onClick={onBack}
               className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-600 shadow-sm hover:bg-slate-50"
-              aria-label="Kembali"
             >
               <ChevronLeft size={16} />
             </button>
           </div>
 
-          <h1 className="text-2xl font-bold text-[#1964ae] text-center">
+          <h1 className="text-center text-2xl font-bold text-[#1964ae]">
             {tes.nama}
           </h1>
 
           {tes.deskripsi && (
-            <p className="mt-2 text-xs leading-relaxed text-slate-600">
+            <p className="mt-2 text-xs text-slate-600 leading-relaxed">
               {tes.deskripsi}
             </p>
           )}
 
-          {/* Petunjuk tetap */}
+          {/* PETUNJUK */}
           <div className="mt-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-[#1f3b5b]">
               Petunjuk pengisian
             </p>
-            <ol className="mt-2 space-y-1 text-[11px] leading-relaxed text-slate-600">
-              <li>
-                1. Jawablah semua pertanyaan sesuai dengan kondisi yang dialami
-                dalam 1 minggu terakhir ini.
-              </li>
-              <li>
-                2. Setiap jawaban yang dipilih akan mendapatkan skor.
-              </li>
-              <li>
-                3. Semakin sesuai jawaban dengan kondisi Anda, maka semakin
-                akurat hasilnya.
-              </li>
-              <li>
-                4. Pastikan semua pertanyaan sudah terjawab. Jika sudah lengkap,
-                klik tombol Selesai untuk melihat hasil tes.
-              </li>
+
+            <ol className="mt-2 space-y-1 text-[11px] text-slate-600 leading-relaxed">
+              <li>1. Jawablah sesuai kondisi 1 minggu terakhir.</li>
+              <li>2. Setiap jawaban memiliki skor.</li>
+              <li>3. Jawaban yang jujur menghasilkan hasil lebih akurat.</li>
+              <li>4. Pastikan semua pertanyaan sudah diisi.</li>
             </ol>
           </div>
+
         </div>
 
-        {/* Alert error global */}
+        {/* ERROR ALERT */}
         {errorMsg && (
           <div className="px-6 pt-4">
             <Alert variant="warning">
@@ -198,8 +213,9 @@ export default function TestRunner({ tes, onBack }: Props) {
           </div>
         )}
 
-        {/* Daftar pertanyaan */}
-        <div className="flex-1 overflow-y-auto px-4 pb-4 pt-3">
+        {/* PERTANYAAN */}
+        <div className="flex-1 overflow-y-auto px-4 pt-3 pb-4">
+
           {pertanyaan.length === 0 ? (
             <div className="flex h-40 items-center justify-center">
               <p className="text-xs text-slate-500">
@@ -207,7 +223,8 @@ export default function TestRunner({ tes, onBack }: Props) {
               </p>
             </div>
           ) : (
-            <div className="space-y-4 pb-4">
+            <div className="space-y-4">
+
               {pertanyaan.map((p) => {
                 const id = p.id;
                 const answered = jawaban[id] !== undefined;
@@ -218,14 +235,14 @@ export default function TestRunner({ tes, onBack }: Props) {
                     ref={(el) => {
                       questionRefs.current[id] = el;
                     }}
-                    className="rounded-2xl border border-slate-100 bg-gradient-to-r from-sky-50 via-blue-50 to-sky-50 soft-gradient-anim p-4 shadow-sm transition hover:border-indigo-200 hover:bg-white/60"
+                    className="rounded-2xl border border-slate-100 bg-gradient-to-r from-sky-50 via-blue-50 to-sky-50 p-4 shadow-sm"
                   >
-                    <div className="mb-3 flex items-center justify-between gap-2">
-                      <div>
-                        <p className="mt-1 text-sm font-medium text-slate-900">
-                          {p.teks}
-                        </p>
-                      </div>
+
+                    <div className="mb-3 flex items-center justify-between">
+                      <p className="text-sm font-medium text-slate-900">
+                        {p.teks}
+                      </p>
+
                       <span
                         className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
                           answered
@@ -237,9 +254,11 @@ export default function TestRunner({ tes, onBack }: Props) {
                       </span>
                     </div>
 
-                    <div className="mt-1 grid gap-2 md:grid-cols-2">
+                    <div className="grid gap-2 md:grid-cols-2">
+
                       {likert.map((l) => {
                         const selected = jawaban[id] === l.value;
+
                         return (
                           <button
                             key={l.id}
@@ -247,13 +266,14 @@ export default function TestRunner({ tes, onBack }: Props) {
                             onClick={() => handleJawab(id, l.value)}
                             className={`flex items-center justify-between rounded-xl border px-3 py-2 text-[11px] font-medium transition ${
                               selected
-                                ? "border-indigo-600 bg-indigo-600 text-white shadow-sm"
-                                : "border-slate-300 bg-white text-slate-800 hover:border-indigo-400 hover:bg-indigo-50"
+                                ? "border-indigo-600 bg-indigo-600 text-white"
+                                : "border-slate-300 bg-white hover:bg-indigo-50"
                             }`}
                           >
                             <span>{l.label}</span>
+
                             <span
-                              className={`flex h-4 w-4 items-center justify-center rounded-full border ${
+                              className={`h-4 w-4 rounded-full border flex items-center justify-center ${
                                 selected
                                   ? "border-white bg-white"
                                   : "border-slate-300"
@@ -263,28 +283,38 @@ export default function TestRunner({ tes, onBack }: Props) {
                                 <span className="h-2 w-2 rounded-full bg-indigo-600" />
                               )}
                             </span>
+
                           </button>
                         );
                       })}
+
                     </div>
+
                   </div>
                 );
               })}
+
             </div>
           )}
+
         </div>
 
-        {/* Footer */}
+        {/* FOOTER */}
         <div className="border-t border-slate-200 px-6 py-4">
+
           <div className="flex items-center justify-between">
+
             <div className="text-[11px] text-slate-500">
               <span className="font-semibold">
                 {Object.keys(jawaban).length}
               </span>{" "}
               dari{" "}
-              <span className="font-semibold">{jumlahSoal}</span> pertanyaan
-              sudah diisi.
+              <span className="font-semibold">
+                {jumlahSoal}
+              </span>{" "}
+              pertanyaan sudah diisi
             </div>
+
             <button
               type="button"
               onClick={hitungHasil}
@@ -292,8 +322,11 @@ export default function TestRunner({ tes, onBack }: Props) {
             >
               Kirim
             </button>
+
           </div>
+
         </div>
+
       </div>
     </div>
   );

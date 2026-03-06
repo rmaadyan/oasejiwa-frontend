@@ -86,7 +86,7 @@ export default function ManajemenLayananPage() {
 
   // PREVIEW: arahkan ke halaman preview/[id]
   const handlePreview = (item: LayananItem) => {
-    router.push(`/manajemen-layanan/preview/${item.id}`);
+    router.push(`/admin/manajemen-layanan/preview/${item.id}`);
   };
 
   const handleEdit = (item: LayananItem) => {

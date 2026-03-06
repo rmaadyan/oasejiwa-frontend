@@ -120,7 +120,7 @@ export default function PreResultPage() {
         <div className="mt-6 flex w-full justify-end gap-3">
           <button
             type="button"
-            onClick={() => router.push(`/admin/manajemen-tes/hasil/${hasil.tesId ?? 0}`)}
+            onClick={() => router.push(`/tes/hasil/${hasil.tesId ?? 0}`)}
             className="rounded-full bg-[#1f3b5b] px-6 py-2 text-xs font-semibold text-white hover:bg-blue-900"
           >
             Detail Hasil

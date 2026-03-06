@@ -50,7 +50,7 @@ export default function TesPsikologiUserPage() {
   const groupedByJenis: GroupedTes[] = (() => {
     const map = new Map<string, TesItem[]>();
     for (const item of tesList) {
-      const key = item.jenis || "Tes lainnya"; // fallback Tes lainnya
+      const key = item.jenis || "Tes Psikologi Online"; // fallback Tes lainnya
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(item);
     }
@@ -184,7 +184,7 @@ export default function TesPsikologiUserPage() {
                         <button
                           type="button"
                           onClick={() =>
-                            router.push(`/manajemen-tes/preview/${tes.id}`)
+                            router.push(`/tes/preview-tes/${tes.id}`)
                           }
                           className="w-full mt-auto rounded-xl bg-[#234463] px-6 py-3 text-[14px] font-semibold text-white hover:bg-[#2B5379] hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
                         >

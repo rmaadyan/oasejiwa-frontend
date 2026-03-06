@@ -17,7 +17,7 @@ export default function HeroSection() {
         setImages(loadedImages);
       } catch (error) {
         console.error("Error loading images:", error);
-        setImages(["/bghero/gambar.jpg"]);
+        setImages(["/landingpage/gambar.jpg"]);
       } finally {
         setIsLoading(false);
       }
