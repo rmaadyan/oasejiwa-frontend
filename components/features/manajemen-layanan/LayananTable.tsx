@@ -1,8 +1,8 @@
 // components/features/manajemen-layanan/LayananTable.tsx
 "use client";
 
+import { ChevronDown, ChevronUp, Eye, Pencil, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Pencil, Eye, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import type { LayananItem } from "./types";
 
 type Props = {
@@ -137,15 +137,15 @@ export default function LayananTable({
           sortedData.map((item, index) => (
             <div
               key={item.id}
-              className="group grid grid-cols-[50px_2fr_1fr_1fr_100px] items-center rounded-2xl border border-gray-100 bg-white px-6 py-4 transition-all duration-300 hover:shadow-lg hover:border-[#E8F6FF] hover:-translate-y-0.5"
+              className="group grid grid-cols-[50px_2fr_1fr_1fr_100px] items-center rounded-2xl border border-gray-100 bg-white px-6 py-4 transition-all duration-300 hover:shadow-lg hover:border-soft-bg hover:-translate-y-0.5"
             >
-              <div className="text-sm font-medium text-gray-400 group-hover:text-[#2B5379]">
+              <div className="text-sm font-medium text-gray-400 group-hover:text-primary">
                 {startIndex + index}
               </div>
 
               <div className="flex items-center gap-4 pr-4">
                 {/* Image / Icon Placeholder */}
-                <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl bg-gray-100 ring-1 ring-gray-100 group-hover:ring-[#2B5379]/20 transition-all">
+                <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl bg-gray-100 ring-1 ring-gray-100 group-hover:ring-primary/20 transition-all">
                   {item.coverUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -161,7 +161,7 @@ export default function LayananTable({
                 </div>
 
                 <div className="min-w-0">
-                  <div className="truncate text-base font-semibold text-gray-800 group-hover:text-[#2B5379] transition-colors">
+                  <div className="truncate text-base font-semibold text-gray-800 group-hover:text-primary transition-colors">
                     {item.nama}
                   </div>
                   <div className="mt-0.5 flex flex-wrap gap-2 text-xs text-gray-500">
@@ -174,7 +174,7 @@ export default function LayananTable({
                 </div>
               </div>
 
-              <div className="text-sm font-semibold text-[#2B5379]">
+              <div className="text-sm font-semibold text-primary">
                 Rp {item.harga.toLocaleString("id-ID")}
               </div>
 
@@ -192,7 +192,7 @@ export default function LayananTable({
 
               <div className="flex justify-end gap-2 text-gray-400 opacity-80 group-hover:opacity-100 transition-opacity">
                 <button
-                  className="p-2 rounded-lg hover:bg-blue-50 hover:text-[#2B5379] transition-colors"
+                  className="p-2 rounded-lg hover:bg-blue-50 hover:text-primary transition-colors"
                   aria-label="Edit"
                   onClick={() => onEdit(item)}
                 >

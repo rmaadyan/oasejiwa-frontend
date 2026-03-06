@@ -1,16 +1,16 @@
 // components/features/manajemen-tes/HasilTesPage.tsx
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas-pro";
-import type { DiagnosisKategori, SectionKategoriMap } from "./types";
 import {
   Alert,
-  AlertTitle,
   AlertDescription,
+  AlertTitle,
 } from "@/components/ui/Alert";
+import html2canvas from "html2canvas-pro";
+import jsPDF from "jspdf";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import type { DiagnosisKategori, SectionKategoriMap } from "./types";
 
 const RESULT_KEY = "tes-last-result";
 
@@ -256,8 +256,7 @@ export default function HasilTesPage() {
         <div className="pointer-events-none fixed inset-x-0 top-4 z-[200] flex justify-center">
           <div className="w-full max-w-md px-4">
             <Alert
-              variant={pdfError ? "error" : "warning"}
-              isNotification
+              variant={pdfError ? "destructive" : "warning"}
               className="pointer-events-auto shadow-lg shadow-black/10"
             >
               <AlertTitle>
@@ -436,21 +435,20 @@ export default function HasilTesPage() {
                     kategoriDimensi.length === 0
                       ? "-"
                       : kategoriDimensi
-                          .map((k, kIdx) => {
-                            const isLast =
-                              kIdx === kategoriDimensi.length - 1;
-                            return isLast
-                              ? `≥ ${k.minSkor} = ${k.nama}`
-                              : `${k.minSkor}-${k.maxSkor} = ${k.nama}`;
-                          })
-                          .join("; ");
+                        .map((k, kIdx) => {
+                          const isLast =
+                            kIdx === kategoriDimensi.length - 1;
+                          return isLast
+                            ? `≥ ${k.minSkor} = ${k.nama}`
+                            : `${k.minSkor}-${k.maxSkor} = ${k.nama}`;
+                        })
+                        .join("; ");
 
                   return (
                     <div
                       key={s.section}
-                      className={`grid grid-cols-[1.2fr_0.5fr_2fr] px-5 py-3 text-sm border-t border-gray-200 ${
-                        idx % 2 === 0 ? "bg-gray-50" : "bg-white"
-                      }`}
+                      className={`grid grid-cols-[1.2fr_0.5fr_2fr] px-5 py-3 text-sm border-t border-gray-200 ${idx % 2 === 0 ? "bg-gray-50" : "bg-white"
+                        }`}
                     >
                       <div className="font-semibold text-gray-800">
                         {s.section}
@@ -490,13 +488,12 @@ export default function HasilTesPage() {
                   return (
                     <div
                       key={k.id}
-                      className={`grid gap-0 border-t border-gray-300 px-5 py-3 text-sm ${
-                        isMatched
-                          ? "bg-green-100 font-semibold"
-                          : idx % 2 === 0
+                      className={`grid gap-0 border-t border-gray-300 px-5 py-3 text-sm ${isMatched
+                        ? "bg-green-100 font-semibold"
+                        : idx % 2 === 0
                           ? "bg-gray-50"
                           : "bg-white"
-                      }`}
+                        }`}
                       style={{ gridTemplateColumns: "1.2fr 0.5fr 2fr" }}
                     >
                       <div className="text-left text-gray-800">{k.nama}</div>

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { Card, Badge, Button, Table, Pagination, Modal } from "@/components/admin/ui";
+import { Button, Card, Modal, Pagination, Table } from "@/components/admin/ui";
 import CountUp from "@/components/admin/ui/CountUp";
 import { ToastProvider, useToast } from "@/components/admin/ui/Toast";
+import Image from "next/image";
+import Link from "next/link";
+import { useState } from "react";
 
 // Mock data for bookings
 const mockBookings = [
@@ -113,7 +113,7 @@ function AdminBookingsContent() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [quickFilter, setQuickFilter] = useState<"all" | "today" | "needValidation" | "cancelled">("all");
-  
+
   // Reschedule modal state
   const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<typeof mockBookings[0] | null>(null);
@@ -252,14 +252,13 @@ function AdminBookingsContent() {
         return (
           <div className="flex items-center gap-2">
             <span className={`w-2.5 h-2.5 rounded-full ${statusColors[item.paymentStatus]}`} />
-            <span className={`font-medium ${
-              item.paymentStatus === "validated" ? "text-[#22C55E]" :
-              item.paymentStatus === "rejected" ? "text-[#EF4444]" :
-              "text-[#F59E0B]"
-            }`}>
+            <span className={`font-medium ${item.paymentStatus === "validated" ? "text-[#22C55E]" :
+                item.paymentStatus === "rejected" ? "text-[#EF4444]" :
+                  "text-[#F59E0B]"
+              }`}>
               {item.paymentStatus === "validated" ? "Divalidasi" :
-               item.paymentStatus === "rejected" ? "Ditolak" :
-               "Menunggu"}
+                item.paymentStatus === "rejected" ? "Ditolak" :
+                  "Menunggu"}
             </span>
           </div>
         );
@@ -297,7 +296,7 @@ function AdminBookingsContent() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8 animate-fadeIn">
-          <h1 className="text-[32px] font-bold text-[#234463]">
+          <h1 className="text-2xl md:text-[28px] font-bold text-secondary-heading">
             Manajemen Booking
           </h1>
           <p className="text-[#4B4B4B] mt-1">
@@ -309,68 +308,60 @@ function AdminBookingsContent() {
         <div className="flex flex-wrap gap-3 mb-6 animate-fadeIn">
           <button
             onClick={() => setQuickFilter("all")}
-            className={`px-4 py-2 rounded-xl font-medium transition-all ${
-              quickFilter === "all"
+            className={`px-4 py-2 rounded-xl font-medium transition-all ${quickFilter === "all"
                 ? "bg-[#2B5379] text-white shadow-md"
                 : "bg-white text-[#4B4B4B] border border-[#D6E6F2] hover:border-[#2B5379]"
-            }`}
+              }`}
           >
             Semua
           </button>
           <button
             onClick={() => setQuickFilter("today")}
-            className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 ${
-              quickFilter === "today"
+            className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 ${quickFilter === "today"
                 ? "bg-[#2B5379] text-white shadow-md"
                 : "bg-white text-[#4B4B4B] border border-[#D6E6F2] hover:border-[#2B5379]"
-            }`}
+              }`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             Hari Ini
-            <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-              quickFilter === "today" ? "bg-white/20" : "bg-[#2B5379]/10 text-[#2B5379]"
-            }`}>
+            <span className={`text-xs px-1.5 py-0.5 rounded-full ${quickFilter === "today" ? "bg-white/20" : "bg-[#2B5379]/10 text-[#2B5379]"
+              }`}>
               {quickFilterCounts.today}
             </span>
           </button>
           <button
             onClick={() => setQuickFilter("needValidation")}
-            className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 ${
-              quickFilter === "needValidation"
+            className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 ${quickFilter === "needValidation"
                 ? "bg-[#F59E0B] text-white shadow-md"
                 : "bg-white text-[#4B4B4B] border border-[#D6E6F2] hover:border-[#F59E0B]"
-            }`}
+              }`}
           >
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F59E0B] opacity-75" />
-              <span className={`relative inline-flex rounded-full h-2 w-2 ${
-                quickFilter === "needValidation" ? "bg-white" : "bg-[#F59E0B]"
-              }`} />
+              <span className={`relative inline-flex rounded-full h-2 w-2 ${quickFilter === "needValidation" ? "bg-white" : "bg-[#F59E0B]"
+                }`} />
             </span>
             Perlu Validasi
-            <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-              quickFilter === "needValidation" ? "bg-white/20" : "bg-[#F59E0B]/10 text-[#F59E0B]"
-            }`}>
+            <span className={`text-xs px-1.5 py-0.5 rounded-full ${quickFilter === "needValidation" ? "bg-white/20" : "bg-[#F59E0B]/10 text-[#F59E0B]"
+              }`}>
               {quickFilterCounts.needValidation}
             </span>
           </button>
           <button
             onClick={() => setQuickFilter("cancelled")}
-            className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 ${
-              quickFilter === "cancelled"
+            className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 ${quickFilter === "cancelled"
                 ? "bg-[#EF4444] text-white shadow-md"
                 : "bg-white text-[#4B4B4B] border border-[#D6E6F2] hover:border-[#EF4444]"
-            }`}
+              }`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
             Dibatalkan
-            <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-              quickFilter === "cancelled" ? "bg-white/20" : "bg-[#EF4444]/10 text-[#EF4444]"
-            }`}>
+            <span className={`text-xs px-1.5 py-0.5 rounded-full ${quickFilter === "cancelled" ? "bg-white/20" : "bg-[#EF4444]/10 text-[#EF4444]"
+              }`}>
               {quickFilterCounts.cancelled}
             </span>
           </button>
@@ -527,11 +518,10 @@ function AdminBookingsContent() {
                   <button
                     key={dateItem.id}
                     onClick={() => setSelectedDate(dateItem.fullDate)}
-                    className={`flex-shrink-0 w-16 py-3 rounded-xl border-2 transition-all ${
-                      selectedDate === dateItem.fullDate
+                    className={`flex-shrink-0 w-16 py-3 rounded-xl border-2 transition-all ${selectedDate === dateItem.fullDate
                         ? "border-[#2B5379] bg-[#2B5379] text-white"
                         : "border-[#D6E6F2] bg-white text-[#4B4B4B] hover:border-[#2B5379]"
-                    }`}
+                      }`}
                   >
                     <div className="text-xs opacity-75">{dateItem.dayName}</div>
                     <div className="text-lg font-bold">{dateItem.dayNumber}</div>
@@ -552,13 +542,12 @@ function AdminBookingsContent() {
                     key={slot.id}
                     onClick={() => slot.available && setSelectedTime(slot.id)}
                     disabled={!slot.available}
-                    className={`py-2.5 px-3 rounded-xl text-sm font-medium transition-all ${
-                      selectedTime === slot.id
+                    className={`py-2.5 px-3 rounded-xl text-sm font-medium transition-all ${selectedTime === slot.id
                         ? "bg-[#2B5379] text-white"
                         : slot.available
-                        ? "bg-white border border-[#D6E6F2] text-[#4B4B4B] hover:border-[#2B5379]"
-                        : "bg-gray-100 text-gray-400 cursor-not-allowed line-through"
-                    }`}
+                          ? "bg-white border border-[#D6E6F2] text-[#4B4B4B] hover:border-[#2B5379]"
+                          : "bg-gray-100 text-gray-400 cursor-not-allowed line-through"
+                      }`}
                   >
                     {slot.time}
                   </button>

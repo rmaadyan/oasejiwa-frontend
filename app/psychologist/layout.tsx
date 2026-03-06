@@ -1,4 +1,4 @@
-import PsychologistLayoutClient from "@/app/components/common/PsychologistLayoutClient";
+import PsychologistLayoutClient from "@/components/common/PsychologistLayoutClient";
 
 export default function PsychologistLayout({
   children,

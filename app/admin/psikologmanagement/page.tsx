@@ -143,17 +143,17 @@ export default function ManagePsikolog() {
                 )}
                 <div className="py-6">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-6">
-                        <h1 className="text-blue-950 font-bold text-2xl sm:text-3xl lg:text-4xl">
+                        <h1 className="text-2xl md:text-[28px] font-bold text-secondary-heading">
                             Daftar Psikolog
                         </h1>
-                        <p className="text-gray-600 text-sm sm:text-base">
+                        <p className="text-sm text-body-text mt-1">
                             Total: {psikologs.length} psikolog
                         </p>
 
                         {psikologs.length > 0 && (
                             <button
                                 onClick={handleToggleForm}
-                                className="fixed bottom-4 right-4 sm:bottom-8 sm:right-8 bg-[#1f3b5b] p-3 sm:p-4 rounded-full shadow-lg hover:bg-blue-900 transition-all duration-200 z-50 cursor-pointer"
+                                className="fixed bottom-4 right-4 sm:bottom-8 sm:right-8 bg-primary p-3 sm:p-4 rounded-full shadow-lg hover:bg-primary/90 transition-all duration-200 z-50 cursor-pointer"
                                 aria-label="Tambah psikolog baru"
                             >
                                 <Plus size={24} className="text-white" />
@@ -168,7 +168,7 @@ export default function ManagePsikolog() {
                             </p>
                             <button
                                 onClick={() => setShowForm(true)}
-                                className="bg-[#1f3b5b] px-6 py-3 rounded-full flex items-center gap-2 hover:bg-blue-900 transition-colors mx-auto cursor-pointer"
+                                className="bg-primary px-6 py-3 rounded-full flex items-center gap-2 hover:bg-primary/90 transition-colors mx-auto cursor-pointer"
                             >
                                 <Plus size={20} className="text-white" />
                                 <p className="text-white text-sm">Tambah Psikolog Pertama</p>

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import PatientStats from "@/app/components/features/psychologist/patients/patientstats";
-import PatientsList from "@/app/components/features/psychologist/patients/patientslist";
-import PatientDetailModal from "@/app/components/features/psychologist/patients/patientdetailmodal";
+import PatientDetailModal from "@/components/features/psychologist/patients/patientdetailmodal";
+import PatientsList from "@/components/features/psychologist/patients/patientslist";
+import PatientStats from "@/components/features/psychologist/patients/patientstats";
 import { getAllPatients } from "@/lib/api/psychologist";
-import type { PsychologistPatient, PatientsResponse } from "@/lib/types/psychologist";
+import type { PatientsResponse, PsychologistPatient } from "@/lib/types/psychologist";
+import { useEffect, useState } from "react";
 
 export default function PatientsPage() {
   const [loading, setLoading] = useState(true);

@@ -130,7 +130,7 @@ export default function ManajemenTesPage() {
 
           {/* Page Title */}
           <div className="animate-fade-in-up">
-            <h1 className="text-[32px] md:text-[40px] font-semibold text-[#234463] mb-2">
+            <h1 className="text-2xl md:text-[28px] font-bold text-secondary-heading mb-2">
               Manajemen Tes
             </h1>
             <p className="text-[16px] text-[#4B4B4B]">

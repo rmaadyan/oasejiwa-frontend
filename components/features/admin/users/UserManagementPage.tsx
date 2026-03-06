@@ -137,7 +137,7 @@ export default function UserManagementPage() {
 
                 {/* Header Section */}
                 <div>
-                    <h1 className="text-2xl md:text-[28px] font-bold text-[#234463] mb-2">Manajemen User</h1>
+                    <h1 className="text-2xl md:text-[28px] font-bold text-secondary-heading mb-2">Manajemen User</h1>
                     <p className="text-sm text-gray-500">
                         Kelola data semua pengguna di Oase Jiwa.
                     </p>

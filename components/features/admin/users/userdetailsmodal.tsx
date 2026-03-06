@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { X, Calendar, CreditCard, User, Phone, Mail, Clock, CheckCircle, XCircle } from "lucide-react";
 import { getUserDetails } from "@/lib/api/users";
 import type { UserDetails } from "@/lib/types/users";
+import { Calendar, Clock, CreditCard, Mail, Phone, User, X } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface UserDetailsModalProps {
   isOpen: boolean;
@@ -24,7 +24,7 @@ export default function UserDetailsModal({ isOpen, onClose, userId }: UserDetail
 
   const fetchUserDetails = async () => {
     if (!userId) return;
-    
+
     setLoading(true);
     try {
       const details = await getUserDetails(userId);
@@ -116,31 +116,28 @@ export default function UserDetailsModal({ isOpen, onClose, userId }: UserDetail
             <div className="flex border-b border-gray-200 px-6">
               <button
                 onClick={() => setActiveTab("info")}
-                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === "info"
-                    ? "border-[#2B5379] text-[#2B5379]"
+                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === "info"
+                    ? "border-primary text-primary"
                     : "border-transparent text-gray-600 hover:text-gray-900"
-                }`}
+                  }`}
               >
                 Informasi
               </button>
               <button
                 onClick={() => setActiveTab("bookings")}
-                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === "bookings"
-                    ? "border-[#2B5379] text-[#2B5379]"
+                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === "bookings"
+                    ? "border-primary text-primary"
                     : "border-transparent text-gray-600 hover:text-gray-900"
-                }`}
+                  }`}
               >
                 Riwayat Booking
               </button>
               <button
                 onClick={() => setActiveTab("transactions")}
-                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === "transactions"
-                    ? "border-[#2B5379] text-[#2B5379]"
+                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === "transactions"
+                    ? "border-primary text-primary"
                     : "border-transparent text-gray-600 hover:text-gray-900"
-                }`}
+                  }`}
               >
                 Riwayat Transaksi
               </button>
@@ -181,22 +178,20 @@ export default function UserDetailsModal({ isOpen, onClose, userId }: UserDetail
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-2 pt-4">
                     <span className="text-sm text-gray-600">Status:</span>
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                      userDetails.status === "active" 
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${userDetails.status === "active"
                         ? "bg-green-100 text-green-700"
                         : "bg-gray-100 text-gray-700"
-                    }`}>
+                      }`}>
                       {userDetails.status === "active" ? "Aktif" : "Nonaktif"}
                     </span>
                     <span className="ml-4 text-sm text-gray-600">Role:</span>
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                      userDetails.role === "psychologist"
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${userDetails.role === "psychologist"
                         ? "bg-purple-100 text-purple-700"
                         : "bg-green-100 text-green-700"
-                    }`}>
+                      }`}>
                       {userDetails.role === "psychologist" ? "Psikolog" : "Pasien"}
                     </span>
                   </div>

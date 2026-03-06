@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import WelcomeCard from "@/app/components/features/psychologist/dashboard/welcomecard";
-import TodayStats from "@/app/components/features/psychologist/dashboard/todaystats";
-import TodaySchedule from "@/app/components/features/psychologist/dashboard/todayschedule";
-import UpcomingAppointments from "@/app/components/features/psychologist/dashboard/upcomingappointments";
+import TodaySchedule from "@/components/features/psychologist/dashboard/todayschedule";
+import TodayStats from "@/components/features/psychologist/dashboard/todaystats";
+import UpcomingAppointments from "@/components/features/psychologist/dashboard/upcomingappointments";
+import WelcomeCard from "@/components/features/psychologist/dashboard/welcomecard";
 import { getPsychologistDashboard, getPsychologistProfile, markSessionCompleted } from "@/lib/api/psychologist";
 import type { Psychologist, PsychologistDashboardStats, Session } from "@/lib/types/psychologist";
+import { useEffect, useState } from "react";
 
 export default function PsychologistDashboard() {
   const [loading, setLoading] = useState(true);
@@ -84,16 +84,16 @@ export default function PsychologistDashboard() {
       </div>
 
       {/* Welcome Card */}
-      <WelcomeCard 
-        psychologist={profile} 
-        nextSessionTime={stats.nextSessionTime} 
+      <WelcomeCard
+        psychologist={profile}
+        nextSessionTime={stats.nextSessionTime}
       />
 
       {/* Stats Cards */}
       <TodayStats stats={stats} />
 
       {/* Today's Schedule */}
-      <TodaySchedule 
+      <TodaySchedule
         sessions={todaySchedule}
         onMarkCompleted={handleMarkCompleted}
       />

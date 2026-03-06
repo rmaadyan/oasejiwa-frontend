@@ -1,10 +1,10 @@
 "use client";
 
+import { INITIAL_LAYANAN } from "@/components/features/manajemen-layanan/dataDummy";
+import type { LayananItem } from "@/components/features/manajemen-layanan/types";
+import { ChevronLeft } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import type { LayananItem } from "@/components/features/manajemen-layanan/types";
-import { INITIAL_LAYANAN } from "@/components/features/manajemen-layanan/dataDummy";
-import { ChevronLeft } from "lucide-react";
 
 const STORAGE_KEY = "layanan-list";
 
@@ -102,7 +102,7 @@ export default function PreviewLayananPage() {
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-indigo-500">
                   {layanan.jenis}
                 </p>
-                <h1 className="text-2xl font-semibold text-slate-900">
+                <h1 className="text-2xl md:text-[28px] font-bold text-secondary-heading">
                   {layanan.nama}
                 </h1>
                 <p className="text-xs text-slate-500">

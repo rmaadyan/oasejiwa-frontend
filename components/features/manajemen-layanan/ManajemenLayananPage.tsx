@@ -1,14 +1,14 @@
 // components/features/manajemen-layanan/ManajemenLayananPage.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/Alert";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useRouter } from "next/navigation";
-import type { LayananItem } from "./types";
+import { useEffect, useMemo, useState } from "react";
 import { INITIAL_LAYANAN } from "./dataDummy";
 import LayananForm from "./LayananForm";
 import LayananTable from "./LayananTable";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/Alert";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import type { LayananItem } from "./types";
 
 const STORAGE_KEY = "layanan-list";
 
@@ -180,22 +180,22 @@ export default function ManajemenLayananPage() {
 
           {/* Page Title */}
           <div className="animate-fade-in-up">
-            <h1 className="text-[32px] md:text-[40px] font-semibold text-[#234463] mb-2">
+            <h1 className="text-2xl md:text-[28px] font-bold text-secondary-heading mb-2">
               Manajemen Layanan
             </h1>
-            <p className="text-[16px] text-[#4B4B4B]">
+            <p className="text-sm text-body-text mt-1">
               Kelola dan pantau semua layanan konsultasi Anda
             </p>
           </div>
 
           {/* Statistik Ringkas */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in-up animation-delay-200">
-            <div className="bg-[#E8F6FF] p-6 rounded-[22px] shadow-md border border-[#234463]/10 flex items-center justify-between transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group">
+            <div className="bg-[#E8F6FF] p-6 rounded-[22px] shadow-md border border-secondary-heading/10 flex items-center justify-between transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group">
               <div>
-                <p className="text-[12px] font-semibold text-[#4B4B4B] uppercase tracking-wider mb-2">Total Layanan</p>
-                <p className="text-[32px] font-bold text-[#234463]">{items.length}</p>
+                <p className="text-xs font-semibold text-body-text uppercase tracking-wider mb-2">Total Layanan</p>
+                <p className="text-2xl md:text-[28px] font-bold text-secondary-heading">{items.length}</p>
               </div>
-              <div className="h-14 w-14 bg-[#234463] rounded-full flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-300">
+              <div className="h-14 w-14 bg-secondary-heading rounded-full flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
                 </svg>
@@ -204,8 +204,8 @@ export default function ManajemenLayananPage() {
 
             <div className="bg-[#E8F6FF] p-6 rounded-[22px] shadow-md border border-emerald-500/10 flex items-center justify-between transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group">
               <div>
-                <p className="text-[12px] font-semibold text-[#4B4B4B] uppercase tracking-wider mb-2">Layanan Aktif</p>
-                <p className="text-[32px] font-bold text-emerald-600">{items.filter(i => i.status === 'Aktif').length}</p>
+                <p className="text-xs font-semibold text-body-text uppercase tracking-wider mb-2">Layanan Aktif</p>
+                <p className="text-2xl md:text-[28px] font-bold text-emerald-600">{items.filter(i => i.status === 'Aktif').length}</p>
               </div>
               <div className="h-14 w-14 bg-emerald-600 rounded-full flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -216,8 +216,8 @@ export default function ManajemenLayananPage() {
 
             <div className="bg-[#E8F6FF] p-6 rounded-[22px] shadow-md border border-gray-300/10 flex items-center justify-between transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group">
               <div>
-                <p className="text-[12px] font-semibold text-[#4B4B4B] uppercase tracking-wider mb-2">Draft</p>
-                <p className="text-[32px] font-bold text-gray-600">{items.filter(i => i.status === 'Draft' || !i.status).length}</p>
+                <p className="text-xs font-semibold text-body-text uppercase tracking-wider mb-2">Draft</p>
+                <p className="text-2xl md:text-[28px] font-bold text-gray-600">{items.filter(i => i.status === 'Draft' || !i.status).length}</p>
               </div>
               <div className="h-14 w-14 bg-gray-500 rounded-full flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -227,19 +227,19 @@ export default function ManajemenLayananPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-[22px] p-6 shadow-md border border-[#234463]/10 animate-fade-in-up animation-delay-400">
+          <div className="bg-white rounded-[22px] p-6 shadow-md border border-secondary-heading/10 animate-fade-in-up animation-delay-400">
             {/* Header + search bar */}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
               <div>
-                <h2 className="text-[24px] md:text-[28px] font-semibold text-[#234463]">
+                <h2 className="text-xl md:text-2xl font-bold text-secondary-heading">
                   Daftar Layanan
                 </h2>
-                <p className="text-[14px] text-[#4B4B4B] mt-1">Kelola semua layanan konsultasi Anda di sini</p>
+                <p className="text-sm text-body-text mt-1">Kelola semua layanan konsultasi Anda di sini</p>
               </div>
               <div className="flex flex-col gap-3 md:flex-row md:items-center">
                 <div className="relative w-full max-w-xs group">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#4B4B4B] group-focus-within:text-[#234463] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-body-text group-focus-within:text-secondary-heading transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                   </div>
@@ -251,12 +251,12 @@ export default function ManajemenLayananPage() {
                       setSearch(e.target.value);
                     }}
                     placeholder="Cari layanan..."
-                    className="w-full pl-12 pr-4 py-3 bg-[#E8F6FF]/50 border border-[#234463]/20 rounded-xl text-[14px] text-[#234463] placeholder:text-[#4B4B4B]/60 focus:outline-none focus:ring-2 focus:ring-[#234463]/30 focus:border-[#234463] focus:bg-[#E8F6FF] transition-all"
+                    className="w-full pl-12 pr-4 py-3 bg-[#E8F6FF]/50 border border-secondary-heading/20 rounded-xl text-sm text-secondary-heading placeholder:text-body-text/60 focus:outline-none focus:ring-2 focus:ring-secondary-heading/30 focus:border-secondary-heading focus:bg-[#E8F6FF] transition-all"
                   />
                 </div>
                 <button
                   onClick={handleTambah}
-                  className="flex items-center justify-center gap-2 rounded-xl bg-[#234463] px-6 py-3 text-[14px] font-semibold text-white hover:bg-[#2B5379] hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+                  className="flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white hover:bg-primary/90 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

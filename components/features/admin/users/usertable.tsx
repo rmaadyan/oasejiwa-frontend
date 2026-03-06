@@ -1,7 +1,7 @@
 "use client";
 
-import { User, UserRound, Edit2, Eye } from "lucide-react";
 import type { User as UserType } from "@/lib/types/users";
+import { Edit2, Eye, User, UserRound } from "lucide-react";
 
 interface UserTableProps {
   users: UserType[];
@@ -15,9 +15,8 @@ export default function UserTable({ users, onEdit, onViewDetails, loading = fals
   const GenderIcon = ({ gender }: { gender: "male" | "female" }) => {
     const isMale = gender === "male";
     return (
-      <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${
-        isMale ? "bg-blue-100" : "bg-pink-100"
-      }`}>
+      <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${isMale ? "bg-blue-100" : "bg-pink-100"
+        }`}>
         {isMale ? (
           <User className="w-4 h-4 text-blue-600" />
         ) : (
@@ -29,12 +28,12 @@ export default function UserTable({ users, onEdit, onViewDetails, loading = fals
 
   // Role badge helper
   const getRoleBadge = (role: string) => {
-    const styles = role === "psychologist" 
+    const styles = role === "psychologist"
       ? "bg-purple-100 text-purple-700"
-      : "bg-[#D1EAFF] text-[#2B5379]";
-    
+      : "bg-[#D1EAFF] text-primary";
+
     const label = role === "psychologist" ? "Psikolog" : "Pasien";
-    
+
     return (
       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${styles}`}>
         {label}
@@ -45,7 +44,7 @@ export default function UserTable({ users, onEdit, onViewDetails, loading = fals
   if (loading) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2B5379] mx-auto mb-4"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
         <p className="text-gray-600">Memuat data user...</p>
       </div>
     );
@@ -125,14 +124,14 @@ export default function UserTable({ users, onEdit, onViewDetails, loading = fals
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => onViewDetails(user)}
-                        className="p-2 text-gray-600 hover:text-[#2B5379] hover:bg-[#D1EAFF] rounded-lg transition-colors"
+                        className="p-2 text-gray-600 hover:text-primary hover:bg-[#D1EAFF] rounded-lg transition-colors"
                         title="Lihat Detail"
                       >
                         <Eye className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => onEdit(user)}
-                        className="p-2 text-gray-600 hover:text-[#2B5379] hover:bg-[#D1EAFF] rounded-lg transition-colors"
+                        className="p-2 text-gray-600 hover:text-primary hover:bg-[#D1EAFF] rounded-lg transition-colors"
                         title="Edit User"
                       >
                         <Edit2 className="w-4 h-4" />

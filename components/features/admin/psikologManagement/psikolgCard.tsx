@@ -1,7 +1,7 @@
 'use client'
+import type { PsychologistData } from "@/components/features/admin/psikologManagement/psikologForm";
 import { Trash2, User } from "lucide-react";
 import { useRouter } from "next/navigation";
-import type { PsychologistData } from "@/components/features/admin/psikologManagement/psikologForm";
 
 type Psikolog = PsychologistData & {
     id: string;
@@ -17,9 +17,9 @@ export default function PsikologCard({
     psikolog,
     onDelete,
     onEdit,
-    }: PsikologCardProps) {
+}: PsikologCardProps) {
     const router = useRouter();
-    const MAX_NAME_LENGTH = 50; 
+    const MAX_NAME_LENGTH = 50;
     const shouldTruncateName = psikolog.name.length > MAX_NAME_LENGTH;
 
     const MAX_SIPP_LENGTH = 20;
@@ -31,9 +31,9 @@ export default function PsikologCard({
                 <div className="shrink-0">
                     {psikolog.photo ? (
                         <img
-                        src={psikolog.photo}
-                        alt="Psikolog"
-                        className="rounded-full w-18 h-18 object-cover"
+                            src={psikolog.photo}
+                            alt="Psikolog"
+                            className="rounded-full w-18 h-18 object-cover"
                         />
                     ) : (
                         <div className="rounded-full w-18 bg-gray-100 flex items-center justify-center">
@@ -43,7 +43,7 @@ export default function PsikologCard({
                 </div>
 
                 <div className="flex flex-col gap-1 flex-1 min-w-0 pt-4">
-                    <p className={`text-blue-950 text-sm font-medium truncate ${shouldTruncateName ? 'truncate' : ''}`}>
+                    <p className={`text-secondary-heading text-sm font-medium truncate ${shouldTruncateName ? 'truncate' : ''}`}>
                         {psikolog.name}
                     </p>
                     <p className={`text-gray-500 text-xs truncate${shouldTruncateSIPP ? 'truncate' : ''}`}>
@@ -51,21 +51,21 @@ export default function PsikologCard({
                     </p>
                 </div>
             </div>
-            
+
             <div className="absolute bottom-2 right-3 flex gap-2 items-center">
-                <button 
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onEdit(psikolog);
-                }}
-                className="text-[#234463] text-sm font-semibold hover:text-blue-950 cursor-pointer">
-                Edit
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onEdit(psikolog);
+                    }}
+                    className="text-secondary-heading text-sm font-semibold hover:text-primary cursor-pointer">
+                    Edit
                 </button>
-                <Trash2 size={18} className="cursor-pointer hover:text-red-600 text-[#234463]" 
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(psikolog.id);
-                }}
+                <Trash2 size={18} className="cursor-pointer hover:text-red-600 text-secondary-heading"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(psikolog.id);
+                    }}
                 />
             </div>
 

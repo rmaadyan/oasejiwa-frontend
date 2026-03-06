@@ -72,13 +72,12 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
               key={index}
               onClick={() => typeof page === "number" && onPageChange(page)}
               disabled={page === "..." || page === currentPage}
-              className={`min-w-10 h-10 px-3 rounded-lg text-sm font-medium transition-colors ${
-                page === currentPage
-                  ? "bg-[#2B5379] text-white"
+              className={`min-w-10 h-10 px-3 rounded-lg text-sm font-medium transition-colors ${page === currentPage
+                  ? "bg-primary text-white"
                   : page === "..."
-                  ? "cursor-default"
-                  : "border border-gray-300 hover:bg-gray-50"
-              }`}
+                    ? "cursor-default"
+                    : "border border-gray-300 hover:bg-gray-50"
+                }`}
             >
               {page}
             </button>

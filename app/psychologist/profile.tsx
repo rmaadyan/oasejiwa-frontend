@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import ProfileHeader from "@/app/components/features/psychologist/profile/profileheader";
-import PersonalInfo from "@/app/components/features/psychologist/profile/personalinfo";
-import ProfessionalInfo from "@/app/components/features/psychologist/profile/professionalinfo";
-import AvailabilitySettings from "@/app/components/features/psychologist/profile/availabilitysettings";
-import SecuritySettings from "@/app/components/features/psychologist/profile/securitysettings";
+import AvailabilitySettings from "@/components/features/psychologist/profile/availabilitysettings";
+import PersonalInfo from "@/components/features/psychologist/profile/personalinfo";
+import ProfessionalInfo from "@/components/features/psychologist/profile/professionalinfo";
+import ProfileHeader from "@/components/features/psychologist/profile/profileheader";
+import SecuritySettings from "@/components/features/psychologist/profile/securitysettings";
 import { getPsychologistProfile, updatePsychologistProfile } from "@/lib/api/psychologist";
 import type { Psychologist } from "@/lib/types/psychologist";
+import { useEffect, useState } from "react";
 
 export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
@@ -81,18 +81,18 @@ export default function ProfilePage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column */}
         <div className="space-y-6">
-          <PersonalInfo 
+          <PersonalInfo
             psychologist={profile}
             onSave={handleUpdateProfile}
           />
-          
+
           <SecuritySettings />
         </div>
 
         {/* Right Column */}
         <div className="space-y-6">
           <ProfessionalInfo psychologist={profile} />
-          
+
           <AvailabilitySettings />
         </div>
       </div>

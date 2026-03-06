@@ -76,7 +76,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                 <div className="flex h-full flex-col">
                     {/* Logo */}
                     <div className="border-b border-gray-200 px-6 py-6">
-                        <h1 className="text-xl font-bold text-primary-dark">Oase Jiwa</h1>
+                        <h1 className="text-xl font-bold text-secondary-heading">Oase Jiwa</h1>
                         <p className="text-xs text-gray-600">Admin Panel</p>
                     </div>
 
@@ -93,7 +93,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                                     className={`
                     flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors
                     ${active
-                                            ? "bg-primary-light text-primary-dark"
+                                            ? "bg-soft-bg text-secondary-heading font-bold"
                                             : "text-gray-700 hover:bg-gray-100"
                                         }
                   `}

@@ -1,26 +1,26 @@
 import {
-  Users,
   Calendar,
   CreditCard,
-  TrendingUp
+  TrendingUp,
+  Users
 } from "lucide-react";
 
 // ✅ Import dari components/features/admin/dashboard
-import StatCard from "@/components/features/admin/dashboard/statcard";
-import RecentBookings from "@/components/features/admin/dashboard/recentbookings";
-import TodaySchedule from "@/components/features/admin/dashboard/todayschedule";
 import PendingPayments from "@/components/features/admin/dashboard/pendingpayments";
+import RecentBookings from "@/components/features/admin/dashboard/recentbookings";
+import StatCard from "@/components/features/admin/dashboard/statcard";
+import TodaySchedule from "@/components/features/admin/dashboard/todayschedule";
 
 // Import API layer
 import { getAllDashboardData } from "@/lib/api/dashboard";
 
 // Import mock UI data untuk development/preview
 import {
+  mockAlerts,
   mockDashboardStats,
-  mockRecentBookings,
   mockPendingPayments,
-  mockTodaySchedule,
-  mockAlerts
+  mockRecentBookings,
+  mockTodaySchedule
 } from "@/lib/data/mock-ui-data";
 
 export default async function Dashboard() {
@@ -66,8 +66,8 @@ export default async function Dashboard() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard Admin</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl md:text-[28px] font-bold text-secondary-heading">Dashboard Admin</h1>
+          <p className="text-sm text-body-text mt-1">
             Selamat datang kembali! Berikut ringkasan hari ini
           </p>
         </div>
@@ -108,8 +108,8 @@ export default async function Dashboard() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard Admin</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-2xl md:text-[28px] font-bold text-secondary-heading">Dashboard Admin</h1>
+        <p className="text-sm text-body-text mt-1">
           Selamat datang kembali! Berikut ringkasan hari ini
         </p>
       </div>

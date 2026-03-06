@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import type {
+  KategoriLayanan,
   LayananItem,
   StatusLayanan,
-  KategoriLayanan,
 } from "./types";
 
 type Props = {
@@ -97,10 +97,10 @@ export default function LayananForm({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#004593]">
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary">
             Manajemen Layanan
           </p>
-          <h2 className="text-lg font-semibold text-[#1f3b5b]">
+          <h2 className="text-lg font-semibold text-secondary-heading">
             {mode === "create" ? "Tambah Layanan" : "Edit Layanan"}
           </h2>
         </div>
@@ -229,21 +229,18 @@ export default function LayananForm({
               onClick={() =>
                 setStatus((prev) => (prev === "Aktif" ? "Draft" : "Aktif"))
               }
-              className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors ${
-                isAktif ? "bg-emerald-500" : "bg-yellow-400"
-              }`}
+              className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors ${isAktif ? "bg-emerald-500" : "bg-yellow-400"
+                }`}
               aria-pressed={isAktif}
             >
               <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-                  isAktif ? "translate-x-6" : "translate-x-1"
-                }`}
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${isAktif ? "translate-x-6" : "translate-x-1"
+                  }`}
               />
             </button>
             <span
-              className={`text-xs font-semibold ${
-                isAktif ? "text-emerald-600" : "text-yellow-600"
-              }`}
+              className={`text-xs font-semibold ${isAktif ? "text-emerald-600" : "text-yellow-600"
+                }`}
             >
               {isAktif ? "Aktif" : "Draft"}
             </span>
@@ -285,7 +282,7 @@ export default function LayananForm({
         </button>
         <button
           type="submit"
-          className="rounded-full bg-[#1f3b5b] px-6 py-2 text-sm font-semibold text-white hover:bg-[#16314d]"
+          className="rounded-full bg-primary px-6 py-2 text-sm font-semibold text-white hover:bg-primary/90"
         >
           {mode === "create" ? "Simpan Layanan" : "Update Layanan"}
         </button>

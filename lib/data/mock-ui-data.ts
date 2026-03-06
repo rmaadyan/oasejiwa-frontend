@@ -7,7 +7,7 @@ import type {
   PsychologistPatientDetail,
   Session,
   SessionNote
-} from "@/lib/types/psychologist";
+} from "@/lib/types/psychologist.ts";
 import type { User, UserDetails } from "@/lib/types/users";
 
 

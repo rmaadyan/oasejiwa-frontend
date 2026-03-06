@@ -1,7 +1,7 @@
 "use client";
 
-import { Search, SlidersHorizontal, Download } from "lucide-react";
-import type { SortOption, GenderFilter } from "@/lib/types/users";
+import type { GenderFilter, SortOption } from "@/lib/types/users";
+import { Download, Search } from "lucide-react";
 
 interface UserFilterBarProps {
   searchQuery: string;
@@ -40,7 +40,7 @@ export default function UserFilterBar({
               placeholder="Cari nama atau email..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#2B5379] focus:border-transparent outline-none"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
             />
           </div>
         </div>
@@ -50,7 +50,7 @@ export default function UserFilterBar({
           <select
             value={sortBy}
             onChange={(e) => onSortChange(e.target.value as SortOption)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#2B5379] focus:border-transparent outline-none"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
           >
             <option value="newest">Terbaru</option>
             <option value="oldest">Terlama</option>
@@ -65,7 +65,7 @@ export default function UserFilterBar({
           <select
             value={genderFilter}
             onChange={(e) => onGenderFilterChange(e.target.value as GenderFilter)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#2B5379] focus:border-transparent outline-none"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
           >
             <option value="all">Semua Gender</option>
             <option value="male">Laki-laki</option>
@@ -78,7 +78,7 @@ export default function UserFilterBar({
           <select
             value={perPage}
             onChange={(e) => onPerPageChange(Number(e.target.value))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#2B5379] focus:border-transparent outline-none"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
           >
             <option value={10}>10 / page</option>
             <option value={25}>25 / page</option>

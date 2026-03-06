@@ -2,22 +2,22 @@
 
 "use client";
 
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/Alert";
+import { Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type {
-  TesStatus,
-  LikertOption,
   DiagnosisKategori,
+  LikertOption,
   LikertValue,
   PertanyaanItem,
   SectionKategori,
   SectionKategoriMap,
+  TesStatus,
 } from "./types";
-import {
-  Alert,
-  AlertTitle,
-  AlertDescription,
-} from "@/components/ui/Alert";
-import { Trash2 } from "lucide-react";
 
 export type TesDetail = {
   id?: number;
@@ -159,12 +159,12 @@ export default function DetailTesForm({ initial, onSave, onCancel }: Props) {
       prev.map((p) =>
         p.id === id
           ? {
-              ...p,
-              [field]:
-                field === "arah"
-                  ? (value as "positif" | "negatif")
-                  : value,
-            }
+            ...p,
+            [field]:
+              field === "arah"
+                ? (value as "positif" | "negatif")
+                : value,
+          }
           : p,
       ),
     );
@@ -195,12 +195,12 @@ export default function DetailTesForm({ initial, onSave, onCancel }: Props) {
       prev.map((l) =>
         l.id === id
           ? {
-              ...l,
-              [field]:
-                field === "value"
-                  ? (Number(value) || 0) as LikertValue
-                  : value,
-            }
+            ...l,
+            [field]:
+              field === "value"
+                ? (Number(value) || 0) as LikertValue
+                : value,
+          }
           : l,
       ),
     );
@@ -220,12 +220,12 @@ export default function DetailTesForm({ initial, onSave, onCancel }: Props) {
       prev.map((k) =>
         k.id === id
           ? {
-              ...k,
-              [field]:
-                field === "minPersen" || field === "maxPersen"
-                  ? Number(value) || 0
-                  : value,
-            }
+            ...k,
+            [field]:
+              field === "minPersen" || field === "maxPersen"
+                ? Number(value) || 0
+                : value,
+          }
           : k,
       ),
     );
@@ -280,12 +280,12 @@ export default function DetailTesForm({ initial, onSave, onCancel }: Props) {
       const updated = list.map((item) =>
         item.id === id
           ? {
-              ...item,
-              [field]:
-                field === "minSkor" || field === "maxSkor"
-                  ? Number(value) || 0
-                  : value,
-            }
+            ...item,
+            [field]:
+              field === "minSkor" || field === "maxSkor"
+                ? Number(value) || 0
+                : value,
+          }
           : item,
       );
       return {
@@ -330,7 +330,7 @@ export default function DetailTesForm({ initial, onSave, onCancel }: Props) {
 
       {/* Alert form error */}
       {formError && (
-        <Alert variant="error">
+        <Alert variant="destructive">
           <AlertTitle>Form tidak valid</AlertTitle>
           <AlertDescription>{formError}</AlertDescription>
         </Alert>
@@ -738,22 +738,19 @@ export default function DetailTesForm({ initial, onSave, onCancel }: Props) {
           <button
             type="button"
             onClick={() => setStatus(isAktif ? "Draft" : "Aktif")}
-            className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors ${
-              isAktif ? "bg-emerald-500" : "bg-yellow-400"
-            }`}
+            className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors ${isAktif ? "bg-emerald-500" : "bg-yellow-400"
+              }`}
             aria-pressed={isAktif}
           >
             <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-                isAktif ? "translate-x-6" : "translate-x-1"
-              }`}
+              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${isAktif ? "translate-x-6" : "translate-x-1"
+                }`}
             />
           </button>
 
           <span
-            className={`text-xs font-semibold ${
-              isAktif ? "text-emerald-600" : "text-yellow-600"
-            }`}
+            className={`text-xs font-semibold ${isAktif ? "text-emerald-600" : "text-yellow-600"
+              }`}
           >
             {isAktif ? "Aktif" : "Draft"}
           </span>

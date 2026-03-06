@@ -2,17 +2,17 @@
 
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import type { TesItem } from "./types";
-import { INITIAL_DATA } from "./dataDummy";
-import TesTable from "./TesTable";
 import {
   Alert,
-  AlertTitle,
   AlertDescription,
+  AlertTitle,
 } from "@/components/ui/Alert";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { INITIAL_DATA } from "./dataDummy";
+import TesTable from "./TesTable";
+import type { TesItem } from "./types";
 
 const STORAGE_KEY = "tes-list";
 const PAGE_SIZE_OPTIONS = [5, 10, 20];
@@ -130,7 +130,7 @@ export default function DaftarTesPage() {
 
           {/* Page Title */}
           <div className="animate-fade-in-up">
-            <h1 className="text-[32px] md:text-[40px] font-semibold text-[#234463] mb-2">
+            <h1 className="text-2xl md:text-[28px] font-bold text-secondary-heading mb-2">
               Manajemen Tes
             </h1>
             <p className="text-[16px] text-[#4B4B4B]">
