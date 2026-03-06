@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
-import Dashboard from "./dashboard";
 import Analytics from "./analytics";
+import Dashboard from "./dashboard";
 
 export default async function AdminRouter({
   params,

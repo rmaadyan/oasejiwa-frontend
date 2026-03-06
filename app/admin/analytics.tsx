@@ -8,7 +8,7 @@ import { Download } from "lucide-react";
 
 import {
   mockAnalyticsData,
-  mockRecentPatientsAdmin
+  mockRecentPatients
 } from "@/lib/data/mock-ui-data";
 
 export default function AnalyticsPage() {
@@ -18,7 +18,7 @@ export default function AnalyticsPage() {
     <div className="space-y-6">
       {/* Header with Download Button */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl md:text-[28px] font-bold text-secondary-heading">Analytics</h1>
+        <h1 className="text-2xl font-semibold text-gray-900">Analytics</h1>
         <button className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
           <Download size={16} />
           Download CSV
@@ -120,7 +120,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Bottom Section: Data Pasien Table */}
-      <PatientTable data={mockRecentPatientsAdmin} />
+      <PatientTable data={mockRecentPatients} />
     </div>
   );
 }
