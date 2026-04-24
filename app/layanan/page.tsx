@@ -3,12 +3,10 @@
 import Footer from "@/components/common/Footer";
 import Navbar from "@/components/common/Navbar";
 
-import { INITIAL_LAYANAN } from "@/components/features/manajemen-layanan/dataDummy";
 import type { LayananItem } from "@/components/features/manajemen-layanan/types";
+import { getAllLayanan } from "@/lib/api/layanan";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-
-const STORAGE_KEY = "layanan-list";
 
 type Grouped = {
   jenis: string;
@@ -18,29 +16,25 @@ type Grouped = {
 export default function LayananLandingPage() {
   const [layananAktif, setLayananAktif] = useState<LayananItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const jenisRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    let list: LayananItem[] = INITIAL_LAYANAN;
-
-    if (typeof window !== "undefined") {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        try {
-          const parsed: LayananItem[] = JSON.parse(raw);
-          if (Array.isArray(parsed)) {
-            list = parsed;
-          }
-        } catch {
-          // fallback INITIAL_LAYANAN
-        }
+    const fetchData = async () => {
+      try {
+        const data = await getAllLayanan();
+        const aktif = data.filter((l) => l.status === "Aktif");
+        setLayananAktif(aktif);
+      } catch (err) {
+        console.error(err);
+        setErrorMsg("Gagal memuat layanan. Silakan coba lagi.");
+      } finally {
+        setLoading(false);
       }
-    }
+    };
 
-    const aktif = list.filter((l) => l.status === "Aktif");
-    setLayananAktif(aktif);
-    setLoading(false);
+    fetchData();
   }, []);
 
   const groupedByJenis: Grouped[] = (() => {
@@ -62,8 +56,6 @@ export default function LayananLandingPage() {
   };
 
   const handleLihatDetail = (id: number) => {
-    // sesuaikan dengan lokasi file preview:
-    // app/manajemen-layanan/preview/[id]/page.tsx
     router.push(`/layanan/layanan-preview/preview/${id}`);
   };
 
@@ -72,6 +64,16 @@ export default function LayananLandingPage() {
       <div className="flex min-h-screen items-center justify-center bg-white">
         <div className="rounded-xl bg-[#E8F6FF] px-8 py-6 text-sm text-[#234463] shadow-lg font-[var(--font-poppins)] font-semibold">
           Memuat layanan...
+        </div>
+      </div>
+    );
+  }
+
+  if (errorMsg) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <div className="rounded-xl bg-red-50 px-8 py-6 text-sm text-red-600 shadow-lg font-[var(--font-poppins)] font-semibold">
+          {errorMsg}
         </div>
       </div>
     );
@@ -130,7 +132,7 @@ export default function LayananLandingPage() {
         {/* SECTION PER JENIS */}
         <section ref={jenisRef} className="bg-gradient-to-b from-white to-[#E8F6FF]/20 pb-20 pt-8">
           <div className="mx-auto flex max-w-7xl flex-col gap-12 px-6 lg:px-16">
-            {groupedByJenis.map((group, groupIndex) => (
+            {groupedByJenis.map((group) => (
               <div key={group.jenis} className="space-y-6">
                 {/* judul jenis */}
                 <div className="flex items-center gap-3">
@@ -164,7 +166,6 @@ export default function LayananLandingPage() {
                           {layanan.nama}
                         </h3>
 
-                        {/* Divider */}
                         <div className="w-12 h-1 bg-[#234463] rounded-full mb-4 group-hover:w-20 transition-all duration-300" />
 
                         <div className="space-y-3 mb-6">
@@ -199,7 +200,6 @@ export default function LayananLandingPage() {
                           </div>
                         </div>
 
-                        {/* footer tombol */}
                         <button
                           type="button"
                           onClick={() => handleLihatDetail(layanan.id)}
@@ -210,12 +210,6 @@ export default function LayananLandingPage() {
                       </div>
                     </div>
                   ))}
-
-                  {group.items.length === 0 && (
-                    <p className="col-span-full text-center text-sm text-[#4B4B4B] py-8">
-                      Belum ada layanan untuk jenis ini.
-                    </p>
-                  )}
                 </div>
               </div>
             ))}
