@@ -1,72 +1,57 @@
-// components/features/manajemen-layanan/ManajemenLayananPage.tsx
 "use client";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/Alert";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { INITIAL_LAYANAN } from "./dataDummy";
 import LayananForm from "./LayananForm";
 import LayananTable from "./LayananTable";
 import type { LayananItem } from "./types";
-
-const STORAGE_KEY = "layanan-list";
+import { getAllLayanan, createLayanan, updateLayanan, deleteLayanan } from "@/lib/api/layanan";
 
 export default function ManajemenLayananPage() {
   const router = useRouter();
 
   const [items, setItems] = useState<LayananItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [pageSize, setPageSize] = useState(5);
   const [currentPage, setCurrentPage] = useState(1);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
   const [showForm, setShowForm] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [editingItem, setEditingItem] = useState<LayananItem | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-
   const [search, setSearch] = useState("");
 
-  // load awal dari localStorage atau INITIAL_LAYANAN
-  useEffect(() => {
+  const fetchData = async () => {
     try {
-      if (typeof window === "undefined") {
-        setItems(INITIAL_LAYANAN);
-        return;
-      }
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed: LayananItem[] = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          setItems(parsed);
-          return;
-        }
-      }
-      setItems(INITIAL_LAYANAN);
+      setLoading(true);
+      setErrorMsg(null);
+      const data = await getAllLayanan();
+      setItems(data);
     } catch (err) {
+      setErrorMsg("Gagal memuat data layanan. Pastikan backend sedang berjalan.");
       console.error(err);
-      setErrorMsg(
-        "Gagal memuat data layanan dari penyimpanan lokal. Data dummy digunakan.",
-      );
-      setItems(INITIAL_LAYANAN);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchData();
   }, []);
 
   const filteredItems = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return items;
-    return items.filter((item) =>
-      item.nama.toLowerCase().includes(q),
-    );
+    return items.filter((item) => item.nama.toLowerCase().includes(q));
   }, [items, search]);
 
   const totalItems = filteredItems.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
   useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
+    if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [totalPages, currentPage]);
 
   const pagedItems = useMemo(() => {
@@ -74,74 +59,45 @@ export default function ManajemenLayananPage() {
     return filteredItems.slice(start, start + pageSize);
   }, [filteredItems, pageSize, currentPage]);
 
-  const handleSeeAll = () => {
-    setPageSize(totalItems || 1);
-    setCurrentPage(1);
-  };
+  const handleSeeAll = () => { setPageSize(totalItems || 1); setCurrentPage(1); };
+  const handlePageSizeChange = (size: number) => { setPageSize(size); setCurrentPage(1); };
+  const handlePreview = (item: LayananItem) => router.push(`/admin/manajemen-layanan/preview/${item.id}`);
+  const handleEdit = (item: LayananItem) => { setFormMode("edit"); setEditingItem(item); setShowForm(true); };
+  const handleDelete = (item: LayananItem) => { setErrorMsg(null); setDeleteId(item.id); };
+  const handleTambah = () => { setFormMode("create"); setEditingItem(null); setShowForm(true); };
 
-  const handlePageSizeChange = (size: number) => {
-    setPageSize(size);
-    setCurrentPage(1);
-  };
-
-  // PREVIEW: arahkan ke halaman preview/[id]
-  const handlePreview = (item: LayananItem) => {
-    router.push(`/admin/manajemen-layanan/preview/${item.id}`);
-  };
-
-  const handleEdit = (item: LayananItem) => {
-    setFormMode("edit");
-    setEditingItem(item);
-    setShowForm(true);
-  };
-
-  const handleDelete = (item: LayananItem) => {
-    setErrorMsg(null);
-    setDeleteId(item.id);
-  };
-
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deleteId === null) return;
-    const id = deleteId;
-
-    setItems((prev) => {
-      const next = prev.filter((t) => t.id !== id);
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      }
-      return next;
-    });
-
-    setDeleteId(null);
+    try {
+      await deleteLayanan(String(deleteId));
+      await fetchData();
+    } catch (err) {
+      setErrorMsg("Gagal menghapus layanan.");
+      console.error(err);
+    } finally {
+      setDeleteId(null);
+    }
   };
 
-  const handleTambah = () => {
-    setFormMode("create");
-    setEditingItem(null);
-    setShowForm(true);
-  };
-
-  const handleSubmitLocal = (layanan: LayananItem) => {
-    setItems((prev) => {
-      const exist = prev.some((l) => l.id === layanan.id);
-      let next: LayananItem[];
-      if (exist) {
-        next = prev.map((l) => (l.id === layanan.id ? layanan : l));
+  const handleSubmitLocal = async (layanan: LayananItem) => {
+    try {
+      setErrorMsg(null);
+      if (formMode === "create") {
+        await createLayanan(layanan);
       } else {
-        next = [...prev, layanan];
+        await updateLayanan(String(layanan.id), layanan);
       }
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      }
-      return next;
-    });
-    setShowForm(false);
-    setEditingItem(null);
+      await fetchData();
+      setShowForm(false);
+      setEditingItem(null);
+    } catch (err) {
+      setErrorMsg("Gagal menyimpan layanan. Silakan coba lagi.");
+      console.error(err);
+    }
   };
 
   return (
     <>
-      {/* Modal konfirmasi delete */}
       <ConfirmDialog
         open={deleteId !== null}
         title="Hapus layanan?"
@@ -152,17 +108,13 @@ export default function ManajemenLayananPage() {
         onCancel={() => setDeleteId(null)}
       />
 
-      {/* Modal form tambah/edit */}
       {showForm && (
         <div className="fixed inset-0 z-40 flex items-start justify-center bg-black/30 py-10">
           <div className="w-full max-w-3xl px-4">
             <LayananForm
               mode={formMode}
               initialData={editingItem}
-              onCancel={() => {
-                setShowForm(false);
-                setEditingItem(null);
-              }}
+              onCancel={() => { setShowForm(false); setEditingItem(null); }}
               onSubmitLocal={handleSubmitLocal}
             />
           </div>
@@ -178,17 +130,12 @@ export default function ManajemenLayananPage() {
             </Alert>
           )}
 
-          {/* Page Title */}
           <div className="animate-fade-in-up">
-            <h1 className="text-2xl md:text-[28px] font-bold text-secondary-heading mb-2">
-              Manajemen Layanan
-            </h1>
-            <p className="text-sm text-body-text mt-1">
-              Kelola dan pantau semua layanan konsultasi Anda
-            </p>
+            <h1 className="text-2xl md:text-[28px] font-bold text-secondary-heading mb-2">Manajemen Layanan</h1>
+            <p className="text-sm text-body-text mt-1">Kelola dan pantau semua layanan konsultasi Anda</p>
           </div>
 
-          {/* Statistik Ringkas */}
+          {/* Statistik */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in-up animation-delay-200">
             <div className="bg-[#E8F6FF] p-6 rounded-[22px] shadow-md border border-secondary-heading/10 flex items-center justify-between transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group">
               <div>
@@ -201,11 +148,10 @@ export default function ManajemenLayananPage() {
                 </svg>
               </div>
             </div>
-
             <div className="bg-[#E8F6FF] p-6 rounded-[22px] shadow-md border border-emerald-500/10 flex items-center justify-between transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group">
               <div>
                 <p className="text-xs font-semibold text-body-text uppercase tracking-wider mb-2">Layanan Aktif</p>
-                <p className="text-2xl md:text-[28px] font-bold text-emerald-600">{items.filter(i => i.status === 'Aktif').length}</p>
+                <p className="text-2xl md:text-[28px] font-bold text-emerald-600">{items.filter(i => i.status === "Aktif").length}</p>
               </div>
               <div className="h-14 w-14 bg-emerald-600 rounded-full flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -213,11 +159,10 @@ export default function ManajemenLayananPage() {
                 </svg>
               </div>
             </div>
-
             <div className="bg-[#E8F6FF] p-6 rounded-[22px] shadow-md border border-gray-300/10 flex items-center justify-between transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group">
               <div>
                 <p className="text-xs font-semibold text-body-text uppercase tracking-wider mb-2">Draft</p>
-                <p className="text-2xl md:text-[28px] font-bold text-gray-600">{items.filter(i => i.status === 'Draft' || !i.status).length}</p>
+                <p className="text-2xl md:text-[28px] font-bold text-gray-600">{items.filter(i => i.status === "Draft" || !i.status).length}</p>
               </div>
               <div className="h-14 w-14 bg-gray-500 rounded-full flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -228,28 +173,21 @@ export default function ManajemenLayananPage() {
           </div>
 
           <div className="bg-white rounded-[22px] p-6 shadow-md border border-secondary-heading/10 animate-fade-in-up animation-delay-400">
-            {/* Header + search bar */}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
               <div>
-                <h2 className="text-xl md:text-2xl font-bold text-secondary-heading">
-                  Daftar Layanan
-                </h2>
+                <h2 className="text-xl md:text-2xl font-bold text-secondary-heading">Daftar Layanan</h2>
                 <p className="text-sm text-body-text mt-1">Kelola semua layanan konsultasi Anda di sini</p>
               </div>
               <div className="flex flex-col gap-3 md:flex-row md:items-center">
                 <div className="relative w-full max-w-xs group">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-body-text group-focus-within:text-secondary-heading transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-body-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                   </div>
                   <input
-                    type="text"
-                    value={search}
-                    onChange={(e) => {
-                      setCurrentPage(1);
-                      setSearch(e.target.value);
-                    }}
+                    type="text" value={search}
+                    onChange={(e) => { setCurrentPage(1); setSearch(e.target.value); }}
                     placeholder="Cari layanan..."
                     className="w-full pl-12 pr-4 py-3 bg-[#E8F6FF]/50 border border-secondary-heading/20 rounded-xl text-sm text-secondary-heading placeholder:text-body-text/60 focus:outline-none focus:ring-2 focus:ring-secondary-heading/30 focus:border-secondary-heading focus:bg-[#E8F6FF] transition-all"
                   />
@@ -266,17 +204,24 @@ export default function ManajemenLayananPage() {
               </div>
             </div>
 
-            <LayananTable
-              data={pagedItems}
-              pageSize={pageSize}
-              totalItems={totalItems}
-              currentPage={currentPage}
-              onPreview={handlePreview}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onSeeAll={handleSeeAll}
-              onPageSizeChange={handlePageSizeChange}
-            />
+            {loading ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-secondary-heading"></div>
+                <span className="ml-3 text-body-text">Memuat data...</span>
+              </div>
+            ) : (
+              <LayananTable
+                data={pagedItems}
+                pageSize={pageSize}
+                totalItems={totalItems}
+                currentPage={currentPage}
+                onPreview={handlePreview}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onSeeAll={handleSeeAll}
+                onPageSizeChange={handlePageSizeChange}
+              />
+            )}
           </div>
         </div>
       </div>

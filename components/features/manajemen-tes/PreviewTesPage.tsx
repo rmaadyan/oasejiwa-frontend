@@ -1,43 +1,47 @@
-// components/features/manajemen-tes/PreviewTesPage.tsx
-
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import TestRunner from "./TestRunner";
-import { INITIAL_DATA } from "./dataDummy";
-import type { TesItem } from "./types";
+import TestRunner1 from "@/components/features/manajemen-tes/TestRunner1";
+import type { TesDetail } from "@/components/features/manajemen-tes/DetailTesForm";
+import type { TesItem } from "@/components/features/manajemen-tes/types";
+import { getTesById } from "@/lib/api/tes";
 
-const STORAGE_KEY = "tes-list";
+function mapTesItemToDetail(tes: TesItem): TesDetail {
+  return {
+    id: tes.id,
+    nama: tes.nama,
+    deskripsi: tes.deskripsi,
+    penjelasanHasil: tes.penjelasanHasil,
+    status: tes.status,
+    likert: tes.likert,
+    kategori: tes.kategori,
+    pertanyaan: tes.pertanyaan,
+    sectionKategori: tes.sectionKategori,
+  };
+}
 
-export default function PreviewTesPage() {
+export default function PreviewTesPage1() {
   const params = useParams();
   const router = useRouter();
-  const id = Number(params.id);
+  const id = String(params.id);
 
-  const [tes, setTes] = useState<TesItem | null>(null);
+  const [tes, setTes] = useState<TesDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    let list: TesItem[] = INITIAL_DATA;
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-
-    if (raw) {
+    async function fetchTes() {
       try {
-        const parsed: TesItem[] = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          list = parsed;
-        }
-      } catch {
-        // kalau gagal parse, tetap pakai INITIAL_DATA
+        const data: TesItem = await getTesById(id);
+        setTes(mapTesItemToDetail(data));
+      } catch (err) {
+        console.error("Gagal fetch tes:", err);
+        setTes(null);
+      } finally {
+        setLoading(false);
       }
     }
-
-    const found = list.find((t) => t.id === id) ?? null;
-    setTes(found);
-    setLoading(false);
+    fetchTes();
   }, [id]);
 
   if (loading) {
@@ -66,5 +70,5 @@ export default function PreviewTesPage() {
     );
   }
 
-  return <TestRunner tes={tes} onBack={() => router.back()} />;
+  return <TestRunner1 tes={tes} onBack={() => router.back()} />;
 }

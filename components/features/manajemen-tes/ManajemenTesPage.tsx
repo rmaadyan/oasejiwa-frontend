@@ -12,36 +12,39 @@ import {
 } from "@/components/ui/Alert";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import TesTable from "./TesTable";
-import { INITIAL_DATA } from "./dataDummy";
 import type { TesItem } from "./types";
+import { getAllTes, deleteTes } from "@/lib/api/tes"; // sesuaikan path
 
-const STORAGE_KEY = "tes-list";
 const PAGE_SIZE_OPTIONS = [5, 10, 20];
 
 export default function ManajemenTesPage() {
   const router = useRouter();
   const [search, setSearch] = useState("");
-  const [dataTes, setDataTes] = useState<TesItem[]>(INITIAL_DATA);
+  const [dataTes, setDataTes] = useState<TesItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [pageSize, setPageSize] = useState<number>(5);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
-  // baca data dari localStorage saat pertama kali load
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
-
+  // Fetch data dari API
+  const fetchData = async () => {
     try {
-      const parsed: TesItem[] = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        setDataTes(parsed);
-      }
-    } catch {
-      // jika error parse, biarkan pakai INITIAL_DATA
+      setLoading(true);
+      setErrorMsg(null);
+      const data = await getAllTes();
+      setDataTes(data);
+    } catch (err) {
+      setErrorMsg("Gagal memuat data tes. Pastikan backend sedang berjalan.");
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchData();
   }, []);
 
   // filter by search
@@ -91,24 +94,21 @@ export default function ManajemenTesPage() {
     setDeleteId(item.id);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deleteId === null) return;
-    const id = deleteId;
-
-    setDataTes((prev) => {
-      const next = prev.filter((t) => t.id !== id);
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      }
-      return next;
-    });
-
-    setDeleteId(null);
+    try {
+      await deleteTes(String(deleteId));
+      setDataTes((prev) => prev.filter((t) => t.id !== deleteId));
+    } catch (err) {
+      setErrorMsg("Gagal menghapus tes. Silakan coba lagi.");
+      console.error(err);
+    } finally {
+      setDeleteId(null);
+    }
   };
 
   return (
     <>
-      {/* Modal konfirmasi delete */}
       <ConfirmDialog
         open={deleteId !== null}
         title="Hapus tes?"
@@ -178,7 +178,6 @@ export default function ManajemenTesPage() {
           </div>
 
           <div className="bg-white rounded-[22px] p-6 shadow-md border border-[#234463]/10 animate-fade-in-up animation-delay-400">
-            {/* Header + search bar */}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
               <div>
                 <h2 className="text-[24px] md:text-[28px] font-semibold text-[#234463]">
@@ -189,7 +188,7 @@ export default function ManajemenTesPage() {
               <div className="flex flex-col gap-3 md:flex-row md:items-center">
                 <div className="relative w-full max-w-xs group">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#4B4B4B] group-focus-within:text-[#234463] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#4B4B4B]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                   </div>
@@ -216,18 +215,25 @@ export default function ManajemenTesPage() {
               </div>
             </div>
 
-            {/* TABLE */}
-            <TesTable
-              data={pagedItems}
-              pageSize={pageSize}
-              totalItems={totalItems}
-              currentPage={currentPage}
-              onPreview={handlePreview}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onSeeAll={handleSeeAll}
-              onPageSizeChange={handlePageSizeChange}
-            />
+            {/* Loading state */}
+            {loading ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#234463]"></div>
+                <span className="ml-3 text-[#4B4B4B]">Memuat data...</span>
+              </div>
+            ) : (
+              <TesTable
+                data={pagedItems}
+                pageSize={pageSize}
+                totalItems={totalItems}
+                currentPage={currentPage}
+                onPreview={handlePreview}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onSeeAll={handleSeeAll}
+                onPageSizeChange={handlePageSizeChange}
+              />
+            )}
           </div>
         </div>
       </div>

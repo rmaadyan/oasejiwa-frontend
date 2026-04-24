@@ -4,8 +4,8 @@ export const INITIAL_LAYANAN: LayananItem[] = [
   {
     id: 1,
     nama: "Konsultasi Individu",
-    jenis: "Konseling",              // jenis layanan
-    kategori: "Non Paket",          // kategori
+    jenis: "Konseling",              
+    kategori: "Non Paket",          
     deskripsi: "Sesi konsultasi tatap muka dengan psikolog.",
     catatan: "Durasi per sesi adalah 60 menit.",
     durasiMenit: 60,

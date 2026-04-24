@@ -1,4 +1,4 @@
-// components/features/manajemen-tes/TestRunner.tsx
+// components/features/manajemen-tes/TestRunner1.tsx
 
 "use client";
 
@@ -152,7 +152,7 @@ export default function TestRunner1({ tes, onBack }: Props) {
     }
 
     // Redirect ke halaman USER (bukan admin)
-    router.push(`/admin/manajemen-tes/pre-result/${tes.id ?? 0}`);
+    router.push(`/tes/pre-result/${tes.id ?? 0}`);
   };
 
   useEffect(() => {

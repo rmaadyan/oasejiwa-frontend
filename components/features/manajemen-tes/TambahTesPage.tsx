@@ -1,51 +1,71 @@
-// components/features/manajemen-tes/TambahTesPage.tsx
-
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import DetailTesForm, { TesDetail } from "./DetailTesForm";
-import type { TesItem, TesCreatePayload } from "./types";
-import { INITIAL_DATA } from "./dataDummy";
 import { ChevronLeft } from "lucide-react";
-
-const STORAGE_KEY = "tes-list";
+import { createTes } from "@/lib/api/tes";
 
 export default function TambahTesPage() {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (data: TesCreatePayload) => {
-    let currentList: TesItem[] = INITIAL_DATA;
+  const handleSubmit = async (data: TesDetail) => {
+    try {
+      setLoading(true);
+      setError(null);
 
-    if (typeof window !== "undefined") {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        try {
-          const parsed: TesItem[] = JSON.parse(raw);
-          if (Array.isArray(parsed)) {
-            currentList = parsed;
-          }
-        } catch {
-          // biarkan pakai INITIAL_DATA
-        }
-      }
+      // Konversi sectionKategori dari object ke array flat
+      const sectionKategoriFlat = Object.entries(data.sectionKategori ?? {}).flatMap(
+        ([sectionNama, list]) =>
+          list.map((item) => ({
+            sectionNama,
+            nama: item.nama,
+            minSkor: item.minSkor,
+            maxSkor: item.maxSkor,
+            deskripsi: item.deskripsi,
+          }))
+      );
 
-      const nextId =
-        currentList.length > 0
-          ? currentList[currentList.length - 1].id + 1
-          : 1;
+      await createTes({
+        nama: data.nama,
+        deskripsi: data.deskripsi,
+        penjelasanHasil: data.penjelasanHasil,
+        status: data.status,
+        coverUrl: data.coverUrl || undefined, // ← tambahan
+        jumlah: data.pertanyaan.length,
+        pertanyaan: data.pertanyaan.map((p, i) => ({
+          teks: p.teks,
+          arah: p.arah,
+          section: p.section || undefined,
+          urutan: i + 1,
+        })),
+        likert: data.likert.map((l) => ({
+          label: l.label,
+          value: l.value,
+        })),
+        kategori: data.kategori.map((k) => ({
+          nama: k.nama,
+          minPersen: k.minPersen,
+          maxPersen: k.maxPersen,
+          deskripsi: k.deskripsi,
+          result: k.result,
+        })),
+        sectionKategori: sectionKategoriFlat,
+      });
 
-      const newItem: TesItem = { id: nextId, ...data };
-      const updated = [...currentList, newItem];
-
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      router.push("/admin/manajemen-tes"); // ← arahkan ke halaman admin
+    } catch (err) {
+      setError("Gagal menyimpan tes. Silakan coba lagi.");
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-
-    router.push("/");
   };
 
   return (
     <div className="min-h-screen bg-[#f5f7fb] px-10 py-6">
-      {/* Header: tombol kembali kiri, judul di tengah */}
       <div className="mb-4 flex items-center">
         <button
           type="button"
@@ -57,22 +77,21 @@ export default function TambahTesPage() {
         </button>
       </div>
 
+      {error && (
+        <div className="mb-4 rounded-lg bg-red-100 px-4 py-3 text-sm text-red-600">
+          {error}
+        </div>
+      )}
+
+      {loading && (
+        <div className="mb-4 rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-600">
+          Menyimpan data...
+        </div>
+      )}
+
       <DetailTesForm
         initial={null}
-        onSave={(tesDetail: TesDetail) => {
-          const data: TesCreatePayload = {
-            nama: tesDetail.nama,
-            deskripsi: tesDetail.deskripsi,
-            penjelasanHasil: tesDetail.penjelasanHasil,
-            status: tesDetail.status,
-            jumlah: tesDetail.pertanyaan.length,
-            pertanyaan: tesDetail.pertanyaan,
-            likert: tesDetail.likert,
-            kategori: tesDetail.kategori,
-          };
-
-          handleSubmit(data);
-        }}
+        onSave={handleSubmit}
         onCancel={() => router.back()}
       />
     </div>

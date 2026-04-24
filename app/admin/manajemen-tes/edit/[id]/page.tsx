@@ -1,98 +1,101 @@
-// app/manajemen-tes/edit/[id]/page.tsx
-
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import DetailTesForm, {
-  TesDetail,
-} from "@/components/features/manajemen-tes/DetailTesForm";
+import DetailTesForm, { TesDetail } from "@/components/features/manajemen-tes/DetailTesForm";
 import type { TesItem } from "@/components/features/manajemen-tes/types";
-import { INITIAL_DATA } from "@/components/features/manajemen-tes/dataDummy";
+import { getTesById, updateTes } from "@/lib/api/tes";
 import { ChevronLeft } from "lucide-react";
 
-const STORAGE_KEY = "tes-list";
+function mapTesItemToDetail(tes: TesItem): TesDetail {
+  return {
+    id: tes.id,
+    nama: tes.nama,
+    deskripsi: tes.deskripsi,
+    penjelasanHasil: tes.penjelasanHasil,
+    status: tes.status,
+    coverUrl: tes.coverUrl, // ← tambahkan ini
+    likert: tes.likert,
+    kategori: tes.kategori,
+    pertanyaan: tes.pertanyaan,
+    sectionKategori: tes.sectionKategori,
+  };
+}
 
 export default function EditTesPage() {
   const params = useParams();
   const router = useRouter();
-  const id = Number(params.id);
+  const id = String(params.id);
 
   const [initialTes, setInitialTes] = useState<TesDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    let list: TesItem[] = INITIAL_DATA;
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (raw) {
+    async function fetchTes() {
       try {
-        const parsed: TesItem[] = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          list = parsed;
-        }
-      } catch {
-        // fallback INITIAL_DATA
+        const data: TesItem = await getTesById(id);
+        setInitialTes(mapTesItemToDetail(data));
+      } catch (err) {
+        console.error(err);
+        setInitialTes(null);
+      } finally {
+        setLoading(false);
       }
     }
-
-    const found = list.find((t) => t.id === id);
-    if (found) {
-      setInitialTes({
-        id: found.id,
-        nama: found.nama,
-        deskripsi: found.deskripsi,
-        penjelasanHasil: found.penjelasanHasil, 
-        status: found.status,
-        likert: found.likert,
-        kategori: found.kategori,
-        pertanyaan: found.pertanyaan,
-        sectionKategori: found.sectionKategori,
-      });
-    } else {
-      setInitialTes(null);
-    }
-    setLoading(false);
+    fetchTes();
   }, [id]);
 
-  const handleSave = (detail: TesDetail) => {
-    if (typeof window === "undefined") return;
+  const handleSave = async (detail: TesDetail) => {
+    try {
+      setSaving(true);
+      setError(null);
 
-    let list: TesItem[] = INITIAL_DATA;
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      try {
-        const parsed: TesItem[] = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          list = parsed;
-        }
-      } catch {
-        // fallback
-      }
+      const sectionKategoriFlat = Object.entries(detail.sectionKategori ?? {}).flatMap(
+        ([sectionNama, list]) =>
+          list.map((item) => ({
+            sectionNama,
+            nama: item.nama,
+            minSkor: item.minSkor,
+            maxSkor: item.maxSkor,
+            deskripsi: item.deskripsi,
+          }))
+      );
+
+      await updateTes(id, {
+        nama: detail.nama,
+        deskripsi: detail.deskripsi,
+        penjelasanHasil: detail.penjelasanHasil,
+        status: detail.status,
+        coverUrl: detail.coverUrl || undefined, // ← tambahkan ini
+        pertanyaan: detail.pertanyaan.map((p, i) => ({
+          teks: p.teks,
+          arah: p.arah,
+          section: p.section || undefined,
+          urutan: i + 1,
+        })),
+        likert: detail.likert.map((l) => ({
+          label: l.label,
+          value: l.value,
+        })),
+        kategori: detail.kategori.map((k) => ({
+          nama: k.nama,
+          minPersen: k.minPersen,
+          maxPersen: k.maxPersen,
+          deskripsi: k.deskripsi,
+          result: k.result,
+        })),
+        sectionKategori: sectionKategoriFlat,
+      });
+
+      router.push("/admin/manajemen-tes");
+    } catch (err) {
+      setError("Gagal menyimpan tes. Silakan coba lagi.");
+      console.error(err);
+    } finally {
+      setSaving(false);
     }
-
-    const updated: TesItem[] = list.map((item) =>
-      item.id === id
-        ? {
-            ...item,
-            nama: detail.nama,
-            deskripsi: detail.deskripsi,
-            penjelasanHasil: detail.penjelasanHasil, // <-- NEW
-            status: detail.status,
-            jumlah: detail.pertanyaan.length,
-            pertanyaan: detail.pertanyaan,
-            likert: detail.likert,
-            kategori: detail.kategori,
-            sectionKategori: detail.sectionKategori,
-          }
-        : item,
-    );
-
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-
-    // setelah simpan langsung kembali ke tabel
-    router.push("/");
   };
 
   if (loading) {
@@ -111,7 +114,7 @@ export default function EditTesPage() {
         <div className="rounded-xl bg-white px-6 py-4 text-sm text-gray-700 shadow">
           Tes tidak ditemukan.
           <button
-            onClick={() => router.push("/manajemen-tes")}
+            onClick={() => router.push("/admin/manajemen-tes")}
             className="ml-3 rounded-full border border-gray-300 px-3 py-1 text-xs text-gray-700 hover:bg-gray-50"
           >
             Kembali
@@ -133,6 +136,18 @@ export default function EditTesPage() {
           <ChevronLeft size={18} />
         </button>
       </div>
+
+      {error && (
+        <div className="mb-4 rounded-lg bg-red-100 px-4 py-3 text-sm text-red-600">
+          {error}
+        </div>
+      )}
+
+      {saving && (
+        <div className="mb-4 rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-600">
+          Menyimpan perubahan...
+        </div>
+      )}
 
       <DetailTesForm
         initial={initialTes}
