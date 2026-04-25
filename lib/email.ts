@@ -1,17 +1,9 @@
-export const POPULAR_DOMAINS = [
-    "gmail.com", "yahoo.com", "hotmail.com", "outlook.com",
-    "mail.com", "protonmail.com", "icloud.com", "aol.com",
-    "zoho.com", "fastmail.com", "mailbox.org", "tutanota.com",
-    "yandex.com", "rediff.com", "gmx.com",
-    "yahoo.co.id", "yahoo.co.uk", "yahoo.co.jp",
-    "outlook.co.id",
-];
-
 const ALLOWED_TLDS = [
     "com","org","net","edu","gov","mil",
     "co","io","id","us","uk","au","ca","de","fr","jp","sg",
     "info","biz","me","tv","dev","app","cloud",
     "web","store","online","site","tech","xyz",
+    "ac", 
 ];
 
 export function validateEmail(email: string): string {
@@ -37,9 +29,6 @@ export function validateEmail(email: string): string {
     const tld = parts[parts.length - 1].toLowerCase();
     if (!ALLOWED_TLDS.includes(tld))
         return `TLD "${tld}" tidak dikenali`;
-
-    if (!POPULAR_DOMAINS.includes(domain.toLowerCase()))
-        return "Gunakan domain email yang umum (gmail, yahoo, dll)";
-
+    
     return "";
 }

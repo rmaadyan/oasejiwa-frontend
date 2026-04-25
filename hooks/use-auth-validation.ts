@@ -19,12 +19,25 @@ export function useAuthValidation() {
         return !emailErr && !passErr;
     };
 
+    const validatePasswordOnly = (password: string) => {
+        const passErr = validatePassword(password);
+        setPasswordError(passErr);
+        return !passErr;
+    };
+
     return {
         emailError,
         passwordError,
         setEmailError,
         setPasswordError,
         validate,
+        validatePasswordOnly,
         getPasswordRuleStatus,
     };
+}
+
+export function validateLogin(email: string, password: string) {
+    if (!email) return "Email tidak boleh kosong";
+    if (!password) return "Password tidak boleh kosong";
+    return "";
 }

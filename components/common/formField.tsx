@@ -78,17 +78,18 @@ export default function FormField({
                     type= {inputType}
                     id={id}
                     name={name}
-                    value={value}
+                    value={value} 
+                    suppressHydrationWarning  
                     onChange={(e) => {
                         onChange(e.target.value);
                         setShowOptions(true);
                         onClearError?.(); 
                     }}
-                        onFocus={() => setShowOptions(true)}
-                        onBlur={() => setTimeout(() => setShowOptions(false), 150)}
-                        placeholder={placeholder}
-                        autoComplete={autoComplete}
-                        disabled={disabled}
+                    onFocus={() => setShowOptions(true)}
+                    onBlur={() => setTimeout(() => setShowOptions(false), 150)}
+                    placeholder={placeholder}
+                    autoComplete={autoComplete}
+                    disabled={disabled}
                     className={`appearance-none relative block w-full py-2 border rounded-xl placeholder-gray-350 text-blue-950 focus:outline-none focus:ring-1 focus:border-transparent
                         ${icon ? "pl-10" : "pl-4"} ${enableToggle ? "pr-10" : "pr-4"}
                         ${error ? "border-red-500 focus:ring-red-400" : "border-blue-950"}`}
@@ -98,6 +99,7 @@ export default function FormField({
                 {isPassword && enableToggle && (
                     <button
                     type="button"
+                    suppressHydrationWarning
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute inset-y-0 right-0 pr-3 flex items-center text-shadow-blue-950"
                     >

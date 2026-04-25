@@ -2,8 +2,8 @@
 import React from "react";
 
 type GenderSelectProps = {
-    value: "male" | "female";
-    onChange: (value: "male" | "female") => void;
+    value: "MALE" | "FEMALE";
+    onChange: (value: "MALE" | "FEMALE") => void;
 };
 
 export default function GenderSelect({
@@ -19,9 +19,9 @@ export default function GenderSelect({
             <div className="flex gap-3">
                 <button
                     type="button"
-                    onClick={() => onChange("male")}
+                    onClick={() => onChange("MALE")}
                     className={`px-6 py-2 rounded-full border font-medium cursor-pointer ${
-                        value === "male"
+                        value === "MALE"
                             ? "bg-blue-900 text-white hover:bg-blue-800 cursor-pointer"
                             : "border-blue-950 text-blue-950"
                     }`}
@@ -31,9 +31,9 @@ export default function GenderSelect({
 
                 <button
                     type="button"
-                    onClick={() => onChange("female")}
+                    onClick={() => onChange("FEMALE")}
                     className={`px-6 py-2 rounded-full border font-medium cursor-pointer ${
-                        value === "female"
+                        value === "FEMALE"
                             ? "bg-blue-900 text-white hover:bg-blue-800 cursor-pointer"
                             : "border-blue-950 text-blue-950"
                     }`}
