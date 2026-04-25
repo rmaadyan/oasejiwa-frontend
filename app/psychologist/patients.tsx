@@ -12,7 +12,7 @@ export default function PatientsPage() {
   const [patientsData, setPatientsData] = useState<PatientsResponse | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "lastSession" | "totalSessions">("name");
-  const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchPatients = async () => {

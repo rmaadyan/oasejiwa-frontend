@@ -1,19 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import NotesList from "@/app/components/features/psychologist/notes/noteslist";
 import NoteDetailModal from "@/app/components/features/psychologist/notes/notedetailmodal";
 import CreateNoteModal from "@/app/components/features/psychologist/notes/createnotemodal";
-import { getAllNotes, deleteNote } from "@/lib/api/psychologist";
+import { deleteNote, getAllNotes } from "@/lib/api/psychologist";
 import type { SessionNote } from "@/lib/types/psychologist";
 
 export default function NotesPage() {
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState<SessionNote[]>([]);
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [riskFilter, setRiskFilter] = useState<"low" | "medium" | "high" | "all">("all");
-  const [sortBy, setSortBy] = useState<"date" | "patient" | "riskLevel">("date");
-  
+  const [riskFilter, setRiskFilter] = useState<
+    "low" | "medium" | "high" | "all"
+  >("all");
+  const [sortBy, setSortBy] = useState<"date" | "patient" | "riskLevel">(
+    "date"
+  );
+
   const [selectedNote, setSelectedNote] = useState<SessionNote | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -21,12 +26,14 @@ export default function NotesPage() {
 
   const fetchNotes = async () => {
     setLoading(true);
+
     try {
       const data = await getAllNotes({
         search: searchTerm,
-        riskLevel: riskFilter, // Sekarang sudah sesuai dengan type
-        sortBy: sortBy
+        riskLevel: riskFilter,
+        sortBy,
       });
+
       setNotes(data.notes);
     } catch (error) {
       console.error("Failed to fetch notes:", error);
@@ -50,10 +57,10 @@ export default function NotesPage() {
     setIsCreateModalOpen(true);
   };
 
-  const handleDelete = async (noteId: number) => {
+  const handleDelete = async (noteId: string) => {
     try {
       await deleteNote(noteId);
-      fetchNotes();
+      await fetchNotes();
     } catch (error) {
       console.error("Failed to delete note:", error);
       throw error;
@@ -73,13 +80,15 @@ export default function NotesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-[#2B5379]">Catatan Konseling</h1>
-        <p className="text-gray-600 mt-1">Kelola catatan sesi SOAP untuk pasien Anda</p>
+        <h1 className="text-3xl font-bold text-[#2B5379]">
+          Catatan Konseling
+        </h1>
+        <p className="text-gray-600 mt-1">
+          Kelola catatan sesi SOAP untuk pasien Anda
+        </p>
       </div>
 
-      {/* Notes List */}
       <NotesList
         notes={notes}
         onViewDetails={handleViewDetails}
@@ -94,7 +103,6 @@ export default function NotesPage() {
         sortBy={sortBy}
       />
 
-      {/* Detail Modal */}
       <NoteDetailModal
         isOpen={isDetailModalOpen}
         onClose={() => {
@@ -106,7 +114,6 @@ export default function NotesPage() {
         onDelete={handleDelete}
       />
 
-      {/* Create/Edit Modal */}
       <CreateNoteModal
         isOpen={isCreateModalOpen}
         onClose={() => {

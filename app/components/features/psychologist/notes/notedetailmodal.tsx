@@ -9,7 +9,7 @@ interface NoteDetailModalProps {
   onClose: () => void;
   note: SessionNote | null;
   onEdit?: (note: SessionNote) => void;
-  onDelete?: (noteId: number) => void;
+  onDelete?: (noteId: string) => void | Promise<void>;
 }
 
 export default function NoteDetailModal({

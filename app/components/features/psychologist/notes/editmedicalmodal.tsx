@@ -8,7 +8,7 @@ interface EditMedicalModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  patientId: number;
+  patientId: string;
   initialData: {
     diagnosis?: string[];
     currentMedication?: string[];

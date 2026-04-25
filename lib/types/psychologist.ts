@@ -1,4 +1,7 @@
-// Psychologist Profile
+// ========================================
+// 👨‍⚕️ Psychologist Profile
+// ========================================
+
 export interface Psychologist {
   id: number;
   name: string;
@@ -9,16 +12,21 @@ export interface Psychologist {
   bio?: string;
   education: string[];
   certifications: string[];
-  sipp?: string; // Nomor SIPP
+  sipp?: string;
   languages: string[];
-  experience: number; // tahun
+  experience: number;
   rating?: number;
   totalReviews?: number;
   status: "active" | "inactive";
   joinedDate: string;
 }
 
-// Session/Appointment
+// ========================================
+// 📅 Session / Appointment
+// ========================================
+
+export type SessionStatus = "upcoming" | "completed" | "cancelled" | "no-show";
+
 export interface Session {
   id: number;
   patientId: number;
@@ -27,17 +35,20 @@ export interface Session {
   service: string;
   date: string;
   time: string;
-  duration: number; // minutes
-  status: "upcoming" | "completed" | "cancelled" | "no-show";
+  duration: number;
+  status: SessionStatus;
   paymentStatus: "paid" | "pending";
-  sessionNumber: number; // Sesi ke-berapa dengan pasien ini
+  sessionNumber: number;
   meetingLink?: string;
   notes?: string;
 }
 
-// Patient (Limited view for psychologist)
+// ========================================
+// 👥 Patient
+// ========================================
+
 export interface PsychologistPatient {
-  id: number;
+  id: string;
   name: string;
   email?: string;
   phone?: string;
@@ -46,82 +57,10 @@ export interface PsychologistPatient {
   lastSessionDate?: string;
   totalSessions: number;
   upcomingSessionDate?: string;
-  notes?: string; // Brief note
+  notes?: string;
 }
 
-// Dashboard Stats
-export interface PsychologistDashboardStats {
-  todaySessions: number;
-  todayCompleted: number;
-  weekSessions: number;
-  totalPatients: number;
-  activePatientsThisMonth: number;
-  totalLifetimeSessions: number;
-  averageRating: number;
-  nextSessionTime?: string;
-}
-
-// Session Note (Confidential)
-export interface SessionNote {
-  id: number;
-  sessionId: number;
-  psychologistId: number;
-  patientId: number;
-  sessionDate: string;
-  duration: number;
-  sessionNumber: number;
-  
-  // SOAP Format
-  subjective: string;
-  objective: string;
-  assessment: string;
-  plan: string;
-  
-  // Additional
-  riskLevel?: "low" | "medium" | "high";
-  followUpDate?: string;
-  attachments?: string[];
-  
-  createdAt: string;
-  updatedAt: string;
-}
-
-// API Responses
-export interface PsychologistDashboardResponse {
-  stats: PsychologistDashboardStats;
-  todaySchedule: Session[];
-  upcomingSessions: Session[];
-  recentPatients: PsychologistPatient[];
-}
-
-// Schedule Query Params
-export interface ScheduleQueryParams {
-  date?: string;        // YYYY-MM-DD
-  status?: SessionStatus | "all";
-  view?: "calendar" | "list";
-}
-
-export type SessionStatus = "upcoming" | "completed" | "cancelled" | "no-show";
-
-// Schedule Response
-export interface ScheduleResponse {
-  sessions: Session[];
-  total: number;
-  upcomingCount: number;
-  completedCount: number;
-  cancelledCount: number;
-}
-
-// Session Actions
-export interface SessionActionPayload {
-  reason?: string;
-  newDate?: string;
-  newTime?: string;
-}
-
-// Extended Patient Details for Psychologist
 export interface PsychologistPatientDetail extends PsychologistPatient {
-  phone?: string;
   age?: number;
   gender?: "male" | "female";
   address?: string;
@@ -138,7 +77,7 @@ export interface PsychologistPatientDetail extends PsychologistPatient {
 }
 
 export interface SessionSummary {
-  id: number;
+  id: string;
   date: string;
   time: string;
   duration: number;
@@ -147,14 +86,12 @@ export interface SessionSummary {
   hasNotes: boolean;
 }
 
-// Patients Query Params
 export interface PatientsQueryParams {
   search?: string;
   status?: "all" | "active" | "inactive";
   sortBy?: "name" | "lastSession" | "totalSessions";
 }
 
-// Patients Response
 export interface PatientsResponse {
   patients: PsychologistPatient[];
   total: number;
@@ -162,94 +99,124 @@ export interface PatientsResponse {
   inactiveCount: number;
 }
 
-// Session Note (Confidential) - Already exists, just ensure it's there
+// ========================================
+// 📊 Dashboard
+// ========================================
+
+export interface PsychologistDashboardStats {
+  todaySessions: number;
+  todayCompleted: number;
+  weekSessions: number;
+  totalPatients: number;
+  activePatientsThisMonth: number;
+  totalLifetimeSessions: number;
+  averageRating: number;
+  nextSessionTime?: string;
+}
+
+export interface PsychologistDashboardResponse {
+  stats: PsychologistDashboardStats;
+  todaySchedule: Session[];
+  upcomingSessions: Session[];
+  recentPatients: PsychologistPatient[];
+}
+
+// ========================================
+// 📅 Schedule
+// ========================================
+
+export interface ScheduleQueryParams {
+  date?: string;
+  status?: SessionStatus | "all";
+  view?: "calendar" | "list";
+}
+
+export interface ScheduleResponse {
+  sessions: Session[];
+  total: number;
+  upcomingCount: number;
+  completedCount: number;
+  cancelledCount: number;
+}
+
+export interface SessionActionPayload {
+  reason?: string;
+  newDate?: string;
+  newTime?: string;
+}
+
+// ========================================
+// 📝 Session Notes
+// Sesuai backend:
+// POST /psychologist/notes menerima userId, bukan patientId.
+// Backend mengembalikan patientId, patientName, scheduleId, dll.
+// ========================================
+
 export interface SessionNote {
-  id: number;
-  sessionId: number;
-  psychologistId: number;
-  patientId: number;
+  id: string;
+
+  scheduleId?: string | null;
+  sessionId?: string | null;
+
+  psychologistId: string;
+  patientId: string;
   patientName: string;
-  sessionDate: string;
-  sessionTime: string;
-  duration: number;
+
+  sessionDate?: string | null;
+  sessionTime?: string | null;
+  duration?: number | null;
   sessionNumber: number;
   service: string;
-  
-  // SOAP Format
+
   subjective: string;
   objective: string;
   assessment: string;
   plan: string;
-  
-  // Additional
+
   riskLevel?: "low" | "medium" | "high";
-  followUpDate?: string;
-  nextSessionRecommendation?: string;
+  followUpDate?: string | null;
+  nextSessionRecommendation?: string | null;
   tags?: string[];
   attachments?: string[];
-  
+
   createdAt: string;
   updatedAt: string;
 }
 
-// Notes Query Params
 export interface NotesQueryParams {
   search?: string;
-  patientId?: number;
+  userId?: string;
+  patientId?: string;
   riskLevel?: "low" | "medium" | "high" | "all";
   dateFrom?: string;
   dateTo?: string;
   sortBy?: "date" | "patient" | "riskLevel";
+  page?: number;
+  limit?: number;
 }
 
-// Notes Response
 export interface NotesResponse {
   notes: SessionNote[];
   total: number;
   lowRiskCount: number;
   mediumRiskCount: number;
   highRiskCount: number;
+  page?: number;
+  limit?: number;
+  totalPages?: number;
 }
 
-// ========================================
-// 📝 Session Notes Types
-// ========================================
-
-// Note Payload for Create/Update
 export interface SessionNotePayload {
-  sessionId?: number; // Optional untuk create baru
-  patientId: number;
-  patientName?: string; // Optional, bisa di-resolve dari patientId
-  sessionDate?: string; // Optional, default today
-  sessionTime?: string; // Optional, default now
-  duration?: number; // Optional, default 60
-  sessionNumber?: number; // Optional, bisa dihitung dari history
-  service?: string; // Optional
+  userId: string;
+  scheduleId?: string;
+
   subjective: string;
   objective: string;
   assessment: string;
   plan: string;
+
   riskLevel?: "low" | "medium" | "high";
   followUpDate?: string;
   nextSessionRecommendation?: string;
   tags?: string[];
-}
-
-// Notes Query Parameters
-export interface NotesQueryParams {
-  search?: string;
-  patientId?: number;
-  riskLevel?: "low" | "medium" | "high" | "all"; // Tambahkan ini
-  dateFrom?: string;
-  dateTo?: string;
-  sortBy?: "date" | "patient" | "riskLevel";
-}
-
-// Notes Response
-export interface NotesResponse {
-  notes: SessionNote[];
-  total: number;
-  lowRiskCount: number;
-  mediumRiskCount: number;
-  highRiskCount: number;
 }

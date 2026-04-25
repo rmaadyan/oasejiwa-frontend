@@ -10,7 +10,7 @@ import type { PsychologistPatientDetail, SessionNote } from "@/lib/types/psychol
 interface PatientDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  patientId: number | null;
+  patientId: string | null;
 }
 
 export default function PatientDetailModal({ isOpen, onClose, patientId }: PatientDetailModalProps) {
@@ -42,7 +42,7 @@ export default function PatientDetailModal({ isOpen, onClose, patientId }: Patie
     }
   };
 
-  const handleViewNote = async (sessionId: number) => {
+const handleViewNote = async (sessionId: string) => {
     setLoadingNote(true);
     setNoteError(null);
     
