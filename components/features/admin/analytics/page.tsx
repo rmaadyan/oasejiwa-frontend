@@ -1,17 +1,21 @@
 "use client";
 
+import AnalyticsStats from "@/components/features/admin/analytics/AnalyticsStats";
+import { mockAnalyticsData } from "@/lib/data/mock-ui-data";
+import { Download } from "lucide-react";
 import { useState } from "react";
-import { Download, ChevronDown } from "lucide-react";
-import AnalyticsStats from "@/components/features/admin/AnalyticsStats";
 import BookingChart from "./bookingchart";
 import MonthlyChart from "./monthlychart";
-import { mockAnalyticsData } from "@/lib/admin-data";
 
 export default function AnalyticsPage() {
   const data = mockAnalyticsData;
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
   const [bookingFilter, setBookingFilter] = useState("Bulan Ini");
   const [yearFilter, setYearFilter] = useState("Tahun");
+
+  // DEBUG: Tampilkan di console
+  console.log("ANALYTICS PAGE DATA:", data);
+  console.log("Monthly Patients:", data.monthlyPatients);
 
   return (
     <div className="space-y-6">
@@ -20,13 +24,13 @@ export default function AnalyticsPage() {
         <h1 className="text-2xl font-semibold text-gray-900">Analytics</h1>
         <button className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
           <Download size={16} />
-          Download
+          Download CSV
         </button>
       </div>
 
       {/* Top Grid: Stats + Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Column 1: Pengguna & Pengunjung (stack) */}
+        {/* Column 1: Pengguna & Pengunjung */}
         <div className="lg:col-span-2 space-y-4">
           <AnalyticsStats label="Pengguna" value={data.stats.totalUsers} />
           <AnalyticsStats
@@ -54,31 +58,28 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        {/* Column 3: Pasien Bar Chart (BESAR) */}
+        {/* Column 3: Pasien Bar Chart */}
         <div className="lg:col-span-6">
           <div className="bg-white rounded-lg border border-gray-200 p-6 h-full">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-semibold text-gray-900">Pasien</h3>
+              <h3 className="text-base font-semibold text-gray-900">
+                Pasien Per Bulan
+              </h3>
               <select
                 value={yearFilter}
                 onChange={(e) => setYearFilter(e.target.value)}
                 className="text-sm text-gray-600 border-0 focus:ring-0 cursor-pointer hover:text-gray-900"
               >
-                <option>Tahun</option>
                 <option>2026</option>
                 <option>2025</option>
                 <option>2024</option>
               </select>
             </div>
-            <MonthlyChart
-              data={data.monthlyPatients}
-              height={320}
-            />
-            {selectedMonth && (
-              <div className="mt-4 text-center text-sm text-gray-600">
-                {selectedMonth} pasien
-              </div>
-            )}
+            {/* DEBUG: Tampilkan data yang dikirim */}
+            <div className="text-xs text-gray-500 mb-2">
+              Debug: {JSON.stringify(data.monthlyPatients[0])}
+            </div>
+            <MonthlyChart data={data.monthlyPatients} height={320} />
           </div>
         </div>
       </div>
@@ -115,7 +116,7 @@ export default function AnalyticsPage() {
               Tes Terbanyak
             </h3>
             <div className="space-y-4">
-              {data.topTests.map((item, index) => (
+              {data.topTests.map((item, index: number) => (
                 <div key={item.id} className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center text-sm font-semibold text-gray-700 shrink-0">
                     {String.fromCharCode(65 + index)}
@@ -149,7 +150,7 @@ export default function AnalyticsPage() {
               Layanan Terbanyak
             </h3>
             <div className="space-y-4">
-              {data.topServices.map((item, index) => (
+              {data.topServices.map((item, index: number) => (
                 <div key={item.id} className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center text-sm font-semibold text-gray-700 shrink-0">
                     {String.fromCharCode(65 + index)}

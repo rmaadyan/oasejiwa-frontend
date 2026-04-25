@@ -5,7 +5,6 @@ import PsychologistForm from "@/components/features/admin/psikologManagement/psi
 import { AlertCircle, AlertTriangle, Check, ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getAllPsychologists, createPsychologist, updatePsychologist, deletePsychologist, getPsychologistById  } from "@/lib/api/admin";
-
 type Psikolog = PsychologistData & {
     id: string;
 };
@@ -176,6 +175,7 @@ export default function ManagePsikolog() {
                                     <AlertCircle size={24} className="text-red-600" />
                                 )}
                             </div>
+
                             <div className="flex-1">
                                 <p className="font-semibold text-gray-900">
                                     {toastType === 'success' ? 'Berhasil!' : 'Gagal!'}
@@ -375,6 +375,7 @@ export default function ManagePsikolog() {
                                     <X size={20} className="text-gray-600" />
                                 </button>
                             </div>
+
                             <PsychologistForm
                                 key={editingPsikolog?.id ?? "new"}
                                 initialData={editingPsikolog ?? undefined}

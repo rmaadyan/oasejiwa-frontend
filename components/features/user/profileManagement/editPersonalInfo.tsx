@@ -15,7 +15,7 @@ type EditProfileProps = {
         phone: string;
     };
     onClose: () => void;
-    onSave: (data: EditProfileProps["initialData"]) => void;
+    onSave: (data: EditProfileProps["initialData"]) => Promise<void>;
 };
 
 export default function EditPersonalInformation({
@@ -32,20 +32,23 @@ export default function EditPersonalInformation({
     );
     const [error, setError] = useState("");
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!name || !telephone || !email || !date) {
             setError("Lengkapi semua data!");
             return;
         }
-        onSave({
-            fullName: name,
-            gender: gender,
-            birthday: date,
-            email: email,
-            phone: telephone,
-        });
-        onClose();
+        try {
+            await onSave({
+                fullName: name,
+                gender: gender,
+                birthday: date,
+                email: email,
+                phone: telephone,
+            });
+        } catch (err: any) {
+            setError(err.message ?? "Gagal menyimpan. Coba lagi.");
+        }
     };
 
     return (

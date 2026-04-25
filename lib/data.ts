@@ -1,4 +1,4 @@
-import { Service, Testimonial, FAQ, BundlePackage } from "@/app/types";
+import { BundlePackage, FAQ, Service, Testimonial } from "@/types";
 
 export const services: Service[] = [
   {
@@ -124,21 +124,24 @@ export const testimonials: Testimonial[] = [
     name: "Iseng Ujan",
     role: "Mahasiswa",
     content: "Pelayanannya sangat baik dan profesional. Saya merasa lebih tenang setelah konsultasi di Oase Jiwa.",
-    rating: 5
+    rating: 5,
+    gender: "male"
   },
   {
     id: 2,
     name: "Rizki Sadigih",
     role: "Karyawan Swasta",
     content: "Psikolog di Oase Jiwa sangat membantu saya mengatasi kecemasan. Highly recommended!",
-    rating: 5
+    rating: 5,
+    gender: "male"
   },
   {
     id: 3,
     name: "Vyona Haz",
     role: "Ibu Rumah Tangga",
     content: "Terima kasih Oase Jiwa telah membantu keluarga saya menemukan solusi terbaik untuk masalah kami.",
-    rating: 5
+    rating: 5,
+    gender: "female"
   }
 ];
 

@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import {BadgeCheck, GraduationCap, Stethoscope, User} from "lucide-react";
-import Navbar from "@/components/common/navbar";
+import Navbar from "@/components/common/Navbar";
 import { getPsychologistByIdPublic } from "@/lib/api/psychologists";
 
 type Schedule = {

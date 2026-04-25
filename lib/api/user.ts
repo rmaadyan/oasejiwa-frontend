@@ -29,11 +29,20 @@ export async function updateUserProfile(data: any) {
     });
 
     const text = await res.text();
+    let json: any;
     try {
-        const result = JSON.parse(text);
-        if (!res.ok) throw new Error(result.message || "Gagal update profile");
-        return result;
+        json = JSON.parse(text);
     } catch {
         throw new Error("Server error: " + text.slice(0, 100));
     }
+
+    if (!res.ok) {
+        const messages = json?.message;
+        const errorMessage = Array.isArray(messages)
+            ? messages.join(", ")
+            : messages ?? "Gagal update profile";
+        throw new Error(errorMessage);
+    }
+
+    return json;
 }

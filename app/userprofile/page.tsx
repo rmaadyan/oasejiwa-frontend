@@ -58,6 +58,7 @@ export default function Profile() {
                 });
             } catch (err: any) {
                 setError(err.message);
+                throw err;
             } finally {
                 setIsLoading(false);
             }

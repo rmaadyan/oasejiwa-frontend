@@ -1,22 +1,22 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { faqs } from "@/lib/data";
 import { motion } from "framer-motion";
-import { faqs } from "../../../lib/data";
+import { ChevronDown } from "lucide-react";
+import { useState } from "react";
 
 export default function FAQSection() {
   const [openId, setOpenId] = useState<number | null>(null);
 
   return (
-    <motion.section 
-      id="faq" 
-      className="bg-[#F5FBFF] py-16" 
+    <motion.section
+      id="faq"
+      className="bg-[#F5FBFF] py-16"
       data-component="FAQSection"
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      viewport={{ once: true }}
+      viewport={{ once: false }}
     >
       <div className="mx-auto max-w-6xl px-2 sm:px-3 lg:px-4">
         <h2 className="text-center text-4xl font-semibold text-primary-text md:text-5xl">
@@ -24,7 +24,7 @@ export default function FAQSection() {
         </h2>
 
         <div className="mt-10 space-y-4">
-          {faqs.map((f) => {
+          {faqs.map((f: typeof faqs[0]) => {
             const isOpen = openId === f.id;
 
             return (
@@ -39,9 +39,8 @@ export default function FAQSection() {
                   </span>
 
                   <ChevronDown
-                    className={`h-5 w-5 shrink-0 text-slate-700 transition-transform duration-200 ${
-                      isOpen ? "rotate-180" : "rotate-0"
-                    }`}
+                    className={`h-5 w-5 shrink-0 text-slate-700 transition-transform duration-200 ${isOpen ? "rotate-180" : "rotate-0"
+                      }`}
                   />
                 </button>
 

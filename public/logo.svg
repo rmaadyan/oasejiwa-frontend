@@ -1,0 +1,6 @@
+<svg width="150" height="50" viewBox="0 0 150 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="25" cy="25" r="20" fill="#2B5379"/>
+  <path d="M25 15C20.5817 15 17 18.5817 17 23C17 27.4183 20.5817 31 25 31C29.4183 31 33 27.4183 33 23C33 18.5817 29.4183 15 25 15ZM25 29C21.6863 29 19 26.3137 19 23C19 19.6863 21.6863 17 25 17C28.3137 17 31 19.6863 31 23C31 26.3137 28.3137 29 25 29Z" fill="white"/>
+  <path d="M25 19C22.7909 19 21 20.7909 21 23C21 25.2091 22.7909 27 25 27C27.2091 27 29 25.2091 29 23C29 20.7909 27.2091 19 25 19Z" fill="white"/>
+  <text x="52" y="32" font-family="Poppins, Arial, sans-serif" font-size="18" font-weight="600" fill="#2B5379">Oase Jiwa</text>
+</svg>

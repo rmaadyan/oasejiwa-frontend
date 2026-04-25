@@ -1,3 +1,6 @@
+### File: `README.md`
+
+```markdown
 # 🚀 Project Name (Contoh: Oase Jiwa Frontend)
 
 Project ini dibangun menggunakan **Next.js 14+**, **Tailwind CSS**, dan dikelola dengan **pnpm**. Struktur folder didesain agar scalable untuk kebutuhan fitur yang kompleks.
