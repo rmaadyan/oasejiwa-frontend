@@ -1,8 +1,7 @@
 "use client";
 
 import type { LayananItem } from "@/components/features/manajemen-layanan/types";
-import { INITIAL_LAYANAN } from "@/components/features/manajemen-layanan/dataDummy";
-import { bgServiceImages } from "@/lib/imageLoader";
+import { getAllLayanan } from "@/lib/api/layanan";
 
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -13,65 +12,42 @@ import {
   Clock,
 } from "lucide-react";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-
-const STORAGE_KEY = "layanan-list";
 
 export default function ServicesSection() {
   const scrollerRef = useRef<HTMLDivElement | null>(null);
 
   const [services, setServices] = useState<LayananItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
   const [scrollDirection, setScrollDirection] = useState<
     "left" | "right" | null
   >(null);
 
-  /* ===============================
-     LOAD DATA DARI LOCAL STORAGE
-  =============================== */
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const raw = localStorage.getItem(STORAGE_KEY);
-
-    if (raw) {
+    async function fetchLayanan() {
       try {
-        const parsed: LayananItem[] = JSON.parse(raw);
-        setServices(parsed);
-      } catch {
-        setServices(INITIAL_LAYANAN);
+        const data = await getAllLayanan();
+        setServices(data);
+      } catch (err) {
+        console.error("Gagal fetch layanan:", err);
+      } finally {
+        setLoading(false);
       }
-    } else {
-      setServices(INITIAL_LAYANAN);
     }
+    fetchLayanan();
   }, []);
 
-  /* ===============================
-     FILTER LAYANAN AKTIF
-  =============================== */
   const activeServices = services.filter((item) => item.status === "Aktif");
-
   const displayedServices = activeServices.slice(0, 5);
-
-  const items = useMemo(
-    () =>
-      displayedServices.map((s, idx) => ({
-        ...s,
-        image: s.coverUrl || bgServiceImages[idx % bgServiceImages.length],
-      })),
-    [displayedServices]
-  );
 
   const checkScrollPosition = () => {
     const el = scrollerRef.current;
     if (!el) return;
-
     const isAtStart = el.scrollLeft <= 10;
     const isAtEnd = el.scrollLeft >= el.scrollWidth - el.clientWidth - 10;
-
     setCanScrollLeft(!isAtStart);
     setCanScrollRight(!isAtEnd);
   };
@@ -79,35 +55,35 @@ export default function ServicesSection() {
   const scrollByCard = (dir: "left" | "right") => {
     const el = scrollerRef.current;
     if (!el) return;
-
     setScrollDirection(dir);
-
-    const scrollAmount = 420;
-
-    el.scrollBy({
-      left: dir === "left" ? -scrollAmount : scrollAmount,
-      behavior: "smooth",
-    });
-
+    el.scrollBy({ left: dir === "left" ? -420 : 420, behavior: "smooth" });
     setTimeout(() => {
       checkScrollPosition();
       setScrollDirection(null);
     }, 300);
   };
 
-  const formatDuration = (minutes: number) => {
-    if (!minutes) return "-";
-    return `${minutes} menit`;
-  };
+  const formatPrice = (price: number) => `Rp ${price.toLocaleString("id-ID")}`;
 
-  const formatPrice = (price: number) => {
-    return `Rp ${price.toLocaleString("id-ID")}`;
-  };
+  if (loading) {
+    return (
+      <section id="services" className="bg-[#F5FBFF] py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <h2 className="text-center text-4xl font-semibold text-[#2B5379] md:text-5xl mb-12">
+            Layanan Kami
+          </h2>
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#2B5379]"></div>
+            <span className="ml-3 text-[#2B5379]">Memuat layanan...</span>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="services" className="bg-[#F5FBFF] py-20 overflow-hidden">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-
         {/* Header */}
         <motion.div
           className="mb-12"
@@ -121,12 +97,9 @@ export default function ServicesSection() {
         </motion.div>
 
         <div className="relative">
-
           <AnimatePresence>
             {canScrollLeft && (
-              <motion.div
-                className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-[#F5FBFF] to-transparent z-10"
-              />
+              <motion.div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-[#F5FBFF] to-transparent z-10" />
             )}
           </AnimatePresence>
 
@@ -148,49 +121,76 @@ export default function ServicesSection() {
             className="flex gap-5 overflow-x-auto scroll-smooth pb-4 px-2"
             onScroll={checkScrollPosition}
           >
-            {items.map((item) => (
-              <motion.article
-                key={item.id}
-                className="relative h-[500px] w-[400px] shrink-0 overflow-hidden rounded-3xl shadow-xl"
-                initial={{ opacity: 0, x: scrollDirection === "left" ? -50 : 50 }}
-                animate={{ opacity: 1, x: 0 }}
-              >
-                <div className="absolute inset-0">
-                  <Image
-                    src={item.image}
-                    alt={item.nama}
-                    fill
-                    className="object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-                </div>
+            {displayedServices.length === 0 ? (
+              <div className="flex items-center justify-center w-full py-12">
+                <p className="text-[#2B5379]/60 text-sm">
+                  Belum ada layanan aktif.
+                </p>
+              </div>
+            ) : (
+              displayedServices.map((item, index) => (
+                <motion.div
+                  key={item.id}
+                  className="flex flex-col overflow-hidden rounded-[22px] bg-[#E8F6FF] shadow-md w-[340px] shrink-0 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 group"
+                  initial={{
+                    opacity: 0,
+                    x: scrollDirection === "left" ? -50 : 50,
+                  }}
+                  animate={{ opacity: 1, x: 0 }}
+                >
+                  {/* Gambar atas */}
+                  <div className="relative h-48 w-full bg-slate-200 overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#234463]/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10" />
+                    <img
+                      src={item.coverUrl || "/assets/layanan-default.png"}
+                      alt={item.nama}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                  </div>
 
-                <div className="absolute bottom-0 inset-x-0 p-6">
-                  <div className="rounded-2xl bg-[#D1EAFF]/95 px-6 py-6">
-
-                    <h3 className="text-center text-xl font-bold text-[#2B5379] mb-3">
+                  {/* Konten bawah */}
+                  <div className="flex flex-1 flex-col p-6">
+                    <h3 className="text-[18px] font-semibold text-[#234463] mb-4 line-clamp-2 leading-tight">
                       {item.nama}
                     </h3>
 
-                    <div className="flex justify-center gap-4 mb-4">
+                    <div className="w-12 h-1 bg-[#234463] rounded-full mb-4 group-hover:w-20 transition-all duration-300" />
 
-                      <div className="flex items-center gap-1 text-[#2B5379] text-xs">
-                        <Clock className="h-4 w-4" />
-                        {formatDuration(item.durasiMenit)}
-                      </div>
-
-                      <div className="h-4 w-px bg-[#2B5379]/30" />
-
-                      <div className="flex items-center gap-1 text-[#2B5379] text-xs font-semibold">
-                        <Banknote className="h-4 w-4" />
-                        {formatPrice(item.harga)}
-                      </div>
-
-                    </div>
-
-                    <p className="text-center text-xs text-[#2B5379] mb-4">
+                    <p className="text-[14px] text-[#4B4B4B] line-clamp-2 mb-4 leading-relaxed">
                       {item.deskripsi}
                     </p>
+
+                    <div className="space-y-3 mb-6">
+                      {/* Durasi */}
+                      <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 flex items-center gap-3">
+                        <div className="w-9 h-9 bg-[#234463] rounded-full flex items-center justify-center shrink-0">
+                          <Clock className="h-4 w-4 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-[12px] font-medium text-[#4B4B4B]">
+                            Durasi
+                          </p>
+                          <p className="text-[14px] font-semibold text-[#234463]">
+                            {item.durasiMenit} menit
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Harga */}
+                      <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 flex items-center gap-3">
+                        <div className="w-9 h-9 bg-[#234463] rounded-full flex items-center justify-center shrink-0">
+                          <Banknote className="h-4 w-4 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-[12px] font-medium text-[#4B4B4B]">
+                            Harga
+                          </p>
+                          <p className="text-[14px] font-semibold text-[#234463]">
+                            {formatPrice(item.harga)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
 
                     <div className="flex justify-center">
                       <a
@@ -201,22 +201,22 @@ export default function ServicesSection() {
                         Booking
                       </a>
                     </div>
-
                   </div>
-                </div>
-              </motion.article>
-            ))}
+                </motion.div>
+              ))
+            )}
 
-            <div className="flex items-center justify-center w-[400px] shrink-0">
+            {/* Lihat semua */}
+            <div className="flex items-center justify-center w-[200px] shrink-0">
               <Link
                 href="/layanan"
                 className="flex flex-col items-center gap-3 text-[#2B5379]"
               >
-                <div className="flex items-center gap-2 text-xl font-semibold">
-                  Lihat Semua Layanan
-                  <ArrowRight className="h-6 w-6" />
+                <div className="flex items-center gap-2 text-lg font-semibold">
+                  Lihat Semua
+                  <ArrowRight className="h-5 w-5" />
                 </div>
-                <p className="text-sm text-[#2B5379]/70">
+                <p className="text-sm text-[#2B5379]/70 text-center">
                   {activeServices.length} layanan tersedia
                 </p>
               </Link>
@@ -233,14 +233,12 @@ export default function ServicesSection() {
               </motion.button>
             )}
           </AnimatePresence>
-
         </div>
 
         <p className="mt-6 text-center text-sm text-slate-500">
           Geser untuk melihat layanan lainnya • {displayedServices.length} dari{" "}
           {activeServices.length} layanan ditampilkan
         </p>
-
       </div>
     </section>
   );

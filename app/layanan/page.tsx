@@ -99,7 +99,7 @@ export default function LayananLandingPage() {
                 <p>
                   Setiap orang punya cara berbeda untuk pulih dan bertumbuh. Di
                   sini, kamu bisa memilih layanan yang paling sesuai: psikotes,
-                  konseling, atau sesi edukatif bersama profesional.
+                  konseling, atau sesi edukatif bersama professional.
                 </p>
                 <p className="text-[#4B4B4B]/80">
                   Gulir ke bawah untuk melihat layanan yang tersedia dan mulai
