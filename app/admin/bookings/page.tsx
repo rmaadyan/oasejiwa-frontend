@@ -5,7 +5,8 @@ import CountUp from "@/components/admin/ui/CountUp";
 import { ToastProvider, useToast } from "@/components/admin/ui/Toast";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getAdminBookings } from "@/lib/api/booking";
 
 // Mock data for bookings
 const mockBookings = [
@@ -113,6 +114,30 @@ function AdminBookingsContent() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [quickFilter, setQuickFilter] = useState<"all" | "today" | "needValidation" | "cancelled">("all");
+  const [bookings, setBookings] = useState<any[]>(mockBookings);
+
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        const data = await getAdminBookings();
+        const mapped = data.map((b: any) => ({
+          id: `BKG-${b.id}`,
+          originalId: b.id,
+          datetime: `${b.date} ${b.time}`,
+          client: { name: b.user?.name || "Klien", avatar: "/assets/about-us.jpg" },
+          psychologist: b.psychologist?.nama || "Psikolog",
+          service: b.service?.nama || "Layanan",
+          paymentStatus: b.status === "WAITING_APPROVAL" ? "pending" : (b.status === "APPROVED" || b.status === "FULLY_PAID" ? "validated" : (b.status === "REJECTED" ? "rejected" : "pending")),
+          sessionStatus: b.status === "REJECTED" ? "cancelled" : "scheduled",
+          rawStatus: b.status,
+        }));
+        setBookings(mapped);
+      } catch (e) {
+        console.log("Using mock data as fallback", e);
+      }
+    };
+    fetchBookings();
+  }, []);
 
   // Reschedule modal state
   const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
@@ -140,11 +165,11 @@ function AdminBookingsContent() {
     setSelectedBooking(null);
   };
 
-  // Quick filter counts (mock data)
+  // Quick filter counts
   const quickFilterCounts = {
-    today: mockBookings.filter(b => b.datetime.includes("2026-02-10")).length,
-    needValidation: mockBookings.filter(b => b.paymentStatus === "pending").length,
-    cancelled: mockBookings.filter(b => b.sessionStatus === "cancelled").length,
+    today: bookings.filter(b => b.datetime.includes(new Date().toISOString().split("T")[0])).length,
+    needValidation: bookings.filter(b => b.paymentStatus === "pending").length,
+    cancelled: bookings.filter(b => b.sessionStatus === "cancelled").length,
   };
 
   const stats = [
@@ -195,7 +220,7 @@ function AdminBookingsContent() {
     {
       key: "client",
       header: "Nama Klien",
-      render: (item: typeof mockBookings[0]) => (
+      render: (item: any) => (
         <div className="flex items-center gap-3">
           <div className="relative w-8 h-8 rounded-full overflow-hidden">
             <Image
@@ -213,7 +238,7 @@ function AdminBookingsContent() {
       key: "datetime",
       header: "Jadwal",
       sortable: true,
-      render: (item: typeof mockBookings[0]) => {
+      render: (item: any) => {
         const date = new Date(item.datetime.replace(" ", "T"));
         const formattedDate = date.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
         const formattedTime = date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
@@ -235,14 +260,14 @@ function AdminBookingsContent() {
     {
       key: "service",
       header: "Layanan",
-      render: (item: typeof mockBookings[0]) => (
+      render: (item: any) => (
         <span className="text-[#4B4B4B]">{item.service}</span>
       ),
     },
     {
       key: "status",
       header: "Status",
-      render: (item: typeof mockBookings[0]) => {
+      render: (item: any) => {
         const paymentStatus = paymentStatusMap[item.paymentStatus];
         const statusColors: Record<string, string> = {
           validated: "bg-[#22C55E]",
@@ -267,10 +292,10 @@ function AdminBookingsContent() {
     {
       key: "action",
       header: "Action",
-      render: (item: typeof mockBookings[0]) => (
+      render: (item: any) => (
         <div className="flex items-center gap-2">
           <Link
-            href={`/admin/bookings/${item.id}`}
+            href={`/admin/bookings/${item.originalId || item.id.replace('BKG-','')}`}
             className="px-3 py-1.5 text-sm bg-[#2B5379] text-white rounded-lg hover:bg-[#1E3A5F] transition-all"
           >
             Detail
@@ -469,7 +494,7 @@ function AdminBookingsContent() {
 
         {/* Booking Table */}
         <div className="animate-fadeIn opacity-0 stagger-5">
-          <Table columns={columns} data={mockBookings} />
+          <Table columns={columns} data={bookings} />
           <Pagination
             currentPage={currentPage}
             totalPages={10}

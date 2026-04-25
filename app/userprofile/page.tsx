@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { getMe, updateUserProfile } from "@/lib/api/user";
+import MyBookings from "@/components/features/user/profileManagement/MyBookings";
 
 type ProfileData = {
     fullName: string;
@@ -24,6 +25,7 @@ export default function Profile() {
     const [isEditPersonalInformation, setIsEditPersonalInformation] = useState(false);
     const [isEditAddress, setIsEditAddress] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<"profile" | "bookings">("profile");
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -178,8 +180,14 @@ export default function Profile() {
                                 <SidebarItem
                                     icon={<User size={16} />}
                                     label="My Profile"
-                                    active={true}
-                                    onClick={() => setIsSidebarOpen(false)}
+                                    active={activeTab === "profile"}
+                                    onClick={() => { setActiveTab("profile"); setIsSidebarOpen(false); }}
+                                />
+                                <SidebarItem
+                                    icon={<Calendar size={16} />}
+                                    label="My Bookings"
+                                    active={activeTab === "bookings"}
+                                    onClick={() => { setActiveTab("bookings"); setIsSidebarOpen(false); }}
                                 />
                                 <SidebarItem
                                     icon={<LogOut size={16} />}
@@ -192,48 +200,52 @@ export default function Profile() {
                     </aside>
 
                         <main className="flex-1 w-full">
-                            <div className="max-w-3xl space-y-6">
-                                {/* Profile Information */}
-                                <div className="bg-white border border-gray-200 rounded-2xl shadow p-4 sm:p-6 space-y-4">
-                                    <div className="flex flex-row justify-between sm:items-center gap-3">
-                                        <h2 className="font-semibold text-blue-950 text-base sm:text-lg">Profile Information</h2>
-                                        <button
-                                            onClick={() => setIsEditPersonalInformation(true)}
-                                            className="flex items-center justify-center gap-2 text-sm bg-blue-900 text-white font-semibold rounded-lg px-4 py-2 hover:bg-blue-800 transition cursor-pointer w-auto">
-                                            <Pencil size={14} />
-                                            Edit
-                                        </button>
+                            {activeTab === "profile" ? (
+                                <div className="max-w-3xl space-y-6">
+                                    {/* Profile Information */}
+                                    <div className="bg-white border border-gray-200 rounded-2xl shadow p-4 sm:p-6 space-y-4">
+                                        <div className="flex flex-row justify-between sm:items-center gap-3">
+                                            <h2 className="font-semibold text-blue-950 text-base sm:text-lg">Profile Information</h2>
+                                            <button
+                                                onClick={() => setIsEditPersonalInformation(true)}
+                                                className="flex items-center justify-center gap-2 text-sm bg-blue-900 text-white font-semibold rounded-lg px-4 py-2 hover:bg-blue-800 transition cursor-pointer w-auto">
+                                                <Pencil size={14} />
+                                                Edit
+                                            </button>
+                                        </div>
+                                        <div className="border-t border-gray-200" />
+                                        <div className="space-y-3 sm:space-y-4">
+                                            <ProfileInformation label="Full Name" value={profileData.fullName || "—"} />
+                                            <ProfileInformation label="Birthday" value={profileData.birthday || "—"} icon={<Calendar size={16} />} />
+                                            <ProfileInformation label="Gender" value={profileData.gender === "MALE" ? "Male" : profileData.gender === "FEMALE" ? "Female" : "-"} icon={<User size={16} />} />
+                                            <ProfileInformation label="Email" value={profileData.email || "—"} icon={<Mail size={16} />} />
+                                            <ProfileInformation label="Phone" value={profileData.phone || "—"} icon={<Phone size={16} />} />
+                                        </div>
                                     </div>
-                                    <div className="border-t border-gray-200" />
-                                    <div className="space-y-3 sm:space-y-4">
-                                        <ProfileInformation label="Full Name" value={profileData.fullName || "—"} />
-                                        <ProfileInformation label="Birthday" value={profileData.birthday || "—"} icon={<Calendar size={16} />} />
-                                        <ProfileInformation label="Gender" value={profileData.gender === "MALE" ? "Male" : profileData.gender === "FEMALE" ? "Female" : "-"} icon={<User size={16} />} />
-                                        <ProfileInformation label="Email" value={profileData.email || "—"} icon={<Mail size={16} />} />
-                                        <ProfileInformation label="Phone" value={profileData.phone || "—"} icon={<Phone size={16} />} />
-                                    </div>
-                                </div>
 
-                                {/* Address */}
-                                <div className="bg-white border border-gray-200 rounded-2xl shadow p-4 sm:p-6 space-y-4">
-                                    <div className="flex flex-row justify-between sm:items-center gap-3">
-                                        <h2 className="font-semibold text-blue-950 text-base sm:text-lg">Address</h2>
-                                        <button
-                                            onClick={() => setIsEditAddress(true)}
-                                            className="flex items-center justify-center gap-2 text-sm bg-blue-900 text-white font-semibold rounded-lg px-4 py-2 hover:bg-blue-800 transition cursor-pointer w-auto"
-                                        >
-                                            <Pencil size={14} />
-                                            Edit
-                                        </button>
-                                    </div>
-                                    <div className="border-t border-gray-200" />
-                                    <div className="space-y-3 sm:space-y-4">
-                                        <ProfileInformation label="Country" value={profileData.country || "—"} />
-                                        <ProfileInformation label="City" value={profileData.city || "—"} />
-                                        <ProfileInformation label="Full Address" value={profileData.address || "—"} />
+                                    {/* Address */}
+                                    <div className="bg-white border border-gray-200 rounded-2xl shadow p-4 sm:p-6 space-y-4">
+                                        <div className="flex flex-row justify-between sm:items-center gap-3">
+                                            <h2 className="font-semibold text-blue-950 text-base sm:text-lg">Address</h2>
+                                            <button
+                                                onClick={() => setIsEditAddress(true)}
+                                                className="flex items-center justify-center gap-2 text-sm bg-blue-900 text-white font-semibold rounded-lg px-4 py-2 hover:bg-blue-800 transition cursor-pointer w-auto"
+                                            >
+                                                <Pencil size={14} />
+                                                Edit
+                                            </button>
+                                        </div>
+                                        <div className="border-t border-gray-200" />
+                                        <div className="space-y-3 sm:space-y-4">
+                                            <ProfileInformation label="Country" value={profileData.country || "—"} />
+                                            <ProfileInformation label="City" value={profileData.city || "—"} />
+                                            <ProfileInformation label="Full Address" value={profileData.address || "—"} />
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            ) : (
+                                <MyBookings />
+                            )}
                         </main>
                 </div>
 

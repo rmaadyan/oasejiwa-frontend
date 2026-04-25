@@ -1,0 +1,133 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { getUserBookings } from "@/lib/api/booking";
+import Link from "next/link";
+import { Calendar, Clock, User, FileText, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+
+export default function MyBookings() {
+    const [bookings, setBookings] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const router = useRouter();
+
+    useEffect(() => {
+        const fetchBookings = async () => {
+            try {
+                const data = await getUserBookings();
+                setBookings(data);
+            } catch (error) {
+                console.error("Failed to fetch user bookings:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchBookings();
+    }, []);
+
+    const getStatusBadge = (status: string) => {
+        switch (status) {
+            case "PENDING_DP":
+                return <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold flex items-center gap-1"><AlertCircle size={14} /> Menunggu DP</span>;
+            case "WAITING_APPROVAL":
+                return <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold flex items-center gap-1"><Clock size={14} /> Menunggu Validasi Admin</span>;
+            case "APPROVED":
+                return <span className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-semibold flex items-center gap-1"><CheckCircle size={14} /> DP Divalidasi (Menunggu Lunas)</span>;
+            case "FULLY_PAID":
+                return <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold flex items-center gap-1"><CheckCircle size={14} /> Lunas</span>;
+            case "REJECTED":
+                return <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold flex items-center gap-1"><XCircle size={14} /> Ditolak / Dibatalkan</span>;
+            default:
+                return <span className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-semibold">{status}</span>;
+        }
+    };
+
+    if (isLoading) {
+        return (
+            <div className="bg-white border border-gray-200 rounded-2xl shadow p-6 flex justify-center items-center h-48">
+                <div className="animate-spin w-8 h-8 border-4 border-[#2B5379] border-t-transparent rounded-full" />
+            </div>
+        );
+    }
+
+    if (bookings.length === 0) {
+        return (
+            <div className="bg-white border border-gray-200 rounded-2xl shadow p-8 text-center space-y-4">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto text-gray-400">
+                    <Calendar size={32} />
+                </div>
+                <div>
+                    <h3 className="text-lg font-semibold text-blue-950">Belum Ada Riwayat Booking</h3>
+                    <p className="text-gray-500 mt-1">Anda belum pernah melakukan booking layanan kami.</p>
+                </div>
+                <Link href="/layanan" className="inline-block mt-4 px-6 py-2.5 bg-blue-900 text-white font-medium rounded-xl hover:bg-blue-800 transition-colors">
+                    Mulai Konsultasi
+                </Link>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-blue-950">Riwayat Booking Saya</h2>
+            
+            <div className="grid gap-4">
+                {bookings.map((booking) => (
+                    <div key={booking.id} className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 hover:shadow-md transition-shadow">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 pb-4 border-b border-gray-100">
+                            <div>
+                                <p className="text-sm text-gray-500 mb-1">ID Booking: BKG-{booking.id}</p>
+                                <h3 className="text-lg font-bold text-blue-950">{booking.service?.nama || "Layanan Konseling"}</h3>
+                            </div>
+                            <div>
+                                {getStatusBadge(booking.status)}
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                            <div className="flex items-start gap-3">
+                                <div className="p-2 bg-blue-50 rounded-lg text-blue-700">
+                                    <User size={18} />
+                                </div>
+                                <div>
+                                    <p className="text-xs text-gray-500">Psikolog</p>
+                                    <p className="font-medium text-blue-950">{booking.psychologist?.nama || "Sedang dialokasikan"}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-3">
+                                <div className="p-2 bg-blue-50 rounded-lg text-blue-700">
+                                    <Calendar size={18} />
+                                </div>
+                                <div>
+                                    <p className="text-xs text-gray-500">Jadwal Sesi</p>
+                                    <p className="font-medium text-blue-950">{booking.date} • {booking.time} WIB</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-3">
+                            {booking.status === "PENDING_DP" && (
+                                <button
+                                    onClick={() => router.push(`/booking/payment-method?bookingId=${booking.id}`)}
+                                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition"
+                                >
+                                    Lanjut Pembayaran DP
+                                </button>
+                            )}
+                            
+                            {booking.status === "APPROVED" && (
+                                <button
+                                    onClick={() => router.push(`/booking/payment-method?bookingId=${booking.id}&type=full`)}
+                                    className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition"
+                                >
+                                    Bayar Lunas
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}

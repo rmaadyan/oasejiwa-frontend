@@ -22,6 +22,8 @@ function PaymentMethodInner({
 }: PaymentMethodContentProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const bookingId = searchParams.get("bookingId");
+  const type = searchParams.get("type"); // e.g. "full"
   const serviceId = searchParams.get("service");
   const psychologistId = searchParams.get("psychologist");
   const date = searchParams.get("date");
@@ -32,7 +34,7 @@ function PaymentMethodInner({
   const handleNext = () => {
     if (selectedPayment) {
       router.push(
-        `/booking/payment-confirmation?service=${serviceId}&psychologist=${psychologistId}&date=${date}&time=${time}&payment=${selectedPayment}`
+        `/booking/payment-confirmation?bookingId=${bookingId}&payment=${selectedPayment}${type ? `&type=${type}` : ''}`
       );
     }
   };

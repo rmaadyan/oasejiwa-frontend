@@ -11,6 +11,7 @@ import {
   PaymentSuccessCard,
   PaymentHelpSection,
 } from "@/components/features/booking";
+import { uploadPaymentDP, uploadPaymentFull } from "@/lib/api/payment";
 
 export interface PaymentData {
   orderId: string;
@@ -33,6 +34,8 @@ function PaymentConfirmationInner({
 }: PaymentConfirmationContentProps) {
   const searchParams = useSearchParams();
   const paymentMethod = searchParams.get("payment");
+  const bookingId = searchParams.get("bookingId");
+  const paymentType = searchParams.get("type"); // "full" or null/DP
 
   const [timeLeft, setTimeLeft] = useState({
     hours: 23,
@@ -84,13 +87,22 @@ function PaymentConfirmationInner({
   };
 
   const handleSubmit = async () => {
-    if (!uploadedFile) return;
+    if (!uploadedFile || !bookingId) return;
 
-    setIsSubmitting(true);
-    // Simulate upload
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setIsSubmitting(false);
-    setIsSuccess(true);
+    try {
+      setIsSubmitting(true);
+      if (paymentType === "full") {
+        await uploadPaymentFull(bookingId, uploadedFile);
+      } else {
+        await uploadPaymentDP(bookingId, uploadedFile);
+      }
+      setIsSuccess(true);
+    } catch (error: any) {
+      console.error(error);
+      alert(error.message || "Gagal mengupload bukti pembayaran");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Success State

@@ -1,7 +1,7 @@
 "use client";
 
-import Footer from "@/components/common/Footer";
-import Navbar from "@/components/common/Navbar";
+import Footer from "@/components/common/footer";
+import Navbar from "@/components/common/navbar";
 
 import type { LayananItem } from "@/components/features/manajemen-layanan/types";
 import { getAllLayanan } from "@/lib/api/layanan";

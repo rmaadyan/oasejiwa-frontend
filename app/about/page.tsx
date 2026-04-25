@@ -1,5 +1,5 @@
-import Navbar from "@/components/common/Navbar";
-import Footer from "@/components/common/Footer";
+import Navbar from "@/components/common/navbar";
+import Footer from "@/components/common/footer";
 import {
   HeroSection,
   VisionMissionSection,

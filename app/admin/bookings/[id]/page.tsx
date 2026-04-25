@@ -5,6 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { Card, Badge, Button, Modal, ImageModal } from "@/components/admin/ui";
 import { ToastProvider, useToast } from "@/components/admin/ui/Toast";
+import { getAdminBookingDetail, approveBooking, rejectBooking } from "@/lib/api/booking";
+import { useEffect } from "react";
 
 // Mock booking data
 const bookingData = {
@@ -114,6 +116,37 @@ function BookingDetailContent({ params }: { params: { id: string } }) {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   
+  useEffect(() => {
+    const fetchDetail = async () => {
+      try {
+        const data = await getAdminBookingDetail(params.id);
+        setBooking(prev => ({
+          ...prev,
+          id: `BKG-${data.id}`,
+          status: data.status.toLowerCase() === "waiting_approval" ? "pending_dp" : 
+                  data.status.toLowerCase() === "approved" ? "dp_validated" : 
+                  data.status.toLowerCase(),
+          client: {
+            ...prev.client,
+            name: data.user?.name || prev.client.name,
+            email: data.user?.email || prev.client.email,
+          },
+          session: {
+            ...prev.session,
+            service: data.service?.nama || prev.session.service,
+            psychologist: {
+              ...prev.session.psychologist,
+              name: data.psychologist?.nama || prev.session.psychologist.name,
+            }
+          },
+        }));
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    fetchDetail();
+  }, [params.id]);
+
   // Assessment accordion state
   const [expandedSections, setExpandedSections] = useState<string[]>(["sectionC"]);
 
@@ -144,46 +177,66 @@ function BookingDetailContent({ params }: { params: { id: string } }) {
   };
 
   // DP Payment Handlers
-  const handleAcceptDpPayment = () => {
-    setBooking((prev) => ({
-      ...prev,
-      payment: { ...prev.payment, dpStatus: "validated" },
-      status: "dp_validated",
-    }));
-    showToast("Pembayaran DP berhasil divalidasi!", "success");
+  const handleAcceptDpPayment = async () => {
+    try {
+      await approveBooking(params.id);
+      setBooking((prev) => ({
+        ...prev,
+        payment: { ...prev.payment, dpStatus: "validated" },
+        status: "dp_validated",
+      }));
+      showToast("Pembayaran DP berhasil divalidasi!", "success");
+    } catch (e: any) {
+      showToast(e.message || "Gagal menyetujui DP", "error");
+    }
   };
 
-  const handleRejectDpPayment = () => {
-    setBooking((prev) => ({
-      ...prev,
-      payment: { ...prev.payment, dpStatus: "rejected", dpRejectReason: rejectReason },
-      status: "dp_rejected",
-      rejectReason: rejectReason,
-    }));
-    setShowRejectDpModal(false);
-    setRejectReason("");
-    showToast("Pembayaran DP ditolak", "error");
+  const handleRejectDpPayment = async () => {
+    try {
+      await rejectBooking(params.id, rejectReason);
+      setBooking((prev) => ({
+        ...prev,
+        payment: { ...prev.payment, dpStatus: "rejected", dpRejectReason: rejectReason },
+        status: "dp_rejected",
+        rejectReason: rejectReason,
+      }));
+      setShowRejectDpModal(false);
+      setRejectReason("");
+      showToast("Pembayaran DP ditolak", "error");
+    } catch (e: any) {
+      showToast(e.message || "Gagal menolak DP", "error");
+    }
   };
 
   // Full Payment Handlers
-  const handleAcceptFullPayment = () => {
-    setBooking((prev) => ({
-      ...prev,
-      payment: { ...prev.payment, fullStatus: "validated" },
-      status: "fully_paid",
-    }));
-    showToast("Pembayaran Lunas berhasil divalidasi!", "success");
+  const handleAcceptFullPayment = async () => {
+    try {
+      await approveBooking(params.id);
+      setBooking((prev) => ({
+        ...prev,
+        payment: { ...prev.payment, fullStatus: "validated" },
+        status: "fully_paid",
+      }));
+      showToast("Pembayaran Lunas berhasil divalidasi!", "success");
+    } catch (e: any) {
+      showToast(e.message || "Gagal menyetujui pelunasan", "error");
+    }
   };
 
-  const handleRejectFullPayment = () => {
-    setBooking((prev) => ({
-      ...prev,
-      payment: { ...prev.payment, fullStatus: "rejected", fullRejectReason: rejectReason },
-      status: "full_rejected",
-    }));
-    setShowRejectFullModal(false);
-    setRejectReason("");
-    showToast("Pembayaran Lunas ditolak", "error");
+  const handleRejectFullPayment = async () => {
+    try {
+      await rejectBooking(params.id, rejectReason);
+      setBooking((prev) => ({
+        ...prev,
+        payment: { ...prev.payment, fullStatus: "rejected", fullRejectReason: rejectReason },
+        status: "full_rejected",
+      }));
+      setShowRejectFullModal(false);
+      setRejectReason("");
+      showToast("Pembayaran Lunas ditolak", "error");
+    } catch (e: any) {
+      showToast(e.message || "Gagal menolak pelunasan", "error");
+    }
   };
 
   const statusMap: Record<string, { label: string; variant: "success" | "warning" | "danger" | "info" }> = {

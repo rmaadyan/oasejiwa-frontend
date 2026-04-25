@@ -6,6 +6,7 @@ import BookingStepper from "@/components/booking/BookingStepper";
 import { z } from "zod";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas-pro";
+import { createBooking } from "@/lib/api/booking";
 import {
   User,
   Calendar,
@@ -95,6 +96,7 @@ function ConsultationFormContent() {
 
   const [formStep, setFormStep] = useState(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form data for Step 2
   const [consultationData, setConsultationData] = useState<Partial<ConsultationFormData>>({
@@ -233,7 +235,7 @@ function ConsultationFormContent() {
     return true;
   };
 
-  const handleNextFormStep = () => {
+  const handleNextFormStep = async () => {
     if (formStep === 1) {
       setFormStep(2);
     } else if (formStep === 2) {
@@ -242,9 +244,28 @@ function ConsultationFormContent() {
       }
     } else if (formStep === 3) {
       if (validateStep3()) {
-        router.push(
-          `/booking/payment-method?service=${serviceId}&psychologist=${psychologistId}&date=${date}&time=${time}`
-        );
+        try {
+          setIsSubmitting(true);
+          const payload = {
+            serviceId: Number(serviceId),
+            psychologistId: psychologistId, // assumes it's string, change if backend expects number
+            date,
+            time,
+            consultationForm: consultationData,
+            consentForm: consentData,
+          };
+          
+          const booking = await createBooking(payload);
+          
+          router.push(
+            `/booking/payment-method?bookingId=${booking.id}`
+          );
+        } catch (error: any) {
+          console.error(error);
+          alert(error.message || "Gagal membuat booking");
+        } finally {
+          setIsSubmitting(false);
+        }
       }
     }
   };
@@ -1958,9 +1979,10 @@ function ConsultationFormContent() {
             </button>
             <button
               onClick={handleNextFormStep}
-              className="flex items-center gap-2 px-8 py-3 rounded-xl font-semibold bg-[#2B5379] text-white hover:bg-[#234463] shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
+              disabled={isSubmitting}
+              className="flex items-center gap-2 px-8 py-3 rounded-xl font-semibold bg-[#2B5379] text-white hover:bg-[#234463] shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-70"
             >
-              {formStep === 3 ? "Lanjutkan ke Pembayaran" : "Lanjut"}
+              {isSubmitting ? "Memproses..." : formStep === 3 ? "Lanjutkan ke Pembayaran" : "Lanjut"}
               <ChevronRight className="w-5 h-5" />
             </button>
           </div>

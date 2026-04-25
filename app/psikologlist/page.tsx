@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { BadgeCheck, User } from "lucide-react"
-import Navbar from "@/components/common/Navbar"
+import Navbar from "@/components/common/navbar"
 import { getAllPsychologistsPublic } from "@/lib/api/psychologists"
 
 type Psikolog = {
