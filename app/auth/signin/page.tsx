@@ -153,6 +153,7 @@ export default function SignIn() {
 
                 <div className="flex justify-center">
                     <button className="flex justify-center gap-2 mb-10 py-2 md:py-3 px-8 md:px-12 border border-blue-950 rounded-4xl bg-blue-50 text-md font-bold text-blue-950 hover:shadow-md hover:border-blue-900 cursor-pointer"
+                    suppressHydrationWarning
                     type="button"
                     onClick={googleLogin}
                     >
