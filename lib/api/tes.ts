@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+const API_BASE_URL = "http://localhost:3001";
 
 function getAuthToken(): string {
   if (typeof window !== "undefined") {
@@ -71,13 +71,14 @@ export async function getTesById(id: string) {
 
 // POST: Buat Tes Baru
 export async function createTes(data: any) {
+  const { jumlah, ...payload } = data; 
   const res = await fetch(`${API_BASE_URL}/tes`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${getAuthToken()}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(data),
+    body: JSON.stringify(payload),
   });
   if (!res.ok) throw new Error("Gagal create tes");
   return res.json();
