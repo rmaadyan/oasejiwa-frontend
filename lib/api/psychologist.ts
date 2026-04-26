@@ -75,7 +75,38 @@ export async function getPsychologistProfile(): Promise<Psychologist> {
     throw new Error(`Failed to fetch profile: ${res.status} ${errorText}`);
   }
 
-  return res.json();
+  const data = await res.json();
+
+  return {
+    id: data.id,
+    name: data.name || data.fullName || "Psikolog",
+    email: data.email || "",
+    phone: data.phone || "",
+    photo: data.photo || data.avatarUrl || "",
+    specialization: data.specialization || data.specializations || [],
+    bio: data.bio || data.about || "",
+    education: (data.education || data.educations || []).map((edu: any) =>
+      typeof edu === "string"
+        ? edu
+        : `${edu.degree || ""} - ${edu.institution || ""}${
+            edu.city ? `, ${edu.city}` : ""
+          }${
+            edu.startYear && edu.endYear
+              ? ` (${edu.startYear} - ${edu.endYear})`
+              : ""
+          }`
+    ),
+    certifications: data.certifications || [],
+    sipp: data.sipp || "",
+    languages: data.languages || [],
+    experience: Array.isArray(data.experiences)
+      ? data.experiences.length
+      : data.experience || 0,
+    rating: data.rating || 0,
+    totalReviews: data.totalReviews || 0,
+    status: data.status || "active",
+    joinedDate: data.joinedDate || data.createdAt || "",
+  };
 }
 
 // ========================================
@@ -298,12 +329,21 @@ export async function updatePatientMedicalInfo(
     allergies?: string[];
   }
 ): Promise<void> {
-  console.log("Update medical info belum tersedia di backend:", {
-    patientId,
-    data,
-  });
+  const res = await fetch(
+    `${API_BASE_URL}/psychologist/patients/${patientId}/medical`,
+    {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    }
+  );
 
-  return;
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(
+      `Failed to update patient medical info: ${res.status} ${errorText}`
+    );
+  }
 }
 
 // ========================================

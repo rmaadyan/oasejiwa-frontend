@@ -72,4 +72,10 @@ export interface UsersResponse {
   page: number;
   perPage: number;
   totalPages: number;
+  meta?: {
+    totalUsers: number;
+    totalPatients: number;
+    totalPsychologists: number;
+    totalAdmins?: number;
+  };
 }

@@ -1,195 +1,100 @@
-// ========================================
-// 🔧 CONFIG: Backend API Configuration
-// ========================================
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+
 export interface AnalyticsFilters {
-  bookingMonth?: string; // Format: "2026-02"
-  patientYear?: number;  // Format: 2026
+  bookingMonth?: string;
+  patientYear?: number;
 }
 
-export async function getAnalytics(filters?: AnalyticsFilters) {
-  try {
-    const params = new URLSearchParams();
-    
-    if (filters?.bookingMonth) {
-      params.append('bookingMonth', filters.bookingMonth);
-    }
-    
-    if (filters?.patientYear) {
-      params.append('patientYear', filters.patientYear.toString());
-    }
-
-    // TODO: Ganti dengan API endpoint real Anda
-    const response = await fetch(`/api/analytics?${params.toString()}`);
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch analytics');
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching analytics:', error);
-    throw error;
+function getAuthToken(): string {
+  if (typeof window !== "undefined") {
+    return (
+      localStorage.getItem("auth_token") ||
+      localStorage.getItem("accessToken") ||
+      localStorage.getItem("token") ||
+      ""
+    );
   }
+
+  return process.env.NEXT_PUBLIC_AUTH_TOKEN || "";
 }
 
-// ========================================
-// 📊 GET: Analytics Stats
-// ========================================
-export async function getAnalyticsStats() {
-  const res = await fetch(`${API_BASE_URL}/api/admin/analytics/stats`, {
-    cache: 'no-store',
-    headers: {
-      'Authorization': `Bearer ${getAuthToken()}`,
-      'Content-Type': 'application/json'
-    }
-  });
-
-  if (!res.ok) throw new Error('Failed to fetch analytics stats');
-  return res.json();
-}
-
-// ========================================
-// 📅 GET: Booking Data
-// ========================================
-export async function getBookingData() {
-  const res = await fetch(`${API_BASE_URL}/api/admin/analytics/bookings`, {
-    cache: 'no-store',
-    headers: {
-      'Authorization': `Bearer ${getAuthToken()}`,
-      'Content-Type': 'application/json'
-    }
-  });
-
-  if (!res.ok) throw new Error('Failed to fetch booking data');
-  return res.json();
-}
-
-// ========================================
-// 📈 GET: Monthly Patients
-// ========================================
-export async function getMonthlyPatients(year?: number) {
-  const yearParam = year || new Date().getFullYear();
-  const res = await fetch(
-    `${API_BASE_URL}/api/admin/analytics/monthly-patients?year=${yearParam}`,
-    {
-      cache: 'no-store',
-      headers: {
-        'Authorization': `Bearer ${getAuthToken()}`,
-        'Content-Type': 'application/json'
-      }
-    }
-  );
-
-  if (!res.ok) throw new Error('Failed to fetch monthly patients');
-  return res.json();
-}
-
-// ========================================
-// 💰 GET: Revenue Data
-// ========================================
-export async function getRevenueData() {
-  const res = await fetch(`${API_BASE_URL}/api/admin/analytics/revenue`, {
-    cache: 'no-store',
-    headers: {
-      'Authorization': `Bearer ${getAuthToken()}`,
-      'Content-Type': 'application/json'
-    }
-  });
-
-  if (!res.ok) throw new Error('Failed to fetch revenue data');
-  return res.json();
-}
-
-// ========================================
-// 🏆 GET: Top Tests
-// ========================================
-export async function getTopTests(limit = 5) {
-  const res = await fetch(
-    `${API_BASE_URL}/api/admin/analytics/top-tests?limit=${limit}`,
-    {
-      cache: 'no-store',
-      headers: {
-        'Authorization': `Bearer ${getAuthToken()}`,
-        'Content-Type': 'application/json'
-      }
-    }
-  );
-
-  if (!res.ok) throw new Error('Failed to fetch top tests');
-  return res.json();
-}
-
-// ========================================
-// 🎯 GET: Top Services
-// ========================================
-export async function getTopServices(limit = 5) {
-  const res = await fetch(
-    `${API_BASE_URL}/api/admin/analytics/top-services?limit=${limit}`,
-    {
-      cache: 'no-store',
-      headers: {
-        'Authorization': `Bearer ${getAuthToken()}`,
-        'Content-Type': 'application/json'
-      }
-    }
-  );
-
-  if (!res.ok) throw new Error('Failed to fetch top services');
-  return res.json();
-}
-
-// ========================================
-// 👥 GET: Recent Patients
-// ========================================
-export async function getRecentPatients(limit = 10) {
-  const res = await fetch(
-    `${API_BASE_URL}/api/admin/analytics/recent-patients?limit=${limit}`,
-    {
-      cache: 'no-store',
-      headers: {
-        'Authorization': `Bearer ${getAuthToken()}`,
-        'Content-Type': 'application/json'
-      }
-    }
-  );
-
-  if (!res.ok) throw new Error('Failed to fetch recent patients');
-  return res.json();
-}
-
-// ========================================
-// 🎁 GET ALL: Fetch semua data sekaligus
-// ========================================
-export async function getAllAnalyticsData() {
-  const [stats, bookings, monthlyPatients, revenue, topTests, topServices, recentPatients] = 
-    await Promise.all([
-      getAnalyticsStats(),
-      getBookingData(),
-      getMonthlyPatients(),
-      getRevenueData(),
-      getTopTests(5),
-      getTopServices(5),
-      getRecentPatients(5)
-    ]);
-
+function getHeaders() {
   return {
-    stats,
-    bookings,
-    monthlyPatients,
-    revenue,
-    topTests,
-    topServices,
-    recentPatients
+    Authorization: `Bearer ${getAuthToken()}`,
+    "Content-Type": "application/json",
   };
 }
 
-// ========================================
-// 🔐 Helper: Get Auth Token dari Cookies (Server-side safe)
-// ========================================
-function getAuthToken(): string {
-  // Untuk development, return empty string jika belum ada token
-  // Di production, ambil dari cookies atau header
-  const token = process.env.NEXT_PUBLIC_AUTH_TOKEN || '';
-  return token;
+export async function getAnalytics(filters?: AnalyticsFilters) {
+  const params = new URLSearchParams();
+
+  if (filters?.bookingMonth) {
+    params.append("bookingMonth", filters.bookingMonth);
+  }
+
+  if (filters?.patientYear) {
+    params.append("patientYear", filters.patientYear.toString());
+  }
+
+  const query = params.toString();
+  const url = query
+    ? `${API_BASE_URL}/admin-analytics?${query}`
+    : `${API_BASE_URL}/admin-analytics`;
+
+  console.log("FETCH ANALYTICS URL:", url);
+
+  const res = await fetch(url, {
+    cache: "no-store",
+    headers: getHeaders(),
+  });
+
+if (!res.ok) {
+  const text = await res.text();
+  throw new Error(`Failed to fetch analytics: ${res.status} ${text}`);
+}
+
+  return res.json();
+}
+
+export async function getAllAnalyticsData(filters?: AnalyticsFilters) {
+  return getAnalytics(filters);
+}
+
+export async function getAnalyticsStats(filters?: AnalyticsFilters) {
+  const data = await getAnalytics(filters);
+  return data.stats;
+}
+
+export async function getBookingData(filters?: AnalyticsFilters) {
+  const data = await getAnalytics(filters);
+  return data.bookings;
+}
+
+export async function getMonthlyPatients(year?: number) {
+  const data = await getAnalytics({
+    patientYear: year || new Date().getFullYear(),
+  });
+
+  return data.monthlyPatients;
+}
+
+export async function getRevenueData(filters?: AnalyticsFilters) {
+  const data = await getAnalytics(filters);
+  return data.revenue;
+}
+
+export async function getTopTests(filters?: AnalyticsFilters) {
+  const data = await getAnalytics(filters);
+  return data.topTests ?? [];
+}
+
+export async function getTopServices(filters?: AnalyticsFilters) {
+  const data = await getAnalytics(filters);
+  return data.topServices;
+}
+
+export async function getRecentPatients(filters?: AnalyticsFilters) {
+  const data = await getAnalytics(filters);
+  return data.patients;
 }

@@ -8,7 +8,12 @@ import UserFilterBar from "@/app/components/features/admin/users/userfilterbar";
 import Pagination from "@/app/components/features/admin/users/pagination";
 import { getUsers, updateUser, deleteUser } from "@/lib/api/users";
 import { downloadToCSV } from "@/lib/utils/csv-export";
-import type { User, UserFormData, SortOption, GenderFilter } from "@/lib/types/users";
+import type {
+  User,
+  UserFormData,
+  SortOption,
+  GenderFilter,
+} from "@/lib/types/users";
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -17,17 +22,25 @@ export default function UsersPage() {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
-  // Filter & Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
+
+  const [userStats, setUserStats] = useState({
+    totalUsers: 0,
+    totalPatients: 0,
+    totalPsychologists: 0,
+    totalAdmins: 0,
+  });
+
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [genderFilter, setGenderFilter] = useState<GenderFilter>("all");
 
   const fetchUsers = async () => {
     setLoading(true);
+
     try {
       const response = await getUsers({
         page: currentPage,
@@ -36,9 +49,17 @@ export default function UsersPage() {
         gender: genderFilter,
         search: searchQuery,
       });
+
       setUsers(response.users);
       setTotalPages(response.totalPages);
       setTotalUsers(response.total);
+
+      setUserStats({
+        totalUsers: response.meta?.totalUsers ?? response.total ?? 0,
+        totalPatients: response.meta?.totalPatients ?? 0,
+        totalPsychologists: response.meta?.totalPsychologists ?? 0,
+        totalAdmins: response.meta?.totalAdmins ?? 0,
+      });
     } catch (error) {
       console.error("Failed to fetch users:", error);
     } finally {
@@ -54,24 +75,25 @@ export default function UsersPage() {
     setCurrentPage(1);
   }, [perPage, sortBy, genderFilter, searchQuery]);
 
-  // Handle edit role saja
   const handleEditUser = async (data: UserFormData) => {
     if (!selectedUser) return;
+
     await updateUser(selectedUser.id, data);
     await fetchUsers();
+
     setSelectedUser(null);
   };
 
-  // Handle delete user
   const handleDeleteUser = async () => {
     if (!selectedUser) return;
+
     await deleteUser(selectedUser.id);
     await fetchUsers();
+
     setSelectedUser(null);
     setIsModalOpen(false);
   };
 
-  // Handle export
   const handleExport = () => {
     const exportData = users.map((user) => ({
       ID: user.id,
@@ -84,7 +106,11 @@ export default function UsersPage() {
       Status: user.status === "active" ? "Aktif" : "Nonaktif",
       "Total Booking": user.bookingCount || 0,
     }));
-    downloadToCSV(exportData, `users-${new Date().toISOString().split("T")[0]}.csv`);
+
+    downloadToCSV(
+      exportData,
+      `users-${new Date().toISOString().split("T")[0]}.csv`
+    );
   };
 
   const openEditModal = (user: User) => {
@@ -99,7 +125,6 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header — tanpa tombol Refresh & Tambah User */}
       <div>
         <h1 className="text-3xl font-bold text-[#2B5379]">Manajemen User</h1>
         <p className="text-gray-600 mt-1">
@@ -107,31 +132,36 @@ export default function UsersPage() {
         </p>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <p className="text-sm font-medium text-gray-600">Total User</p>
-          <p className="text-3xl font-bold text-[#2B5379] mt-2">{totalUsers}</p>
+          <p className="text-3xl font-bold text-[#2B5379] mt-2">
+            {userStats.totalUsers}
+          </p>
         </div>
+
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <p className="text-sm font-medium text-gray-600">Pasien</p>
           <p className="text-3xl font-bold text-green-600 mt-2">
-            {users.filter((u) => u.role === "patient").length}
+            {userStats.totalPatients}
           </p>
         </div>
+
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <p className="text-sm font-medium text-gray-600">Psikolog</p>
           <p className="text-3xl font-bold text-purple-600 mt-2">
-            {users.filter((u) => u.role === "psychologist").length}
+            {userStats.totalPsychologists}
           </p>
         </div>
+
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <p className="text-sm font-medium text-gray-600">Halaman Ini</p>
-          <p className="text-3xl font-bold text-blue-600 mt-2">{users.length}</p>
+          <p className="text-3xl font-bold text-blue-600 mt-2">
+            {users.length}
+          </p>
         </div>
       </div>
 
-      {/* Filter Bar */}
       <UserFilterBar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -145,7 +175,6 @@ export default function UsersPage() {
         totalUsers={totalUsers}
       />
 
-      {/* User Table */}
       <UserTable
         users={users}
         onEdit={openEditModal}
@@ -153,14 +182,12 @@ export default function UsersPage() {
         loading={loading}
       />
 
-      {/* Pagination */}
       <Pagination
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={setCurrentPage}
       />
 
-      {/* Edit Role Modal */}
       <UserModal
         isOpen={isModalOpen}
         onClose={() => {
@@ -173,7 +200,6 @@ export default function UsersPage() {
         mode="edit"
       />
 
-      {/* Detail Modal */}
       <UserDetailsModal
         isOpen={isDetailsModalOpen}
         onClose={() => {
