@@ -154,7 +154,7 @@ export default function NotesList({
                     <button
                       key={page}
                       onClick={() => goToPage(page)}
-                      className={`min-w-[32px] h-8 px-2 rounded-lg text-sm font-medium transition-colors ${
+                      className={`min-w-8 h-8 px-2 rounded-lg text-sm font-medium transition-colors ${
                         currentPage === page
                           ? "bg-[#2B5379] text-white"
                           : "text-gray-600 hover:bg-gray-100"

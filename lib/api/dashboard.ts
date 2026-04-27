@@ -1,135 +1,61 @@
-// ========================================
-// 🔧 CONFIG: Backend API Configuration
-// ========================================
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
-// ========================================
-// 📊 GET: Dashboard Stats
-// ========================================
-export async function getDashboardStats() {
-  const res = await fetch(`${API_BASE_URL}/api/admin/dashboard/stats`, {
-    cache: 'no-store',
-    headers: {
-      'Authorization': `Bearer ${getAuthToken()}`,
-      'Content-Type': 'application/json'
-    }
-  });
-
-  if (!res.ok) {
-    throw new Error('Failed to fetch dashboard stats');
+function getAuthToken(): string {
+  if (typeof window !== "undefined") {
+    return (
+      localStorage.getItem("auth_token") ||
+      localStorage.getItem("accessToken") ||
+      localStorage.getItem("token") ||
+      ""
+    );
   }
 
-  return res.json();
+  return process.env.NEXT_PUBLIC_AUTH_TOKEN || "";
 }
 
-// ========================================
-// 📅 GET: Recent Bookings
-// ========================================
-export async function getRecentBookings(limit = 5) {
-  const res = await fetch(
-    `${API_BASE_URL}/api/admin/bookings?limit=${limit}&sort=desc`,
-    {
-      cache: 'no-store',
-      headers: {
-        'Authorization': `Bearer ${getAuthToken()}`,
-        'Content-Type': 'application/json'
-      }
-    }
-  );
-
-  if (!res.ok) {
-    throw new Error('Failed to fetch recent bookings');
-  }
-
-  return res.json();
-}
-
-// ========================================
-// 💳 GET: Pending Payments
-// ========================================
-export async function getPendingPayments() {
-  const res = await fetch(`${API_BASE_URL}/api/admin/payments?status=pending`, {
-    cache: 'no-store',
-    headers: {
-      'Authorization': `Bearer ${getAuthToken()}`,
-      'Content-Type': 'application/json'
-    }
-  });
-
-  if (!res.ok) {
-    throw new Error('Failed to fetch pending payments');
-  }
-
-  return res.json();
-}
-
-// ========================================
-// 📋 GET: Today's Schedule
-// ========================================
-export async function getTodaySchedule() {
-  const today = new Date().toISOString().split('T')[0];
-  const res = await fetch(`${API_BASE_URL}/api/admin/schedule?date=${today}`, {
-    cache: 'no-store',
-    headers: {
-      'Authorization': `Bearer ${getAuthToken()}`,
-      'Content-Type': 'application/json'
-    }
-  });
-
-  if (!res.ok) {
-    throw new Error('Failed to fetch today schedule');
-  }
-
-  return res.json();
-}
-
-// ========================================
-// 🔔 GET: Alerts
-// ========================================
-export async function getAlerts() {
-  const res = await fetch(`${API_BASE_URL}/api/admin/alerts`, {
-    cache: 'no-store',
-    headers: {
-      'Authorization': `Bearer ${getAuthToken()}`,
-      'Content-Type': 'application/json'
-    }
-  });
-
-  if (!res.ok) {
-    throw new Error('Failed to fetch alerts');
-  }
-
-  return res.json();
-}
-
-// ========================================
-// 🎁 GET ALL: Fetch semua data sekaligus
-// ========================================
-export async function getAllDashboardData() {
-  const [stats, bookings, payments, schedule, alertsList] = 
-    await Promise.all([
-      getDashboardStats(),
-      getRecentBookings(5),
-      getPendingPayments(),
-      getTodaySchedule(),
-      getAlerts()
-    ]);
-
+function getHeaders() {
   return {
-    stats,
-    recentBookings: bookings,
-    pendingPayments: payments,
-    todaySchedule: schedule,
-    alerts: alertsList
+    Authorization: `Bearer ${getAuthToken()}`,
+    "Content-Type": "application/json",
   };
 }
 
-// ========================================
-// 🔐 Helper: Get Auth Token dari Cookies (Server-side safe)
-// ========================================
-function getAuthToken(): string {
-  // Untuk development, return empty string jika belum ada token
-  // Di production, ambil dari cookies atau header
-  const token = process.env.NEXT_PUBLIC_AUTH_TOKEN || '';
-  return token;
+export async function getAllDashboardData() {
+  const res = await fetch(`${API_BASE_URL}/admin-dashboard`, {
+    cache: "no-store",
+    headers: getHeaders(),
+  });
+
+if (!res.ok) {
+  const text = await res.text();
+  throw new Error(`Failed to fetch dashboard data: ${res.status} ${text}`);
+}
+
+  return res.json();
+}
+
+export async function getDashboardStats() {
+  const data = await getAllDashboardData();
+  return data.stats;
+}
+
+export async function getRecentBookings() {
+  const data = await getAllDashboardData();
+  return data.recentBookings;
+}
+
+export async function getPendingPayments() {
+  const data = await getAllDashboardData();
+  return data.pendingPayments;
+}
+
+export async function getTodaySchedule() {
+  const data = await getAllDashboardData();
+  return data.todaySchedule;
+}
+
+export async function getAlerts() {
+  const data = await getAllDashboardData();
+  return data.alerts;
 }

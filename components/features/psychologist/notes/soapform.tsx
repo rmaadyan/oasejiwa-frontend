@@ -12,17 +12,17 @@ interface SOAPFormProps {
 
 export default function SOAPForm({ initialData, onSubmit, onCancel, loading }: SOAPFormProps) {
   const [formData, setFormData] = useState<Partial<SessionNotePayload>>({
-    sessionId: initialData?.sessionId || 0,
-    patientId: initialData?.patientId || 0,
-    subjective: initialData?.subjective || "",
-    objective: initialData?.objective || "",
-    assessment: initialData?.assessment || "",
-    plan: initialData?.plan || "",
-    riskLevel: initialData?.riskLevel || "low",
-    followUpDate: initialData?.followUpDate || "",
-    nextSessionRecommendation: initialData?.nextSessionRecommendation || "",
-    tags: initialData?.tags || []
-  });
+  userId: initialData?.userId || "",
+  scheduleId: initialData?.scheduleId,
+  subjective: initialData?.subjective || "",
+  objective: initialData?.objective || "",
+  assessment: initialData?.assessment || "",
+  plan: initialData?.plan || "",
+  riskLevel: initialData?.riskLevel || "low",
+  followUpDate: initialData?.followUpDate,
+  nextSessionRecommendation: initialData?.nextSessionRecommendation,
+  tags: initialData?.tags || [],
+});
 
   const [tagInput, setTagInput] = useState("");
 

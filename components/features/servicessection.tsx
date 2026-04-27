@@ -4,8 +4,8 @@ import Image from "next/image";
 import { useMemo, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, useAnimationControls } from "framer-motion";
-import { services } from "../../../lib/services";
-import { bgServiceImages } from "../../../lib/imageLoader";
+import { services } from "@/lib/services";
+import { bgServiceImages } from "@/lib/imageLoader";
 
 export default function ServicesSection() {
   const scrollerRef = useRef<HTMLDivElement | null>(null);

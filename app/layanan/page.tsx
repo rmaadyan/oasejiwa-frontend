@@ -24,7 +24,7 @@ export default function LayananLandingPage() {
     const fetchData = async () => {
       try {
         const data = await getAllLayanan();
-        const aktif = data.filter((l) => l.status === "Aktif");
+        const aktif = data.filter((l: LayananItem) => l.status === "Aktif");
         setLayananAktif(aktif);
       } catch (err) {
         console.error(err);
