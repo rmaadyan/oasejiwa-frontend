@@ -1,13 +1,12 @@
 interface ScheduleSummaryProps {
   selectedDate: string;
-  selectedTime: string;
-  timeSlots: { id: string; time: string }[];
+  selectedScheduleId: string;
+  selectedStartTime: string;     
 }
 
 export default function ScheduleSummary({
   selectedDate,
-  selectedTime,
-  timeSlots,
+  selectedStartTime,
 }: ScheduleSummaryProps) {
   return (
     <div className="mt-6 bg-[#E8F6FF] rounded-2xl p-4 flex items-center justify-between animate-fadeIn">
@@ -30,13 +29,9 @@ export default function ScheduleSummary({
         <div>
           <p className="text-sm text-[#4B4B4B]">Jadwal yang dipilih:</p>
           <p className="font-semibold text-[#234463]">
-            {new Date(selectedDate).toLocaleDateString("id-ID", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-            })}{" "}
-            •{" "}
-            {timeSlots.find((t) => t.id === selectedTime)?.time || selectedTime}
+            {new Date(selectedDate + 'T00:00:00').toLocaleDateString("id-ID", {
+              weekday: "long", day: "numeric", month: "long",
+            })}{" "}• {selectedStartTime}
           </p>
         </div>
       </div>

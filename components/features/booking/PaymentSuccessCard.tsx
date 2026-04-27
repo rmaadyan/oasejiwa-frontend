@@ -65,7 +65,7 @@ export default function PaymentSuccessCard({
         {/* CTA Buttons */}
         <div className="space-y-3">
           <button
-            onClick={() => router.push("/bookings")}
+            onClick={() => router.push("/userprofile")}
             className="w-full py-3 bg-[#2B5379] text-white rounded-xl font-semibold hover:bg-[#234463] transition-colors"
           >
             Lihat Booking Saya

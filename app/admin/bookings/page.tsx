@@ -8,61 +8,6 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { getAdminBookings } from "@/lib/api/booking";
 
-// Mock data for bookings
-const mockBookings = [
-  {
-    id: "BKG-001",
-    datetime: "2026-02-10 14:00",
-    client: { name: "Putri Nayla", avatar: "/assets/about-us.jpg" },
-    psychologist: "Dr. Sarah Wijaya",
-    service: "Konseling Individual",
-    paymentStatus: "validated",
-    sessionStatus: "scheduled",
-    scheduleUpdated: false,
-  },
-  {
-    id: "BKG-002",
-    datetime: "2026-02-08 09:00",
-    client: { name: "Budi Santoso", avatar: "/assets/about-us.jpg" },
-    psychologist: "Dr. Budi Santoso",
-    service: "Terapi Anak",
-    paymentStatus: "rejected",
-    sessionStatus: "cancelled",
-    rejectReason: "Data klien tidak lengkap, mohon lengkapi formulir konsultasi.",
-    scheduleUpdated: false,
-  },
-  {
-    id: "BKG-003",
-    datetime: "2026-02-04 13:00",
-    client: { name: "Citra Dewi", avatar: "/assets/about-us.jpg" },
-    psychologist: "Putri Rahayu, M.Psi",
-    service: "Konseling Online",
-    paymentStatus: "validated",
-    sessionStatus: "completed",
-    scheduleUpdated: false,
-  },
-  {
-    id: "BKG-004",
-    datetime: "2026-02-04 14:30",
-    client: { name: "Diana Putri", avatar: "/assets/about-us.jpg" },
-    psychologist: "Dr. Sarah Wijaya",
-    service: "Konseling Individual",
-    paymentStatus: "pending",
-    sessionStatus: "waiting",
-    scheduleUpdated: false,
-  },
-  {
-    id: "BKG-005",
-    datetime: "2026-02-05 09:00",
-    client: { name: "Eko Prasetyo", avatar: "/assets/about-us.jpg" },
-    psychologist: "Dr. Budi Santoso",
-    service: "Terapi CBT",
-    paymentStatus: "validated",
-    sessionStatus: "scheduled",
-    scheduleUpdated: true,
-  },
-];
-
 const paymentStatusMap: Record<string, { label: string; variant: "success" | "warning" | "danger" | "pending" }> = {
   validated: { label: "Tervalidasi", variant: "success" },
   pending: { label: "Menunggu Validasi", variant: "warning" },
@@ -114,26 +59,65 @@ function AdminBookingsContent() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [quickFilter, setQuickFilter] = useState<"all" | "today" | "needValidation" | "cancelled">("all");
-  const [bookings, setBookings] = useState<any[]>(mockBookings);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchBookings = async () => {
       try {
-        const data = await getAdminBookings();
-        const mapped = data.map((b: any) => ({
-          id: `BKG-${b.id}`,
-          originalId: b.id,
-          datetime: `${b.date} ${b.time}`,
-          client: { name: b.user?.name || "Klien", avatar: "/assets/about-us.jpg" },
-          psychologist: b.psychologist?.nama || "Psikolog",
-          service: b.service?.nama || "Layanan",
-          paymentStatus: b.status === "WAITING_APPROVAL" ? "pending" : (b.status === "APPROVED" || b.status === "FULLY_PAID" ? "validated" : (b.status === "REJECTED" ? "rejected" : "pending")),
-          sessionStatus: b.status === "REJECTED" ? "cancelled" : "scheduled",
-          rawStatus: b.status,
-        }));
+        setIsLoading(true);
+        const res = await getAdminBookings();
+        const data = res.data ?? [];
+
+        const mapped = data.map((b: any) => {
+          // Tentukan paymentStatus berdasarkan status booking
+          let paymentStatus = "pending";
+          if (["APPROVED", "FULLY_PAID", "COMPLETED"].includes(b.status)) {
+            paymentStatus = "validated";
+          } else if (["REJECTED", "CANCELLED"].includes(b.status)) {
+            paymentStatus = "rejected";
+          }
+
+          // Tentukan sessionStatus
+          let sessionStatus = "waiting";
+          if (["APPROVED", "FULLY_PAID"].includes(b.status)) {
+            sessionStatus = "scheduled";
+          } else if (b.status === "COMPLETED") {
+            sessionStatus = "completed";
+          } else if (["REJECTED", "CANCELLED"].includes(b.status)) {
+            sessionStatus = "cancelled";
+          }
+
+          const dateStr = b.scheduledDate
+            ? b.scheduledDate.split("T")[0]
+            : "";
+
+          return {
+            id: `BKG-${b.bookingCode ?? b.id}`,
+            originalId: b.id,
+            bookingCode: b.bookingCode,
+            datetime: `${dateStr} ${b.scheduledTime ?? ""}`,
+            client: {
+              name: b.user?.email ?? "Klien",
+              avatar: "/assets/about-us.jpg",
+            },
+            psychologist: b.psychologist?.fullName ?? "Psikolog",
+            service: b.service?.nama ?? "Layanan",
+            paymentStatus,
+            sessionStatus,
+            rawStatus: b.status,
+            scheduleUpdated: false,
+            totalPrice: b.totalPrice,
+            dpAmount: b.dpAmount,
+          };
+        });
+
         setBookings(mapped);
       } catch (e) {
-        console.log("Using mock data as fallback", e);
+        console.error("Gagal fetch bookings:", e);
+        setBookings([]);
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchBookings();
@@ -141,13 +125,13 @@ function AdminBookingsContent() {
 
   // Reschedule modal state
   const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
-  const [selectedBooking, setSelectedBooking] = useState<typeof mockBookings[0] | null>(null);
+  const [selectedBooking, setSelectedBooking] = useState<any | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [rescheduleReason, setRescheduleReason] = useState("");
   const availableDates = generateDates();
 
-  const handleOpenReschedule = (booking: typeof mockBookings[0]) => {
+  const handleOpenReschedule = (booking: any) => {
     setSelectedBooking(booking);
     setSelectedDate("");
     setSelectedTime("");
@@ -165,17 +149,38 @@ function AdminBookingsContent() {
     setSelectedBooking(null);
   };
 
+  // Filter logic
+  const today = new Date().toISOString().split("T")[0];
+  const filteredBookings = bookings.filter((b) => {
+    if (quickFilter === "today") return b.datetime.startsWith(today);
+    if (quickFilter === "needValidation") return b.paymentStatus === "pending";
+    if (quickFilter === "cancelled") return b.sessionStatus === "cancelled";
+    return true;
+  }).filter((b) => {
+    if (statusFilter !== "all") return b.paymentStatus === statusFilter;
+    return true;
+  }).filter((b) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      b.client.name.toLowerCase().includes(q) ||
+      b.psychologist.toLowerCase().includes(q) ||
+      b.service.toLowerCase().includes(q) ||
+      b.id.toLowerCase().includes(q)
+    );
+  });
+
   // Quick filter counts
   const quickFilterCounts = {
-    today: bookings.filter(b => b.datetime.includes(new Date().toISOString().split("T")[0])).length,
-    needValidation: bookings.filter(b => b.paymentStatus === "pending").length,
-    cancelled: bookings.filter(b => b.sessionStatus === "cancelled").length,
+    today: bookings.filter((b) => b.datetime.startsWith(today)).length,
+    needValidation: bookings.filter((b) => b.paymentStatus === "pending").length,
+    cancelled: bookings.filter((b) => b.sessionStatus === "cancelled").length,
   };
 
   const stats = [
     {
       label: "Perlu Validasi",
-      value: 12,
+      value: quickFilterCounts.needValidation,
       color: "warning" as const,
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -186,7 +191,7 @@ function AdminBookingsContent() {
     },
     {
       label: "Jadwal Hari Ini",
-      value: 8,
+      value: quickFilterCounts.today,
       color: "primary" as const,
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -195,8 +200,8 @@ function AdminBookingsContent() {
       ),
     },
     {
-      label: "Total Bulan Ini",
-      value: 156,
+      label: "Total Booking",
+      value: bookings.length,
       color: "success" as const,
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -206,7 +211,7 @@ function AdminBookingsContent() {
     },
     {
       label: "Booking Batal",
-      value: 5,
+      value: quickFilterCounts.cancelled,
       color: "danger" as const,
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -218,17 +223,21 @@ function AdminBookingsContent() {
 
   const columns = [
     {
+      key: "id",
+      header: "Kode Booking",
+      render: (item: any) => (
+        <span className="font-mono text-sm text-[#2B5379] font-medium">{item.bookingCode ?? item.id}</span>
+      ),
+    },
+    {
       key: "client",
-      header: "Nama Klien",
+      header: "Klien",
       render: (item: any) => (
         <div className="flex items-center gap-3">
-          <div className="relative w-8 h-8 rounded-full overflow-hidden">
-            <Image
-              src={item.client.avatar}
-              alt={item.client.name}
-              fill
-              className="object-cover"
-            />
+          <div className="relative w-8 h-8 rounded-full overflow-hidden bg-[#D6E6F2] flex items-center justify-center">
+            <span className="text-xs font-bold text-[#2B5379]">
+              {item.client.name.charAt(0).toUpperCase()}
+            </span>
           </div>
           <span className="font-medium text-[#234463]">{item.client.name}</span>
         </div>
@@ -239,12 +248,15 @@ function AdminBookingsContent() {
       header: "Jadwal",
       sortable: true,
       render: (item: any) => {
-        const date = new Date(item.datetime.replace(" ", "T"));
-        const formattedDate = date.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
-        const formattedTime = date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+        const [datePart, timePart] = item.datetime.split(" ");
+        const date = datePart ? new Date(datePart) : null;
+        const formattedDate = date
+          ? date.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })
+          : "-";
         return (
           <div className="flex flex-col">
-            <span className="text-[#234463] font-medium">{formattedDate}, {formattedTime}</span>
+            <span className="text-[#234463] font-medium">{formattedDate}</span>
+            <span className="text-sm text-[#4B4B4B]">{timePart ?? "-"} WIB</span>
             {item.scheduleUpdated && (
               <span className="text-xs text-[#F59E0B] flex items-center gap-1 mt-0.5">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -258,6 +270,13 @@ function AdminBookingsContent() {
       },
     },
     {
+      key: "psychologist",
+      header: "Psikolog",
+      render: (item: any) => (
+        <span className="text-[#4B4B4B]">{item.psychologist}</span>
+      ),
+    },
+    {
       key: "service",
       header: "Layanan",
       render: (item: any) => (
@@ -268,22 +287,30 @@ function AdminBookingsContent() {
       key: "status",
       header: "Status",
       render: (item: any) => {
-        const paymentStatus = paymentStatusMap[item.paymentStatus];
         const statusColors: Record<string, string> = {
           validated: "bg-[#22C55E]",
           pending: "bg-[#F59E0B]",
           rejected: "bg-[#EF4444]",
         };
+        const statusLabels: Record<string, string> = {
+          validated: "Divalidasi",
+          pending: "Menunggu",
+          rejected: "Ditolak",
+        };
         return (
-          <div className="flex items-center gap-2">
-            <span className={`w-2.5 h-2.5 rounded-full ${statusColors[item.paymentStatus]}`} />
-            <span className={`font-medium ${item.paymentStatus === "validated" ? "text-[#22C55E]" :
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <span className={`w-2.5 h-2.5 rounded-full ${statusColors[item.paymentStatus]}`} />
+              <span className={`font-medium text-sm ${
+                item.paymentStatus === "validated" ? "text-[#22C55E]" :
                 item.paymentStatus === "rejected" ? "text-[#EF4444]" :
-                  "text-[#F59E0B]"
+                "text-[#F59E0B]"
               }`}>
-              {item.paymentStatus === "validated" ? "Divalidasi" :
-                item.paymentStatus === "rejected" ? "Ditolak" :
-                  "Menunggu"}
+                {statusLabels[item.paymentStatus]}
+              </span>
+            </div>
+            <span className="text-xs text-[#4B4B4B] bg-gray-100 px-2 py-0.5 rounded-full w-fit">
+              {item.rawStatus}
             </span>
           </div>
         );
@@ -295,7 +322,7 @@ function AdminBookingsContent() {
       render: (item: any) => (
         <div className="flex items-center gap-2">
           <Link
-            href={`/admin/bookings/${item.originalId || item.id.replace('BKG-','')}`}
+            href={`/admin/bookings/${item.originalId}`}
             className="px-3 py-1.5 text-sm bg-[#2B5379] text-white rounded-lg hover:bg-[#1E3A5F] transition-all"
           >
             Detail
@@ -333,60 +360,62 @@ function AdminBookingsContent() {
         <div className="flex flex-wrap gap-3 mb-6 animate-fadeIn">
           <button
             onClick={() => setQuickFilter("all")}
-            className={`px-4 py-2 rounded-xl font-medium transition-all ${quickFilter === "all"
+            className={`px-4 py-2 rounded-xl font-medium transition-all ${
+              quickFilter === "all"
                 ? "bg-[#2B5379] text-white shadow-md"
                 : "bg-white text-[#4B4B4B] border border-[#D6E6F2] hover:border-[#2B5379]"
-              }`}
+            }`}
           >
             Semua
           </button>
           <button
             onClick={() => setQuickFilter("today")}
-            className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 ${quickFilter === "today"
+            className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 ${
+              quickFilter === "today"
                 ? "bg-[#2B5379] text-white shadow-md"
                 : "bg-white text-[#4B4B4B] border border-[#D6E6F2] hover:border-[#2B5379]"
-              }`}
+            }`}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
             Hari Ini
-            <span className={`text-xs px-1.5 py-0.5 rounded-full ${quickFilter === "today" ? "bg-white/20" : "bg-[#2B5379]/10 text-[#2B5379]"
-              }`}>
+            <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+              quickFilter === "today" ? "bg-white/20" : "bg-[#2B5379]/10 text-[#2B5379]"
+            }`}>
               {quickFilterCounts.today}
             </span>
           </button>
           <button
             onClick={() => setQuickFilter("needValidation")}
-            className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 ${quickFilter === "needValidation"
+            className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 ${
+              quickFilter === "needValidation"
                 ? "bg-[#F59E0B] text-white shadow-md"
                 : "bg-white text-[#4B4B4B] border border-[#D6E6F2] hover:border-[#F59E0B]"
-              }`}
+            }`}
           >
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F59E0B] opacity-75" />
-              <span className={`relative inline-flex rounded-full h-2 w-2 ${quickFilter === "needValidation" ? "bg-white" : "bg-[#F59E0B]"
-                }`} />
+              <span className={`relative inline-flex rounded-full h-2 w-2 ${
+                quickFilter === "needValidation" ? "bg-white" : "bg-[#F59E0B]"
+              }`} />
             </span>
             Perlu Validasi
-            <span className={`text-xs px-1.5 py-0.5 rounded-full ${quickFilter === "needValidation" ? "bg-white/20" : "bg-[#F59E0B]/10 text-[#F59E0B]"
-              }`}>
+            <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+              quickFilter === "needValidation" ? "bg-white/20" : "bg-[#F59E0B]/10 text-[#F59E0B]"
+            }`}>
               {quickFilterCounts.needValidation}
             </span>
           </button>
           <button
             onClick={() => setQuickFilter("cancelled")}
-            className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 ${quickFilter === "cancelled"
+            className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 ${
+              quickFilter === "cancelled"
                 ? "bg-[#EF4444] text-white shadow-md"
                 : "bg-white text-[#4B4B4B] border border-[#D6E6F2] hover:border-[#EF4444]"
-              }`}
+            }`}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
             Dibatalkan
-            <span className={`text-xs px-1.5 py-0.5 rounded-full ${quickFilter === "cancelled" ? "bg-white/20" : "bg-[#EF4444]/10 text-[#EF4444]"
-              }`}>
+            <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+              quickFilter === "cancelled" ? "bg-white/20" : "bg-[#EF4444]/10 text-[#EF4444]"
+            }`}>
               {quickFilterCounts.cancelled}
             </span>
           </button>
@@ -408,16 +437,12 @@ function AdminBookingsContent() {
                     <CountUp end={stat.value} />
                   </p>
                 </div>
-                <div
-                  className={`
-                    p-3 rounded-xl
-                    ${stat.color === "warning" ? "bg-[#F59E0B]/10 text-[#F59E0B]" : ""}
-                    ${stat.color === "primary" ? "bg-[#2B5379]/10 text-[#2B5379]" : ""}
-                    ${stat.color === "success" ? "bg-[#22C55E]/10 text-[#22C55E]" : ""}
-                    ${stat.color === "danger" ? "bg-[#EF4444]/10 text-[#EF4444]" : ""}
-                    ${stat.pulse ? "animate-pulse" : ""}
-                  `}
-                >
+                <div className={`p-3 rounded-xl ${
+                  stat.color === "warning" ? "bg-[#F59E0B]/10 text-[#F59E0B]" :
+                  stat.color === "primary" ? "bg-[#2B5379]/10 text-[#2B5379]" :
+                  stat.color === "success" ? "bg-[#22C55E]/10 text-[#22C55E]" :
+                  "bg-[#EF4444]/10 text-[#EF4444]"
+                } ${stat.pulse ? "animate-pulse" : ""}`}>
                   {stat.icon}
                 </div>
               </div>
@@ -481,23 +506,25 @@ function AdminBookingsContent() {
                 className="px-4 py-2.5 border border-[#D6E6F2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2B5379]/20 focus:border-[#2B5379] transition-all text-[#4B4B4B]"
               />
             </div>
-
-            {/* Psychologist Filter */}
-            <select className="px-4 py-2.5 border border-[#D6E6F2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2B5379]/20 focus:border-[#2B5379] transition-all bg-white text-[#4B4B4B]">
-              <option value="">Semua Psikolog</option>
-              <option value="sarah">Dr. Sarah Wijaya</option>
-              <option value="budi">Dr. Budi Santoso</option>
-              <option value="putri">Putri Rahayu, M.Psi</option>
-            </select>
           </div>
         </Card>
 
         {/* Booking Table */}
         <div className="animate-fadeIn opacity-0 stagger-5">
-          <Table columns={columns} data={bookings} />
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#2B5379]" />
+            </div>
+          ) : filteredBookings.length === 0 ? (
+            <div className="text-center py-20 text-[#4B4B4B]">
+              Tidak ada data booking ditemukan.
+            </div>
+          ) : (
+            <Table columns={columns} data={filteredBookings} />
+          )}
           <Pagination
             currentPage={currentPage}
-            totalPages={10}
+            totalPages={Math.ceil(filteredBookings.length / 10)}
             onPageChange={setCurrentPage}
           />
         </div>
@@ -510,18 +537,14 @@ function AdminBookingsContent() {
           size="lg"
         >
           <div className="space-y-6">
-            {/* Current Booking Info */}
             {selectedBooking && (
               <div className="bg-[#F5F9FC] p-4 rounded-xl border border-[#D6E6F2]">
                 <p className="text-sm text-[#4B4B4B] mb-2">Booking Saat Ini:</p>
                 <div className="flex items-center gap-3">
-                  <div className="relative w-10 h-10 rounded-full overflow-hidden">
-                    <Image
-                      src={selectedBooking.client.avatar}
-                      alt={selectedBooking.client.name}
-                      fill
-                      className="object-cover"
-                    />
+                  <div className="w-10 h-10 rounded-full bg-[#D6E6F2] flex items-center justify-center">
+                    <span className="text-sm font-bold text-[#2B5379]">
+                      {selectedBooking.client.name.charAt(0).toUpperCase()}
+                    </span>
                   </div>
                   <div>
                     <p className="font-medium text-[#234463]">{selectedBooking.client.name}</p>
@@ -543,10 +566,11 @@ function AdminBookingsContent() {
                   <button
                     key={dateItem.id}
                     onClick={() => setSelectedDate(dateItem.fullDate)}
-                    className={`flex-shrink-0 w-16 py-3 rounded-xl border-2 transition-all ${selectedDate === dateItem.fullDate
+                    className={`flex-shrink-0 w-16 py-3 rounded-xl border-2 transition-all ${
+                      selectedDate === dateItem.fullDate
                         ? "border-[#2B5379] bg-[#2B5379] text-white"
                         : "border-[#D6E6F2] bg-white text-[#4B4B4B] hover:border-[#2B5379]"
-                      }`}
+                    }`}
                   >
                     <div className="text-xs opacity-75">{dateItem.dayName}</div>
                     <div className="text-lg font-bold">{dateItem.dayNumber}</div>
@@ -567,12 +591,13 @@ function AdminBookingsContent() {
                     key={slot.id}
                     onClick={() => slot.available && setSelectedTime(slot.id)}
                     disabled={!slot.available}
-                    className={`py-2.5 px-3 rounded-xl text-sm font-medium transition-all ${selectedTime === slot.id
+                    className={`py-2.5 px-3 rounded-xl text-sm font-medium transition-all ${
+                      selectedTime === slot.id
                         ? "bg-[#2B5379] text-white"
                         : slot.available
                           ? "bg-white border border-[#D6E6F2] text-[#4B4B4B] hover:border-[#2B5379]"
                           : "bg-gray-100 text-gray-400 cursor-not-allowed line-through"
-                      }`}
+                    }`}
                   >
                     {slot.time}
                   </button>
@@ -594,7 +619,6 @@ function AdminBookingsContent() {
               />
             </div>
 
-            {/* Summary */}
             {selectedDate && selectedTime && (
               <div className="bg-[#E8F6FF] p-4 rounded-xl border border-[#2B5379]/20">
                 <p className="text-sm font-medium text-[#2B5379] mb-1">Jadwal Baru:</p>
@@ -603,13 +627,12 @@ function AdminBookingsContent() {
                     weekday: "long",
                     day: "numeric",
                     month: "long",
-                    year: "numeric"
+                    year: "numeric",
                   })}, {selectedTime} WIB
                 </p>
               </div>
             )}
 
-            {/* Actions */}
             <div className="flex gap-3 pt-2">
               <Button
                 variant="outline"

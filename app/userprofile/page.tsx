@@ -29,6 +29,12 @@ export default function Profile() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        setRedirectUrl(params.get("redirect"));
+    }, []);
 
     const [profileData, setProfileData] = useState<ProfileData>({
         fullName: "",
@@ -84,8 +90,27 @@ export default function Profile() {
         });
         setProfileData(prev => ({ ...prev, ...updatedData }));
         setIsEditPersonalInformation(false);
-    };
 
+        // Cek apakah semua data sudah lengkap setelah save lalu redirect balik ke booking kalau ada redirectUrl
+        if (redirectUrl) {
+            const currentProfile = {
+                ...profileData,
+                ...updatedData,
+            };
+            const isNowComplete =
+                currentProfile.fullName &&
+                currentProfile.birthday &&
+                currentProfile.gender &&
+                currentProfile.country &&
+                currentProfile.city &&
+                currentProfile.address &&
+                currentProfile.phone;
+
+            if (isNowComplete) {
+                router.push(redirectUrl);
+            }
+        }
+    };
 
     const handleSaveAddress = async (data: { country: string; city: string; address: string }) => {
         await updateUserProfile({
@@ -95,6 +120,25 @@ export default function Profile() {
         });
         setProfileData(prev => ({ ...prev, ...data }));
         setIsEditAddress(false);
+
+        if (redirectUrl) {
+            const currentProfile = {
+                ...profileData,
+                ...data,
+            };
+            const isNowComplete =
+                currentProfile.fullName &&
+                currentProfile.birthday &&
+                currentProfile.gender &&
+                currentProfile.country &&
+                currentProfile.city &&
+                currentProfile.address &&
+                currentProfile.phone;
+
+            if (isNowComplete) {
+                router.push(redirectUrl);
+            }
+        }
     };
 
     const handleLogout = () => {
@@ -131,7 +175,7 @@ export default function Profile() {
 
                     <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-blue-950 flex-1 lg:text-center">
                         My Profile
-                    </h1>
+                    </h1> 
 
                     <button
                         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -140,6 +184,19 @@ export default function Profile() {
                         {isSidebarOpen ? <X size={24} className="text-blue-950" /> : <Menu size={24} className="text-blue-950" />}
                     </button>
                 </div>
+
+                {redirectUrl && (
+                    <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+                        <span className="text-amber-600 text-lg">⚠️</span>
+                        <div>
+                            <p className="font-semibold text-amber-800 text-sm">Profil belum lengkap</p>
+                            <p className="text-amber-700 text-sm mt-1">
+                                Lengkapi data profil Anda terlebih dahulu untuk melanjutkan booking. 
+                                Setelah semua data terisi, Anda akan otomatis diarahkan kembali.
+                            </p>
+                        </div>
+                    </div>
+                )}
 
                 <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
                     <aside className={`
@@ -298,7 +355,7 @@ function SidebarItem({
             onClick={onClick}
             className={`flex items-center gap-3 px-3 py-2.5 sm:py-2 rounded-lg cursor-pointer transition-colors hover:bg-gray-100
                 ${active ? "bg-gray-100 text-blue-950 font-medium" : "text-gray-700"}
-                ${danger && "text-red-600"}`}
+                ${danger ? "text-red-600" : ""}`}
         >
             {icon}
             {label}

@@ -2,7 +2,10 @@ const API_BASE_URL = "http://localhost:3001";
 
 function getAuthToken(): string {
   if (typeof window !== "undefined") {
-    return localStorage.getItem("auth_token") || "";
+    return document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("token="))
+      ?.split("=")[1] || "";
   }
   return "";
 }
@@ -31,6 +34,15 @@ export async function getAllLayanan() {
       Authorization: `Bearer ${getAuthToken()}`,
       "Content-Type": "application/json",
     },
+  });
+  if (!res.ok) throw new Error("Gagal fetch data layanan");
+  const data = await res.json();
+  return data.map(mapBackendToLayananItem);
+}
+
+export async function getAllLayananPublic() {
+  const res = await fetch(`${API_BASE_URL}/layanan`, {
+    cache: "no-store",
   });
   if (!res.ok) throw new Error("Gagal fetch data layanan");
   const data = await res.json();
@@ -76,7 +88,11 @@ export async function createLayanan(data: any) {
     },
     body: JSON.stringify(mapToBackendPayload(data)),
   });
-  if (!res.ok) throw new Error("Gagal create layanan");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const msg = Array.isArray(err.message) ? err.message.join(", ") : err.message;
+    throw new Error(msg || "Gagal create layanan");
+  }
   return res.json();
 }
 

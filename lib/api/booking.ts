@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_BASE_URL = "http://localhost:3001";
 
 function getAuthToken(): string {
   if (typeof window !== "undefined") {
@@ -167,6 +167,21 @@ export async function rejectBooking(id: string | number, reason: string) {
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || "Gagal menolak booking");
+  }
+  return res.json();
+}
+
+export async function confirmFullPayment(id: string | number) {
+  const res = await fetch(`${API_BASE_URL}/bookings/${id}/confirm-full-payment`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${getAuthToken()}`,
+    },
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || "Gagal konfirmasi pelunasan");
   }
   return res.json();
 }

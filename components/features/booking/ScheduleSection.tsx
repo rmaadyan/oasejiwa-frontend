@@ -5,6 +5,7 @@ import {
   Brain,
   Calendar,
 } from "lucide-react";
+import { DateOption, RawSchedule } from "@/lib/booking-data";
 
 export interface PsychologistProfile {
   id: string;
@@ -18,41 +19,30 @@ export interface PsychologistProfile {
   caseExperience: string[];
 }
 
-export interface DateOption {
-  id: string;
-  date: Date;
-  dayName: string;
-  dayNumber: number;
-  monthName: string;
-  fullDate: string;
-  isToday: boolean;
-}
-
-export interface TimeSlot {
-  id: string;
-  time: string;
-  available: boolean;
-}
-
 interface ScheduleSectionProps {
   psychologist: PsychologistProfile;
   dates: DateOption[];
-  timeSlots: TimeSlot[];
+  rawSchedules: RawSchedule[]; 
   selectedDate: string | null;
-  selectedTime: string | null;
+  selectedScheduleId: string | null;
   onDateSelect: (date: string) => void;
-  onTimeSelect: (time: string) => void;
+  onScheduleSelect: (id: string) => void; 
 }
 
 export default function ScheduleSection({
   psychologist,
   dates,
-  timeSlots,
+  rawSchedules,   
   selectedDate,
-  selectedTime,
+  selectedScheduleId,
   onDateSelect,
-  onTimeSelect,
+  onScheduleSelect,
 }: ScheduleSectionProps) {
+
+  const availableSlots = rawSchedules.filter(
+    (s) => s.date.split('T')[0] === selectedDate && s.isAvailable
+  );
+
   return (
     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8 animate-fadeIn stagger-3">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -153,22 +143,19 @@ export default function ScheduleSection({
               {/* Date Cards - Horizontal Scroll */}
               <div className="flex-1 overflow-x-auto pb-2 scrollbar-hide">
                 <div className="flex gap-3 min-w-max">
-                  {dates.slice(0, 7).map((date) => (
+                  {dates.map((date) => (
                     <button
-                      key={date.id}
-                      onClick={() => onDateSelect(date.fullDate)}
-                      className={`
-                        flex flex-col items-center justify-center p-2 min-w-[80px] rounded-lg border transition-all duration-200
-                        ${
-                          selectedDate === date.fullDate
-                            ? "bg-blue-50 border-blue-500 text-blue-600"
-                            : "bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-                        }
-                      `}
+                      key={date.value}
+                      onClick={() => onDateSelect(date.value)}
+                      className={`flex flex-col items-center justify-center p-2 min-w-[80px] rounded-lg border transition-all duration-200
+                        ${selectedDate === date.value
+                          ? "bg-blue-50 border-blue-500 text-blue-600"
+                          : "bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                        }`}
                     >
                       <span
                         className={`text-sm font-medium ${
-                          selectedDate === date.fullDate
+                          selectedDate === date.value
                             ? "text-blue-600"
                             : "text-gray-700"
                         }`}
@@ -177,12 +164,12 @@ export default function ScheduleSection({
                       </span>
                       <span
                         className={`text-sm ${
-                          selectedDate === date.fullDate
+                          selectedDate === date.value
                             ? "text-blue-500"
                             : "text-gray-500"
                         }`}
                       >
-                        {date.dayNumber} {date.monthName}
+                        {date.dayNum} {date.month}
                       </span>
                     </button>
                   ))}
@@ -197,30 +184,29 @@ export default function ScheduleSection({
 
           {/* Section B: Time Slots */}
           <div>
-            <h3 className="text-base font-semibold text-slate-800 mb-4">
-              Pilih Waktu
-            </h3>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-              {timeSlots.map((slot) => (
-                <button
-                  key={slot.id}
-                  onClick={() => slot.available && onTimeSelect(slot.id)}
-                  disabled={!slot.available}
-                  className={`
-                    px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200
-                    ${
-                      !slot.available
-                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                        : selectedTime === slot.id
-                          ? "bg-[#2B5379] text-white shadow-md"
-                          : "bg-white border border-gray-300 text-gray-600 hover:bg-gray-50"
-                    }
-                  `}
-                >
-                  {slot.time}
-                </button>
-              ))}
-            </div>
+            <h3 className="text-base font-semibold text-slate-800 mb-4">Pilih Waktu</h3>
+            {!selectedDate ? (
+              <p className="text-sm text-gray-400">Pilih tanggal terlebih dahulu.</p>
+            ) : availableSlots.length === 0 ? (
+              <p className="text-sm text-gray-400">Tidak ada slot tersedia pada tanggal ini.</p>
+            ) : (
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                {availableSlots.map((slot) => (
+                  <button
+                    key={slot.id}
+                    onClick={() => onScheduleSelect(slot.id)}
+                    className={`px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200
+                      ${selectedScheduleId === slot.id
+                        ? "bg-[#2B5379] text-white shadow-md"
+                        : "bg-white border border-gray-300 text-gray-600 hover:bg-gray-50"
+                      }`}
+                  >
+                    {slot.startTime}
+                    <span className="text-xs block opacity-75">{slot.duration} mnt</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Section C: Competency Tags */}

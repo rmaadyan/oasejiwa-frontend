@@ -19,16 +19,16 @@ function getAuthToken(): string {
  * @param bookingId ID booking terkait
  * @param file File bukti transfer (gambar/pdf)
  */
-export async function uploadPaymentDP(bookingId: number | string, file: File) {
+export async function uploadPaymentDP(bookingId: number | string, file: File, method: string) {
   const formData = new FormData();
   formData.append("bookingId", String(bookingId));
-  formData.append("file", file);
+  formData.append("method", method);
+  formData.append("file", file); 
 
-  // Endpoint assumes POST /payments/dp exists in backend
   const res = await fetch(`${API_BASE_URL}/payments/dp`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${getAuthToken()}`,
+    headers: { 
+      Authorization: `Bearer ${getAuthToken()}`
     },
     body: formData,
   });
@@ -45,17 +45,15 @@ export async function uploadPaymentDP(bookingId: number | string, file: File) {
  * @param bookingId ID booking terkait
  * @param file File bukti transfer (gambar/pdf)
  */
-export async function uploadPaymentFull(bookingId: number | string, file: File) {
+export async function uploadPaymentFull(bookingId: number | string, file: File, method: string) {
   const formData = new FormData();
   formData.append("bookingId", String(bookingId));
+  formData.append("method", method);
   formData.append("file", file);
 
-  // Endpoint assumes POST /payments/full exists in backend
   const res = await fetch(`${API_BASE_URL}/payments/full`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${getAuthToken()}`,
-    },
+    headers: { Authorization: `Bearer ${getAuthToken()}` },
     body: formData,
   });
 

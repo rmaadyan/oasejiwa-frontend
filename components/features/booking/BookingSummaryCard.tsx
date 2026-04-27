@@ -20,6 +20,21 @@ export default function BookingSummaryCard({
   paymentMethods,
   onPayClick,
 }: BookingSummaryCardProps) {
+
+  const formatDate = (dateString: string) => {
+    if (!dateString || dateString === "-") return "-";
+    try {
+      const date = new Date(dateString);
+      return new Intl.DateTimeFormat("id-ID", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }).format(date);
+    } catch {
+      return dateString;
+    }
+  };
+  
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
@@ -48,7 +63,7 @@ export default function BookingSummaryCard({
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-[#4B4B4B]">Tanggal</span>
-          <span className="font-medium text-[#234463]">{summary.date}</span>
+          <span className="font-medium text-[#234463]">{formatDate(summary.date)}</span>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-[#4B4B4B]">Waktu</span>
@@ -64,11 +79,21 @@ export default function BookingSummaryCard({
       <div className="border-t border-dashed border-[#D6E6F2] my-4" />
 
       {/* Total */}
-      <div className="flex justify-between items-center mb-6">
-        <span className="font-semibold text-[#234463]">Total</span>
-        <span className="text-xl font-bold text-[#2B5379]">
-          {formatPrice(summary.price)}
-        </span>
+      <div className="space-y-2 mb-6">
+        <div className="flex justify-between items-center text-sm">
+          <span className="text-[#4B4B4B]">Harga Layanan</span>
+          <span className="font-medium text-[#234463]">{formatPrice(summary.price)}</span>
+        </div>
+        <div className="flex justify-between items-center text-sm">
+          <span className="text-[#4B4B4B]">DP (50%)</span>
+          <span className="font-medium text-green-600">- {formatPrice(summary.price * 0.5)}</span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="font-semibold text-[#234463]">Bayar Sekarang</span>
+          <span className="text-xl font-bold text-[#2B5379]">
+            {formatPrice(Math.ceil(summary.price * 0.5))}
+          </span>
+        </div>
       </div>
 
       {/* Selected Payment */}

@@ -24,20 +24,7 @@ import {
   PenTool,
   Download,
 } from "lucide-react";
-
-// Dummy client data (simulating data from signup)
-const dummyClientData = {
-  fullName: "Budi Santoso",
-  gender: "male",
-  birthDate: "1995-03-15",
-  age: 30,
-  address: "Jl. Sudirman No. 123, Jakarta Selatan, DKI Jakarta 12190",
-  phone: "081234567890",
-  email: "budi.santoso@email.com",
-  occupation: "Software Engineer",
-  maritalStatus: "single",
-  isFirstVisit: true,
-};
+import { useRequireCompleteProfile } from "@/hooks/use-require-complete-profile"
 
 // Zod validation schema for Step 2
 const consultationFormSchema = z.object({
@@ -86,13 +73,25 @@ const consentFormSchema = z.object({
 
 type ConsentFormData = z.infer<typeof consentFormSchema>;
 
+function calculateAge(birthday: string): number {
+  if (!birthday) return 0;
+  const birth = new Date(birthday);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+  return age;
+}
+
 function ConsultationFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const serviceId = searchParams.get("service");
   const psychologistId = searchParams.get("psychologist");
   const date = searchParams.get("date");
+  const scheduleId = searchParams.get("scheduleId");
   const time = searchParams.get("time");
+  const { user, isLoading: isLoadingUser, isGuest } = useRequireCompleteProfile();
 
   const [formStep, setFormStep] = useState(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -134,15 +133,13 @@ function ConsultationFormContent() {
 
   // PDF download state
   const [isDownloading, setIsDownloading] = useState(false);
-  const printRef = useRef<HTMLDivElement>(null);
-
-  // Generate booking ID
-  const bookingId = `OJ-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-
   // Signature canvas ref
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [useTextSignature, setUseTextSignature] = useState(true);
+
+  // Generate booking ID
+  const bookingId = `OJ-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
   // Initialize canvas
   useEffect(() => {
@@ -158,6 +155,61 @@ function ConsultationFormContent() {
       }
     }
   }, [useTextSignature]);
+
+  if (isLoadingUser) {
+    return (
+      <div className="min-h-screen bg-[#f5f7fb] flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-[#2B5379] border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (isGuest) {
+    return (
+      <div className="min-h-screen bg-[#f5f7fb] flex items-center justify-center px-4">
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-[#E8F6FF] rounded-full flex items-center justify-center mx-auto mb-4">
+            <User className="w-8 h-8 text-[#2B5379]" />
+          </div>
+          <h2 className="text-xl font-semibold text-slate-800 mb-2">
+            Login Diperlukan
+          </h2>
+          <p className="text-slate-500 text-sm mb-6">
+            Untuk melakukan booking konsultasi, Anda perlu login terlebih dahulu.
+          </p>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => router.push(`/auth/signin?redirect=${encodeURIComponent(window.location.href)}`)}
+              className="w-full py-2 rounded-xl bg-[#2B5379] text-white font-semibold hover:bg-[#234463] transition-colors"
+            >
+              Login Sekarang
+            </button>
+            <button
+              onClick={() => router.back()}
+              className="w-full py-2 rounded-xl border border-gray-200 text-gray-600 font-medium hover:bg-gray-50 transition-colors"
+            >
+              Kembali
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
+  const clientData = {
+    fullName: user.profile!.name,
+    gender: user.profile!.gender.toLowerCase(), 
+    birthDate: user.profile!.birthday?.split('T')[0] ?? '',
+    age: calculateAge(user.profile!.birthday),
+    address: user.profile!.fullAddress,
+    phone: user.profile!.phone,
+    email: user.email,
+    occupation: "-", 
+    maritalStatus: "-",
+    isFirstVisit: true,
+  };
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return;
@@ -246,19 +298,56 @@ function ConsultationFormContent() {
       if (validateStep3()) {
         try {
           setIsSubmitting(true);
+          const durationMap: Record<string, string> = {
+            "<1month": "LESS_THAN_1_MONTH",
+            "1-3months": "ONE_TO_3_MONTHS",
+            "3-6months": "THREE_TO_6_MONTHS",
+            ">6months": "MORE_THAN_6_MONTHS",
+          };
+          const stressMap: Record<string, string> = {
+            "veryHigh": "VERY_HIGH",
+          };
+          const therapyMap: Record<string, string> = {
+            "noPreference": "NO_PREFERENCE",
+          };
+
+          const mappedConsultation = {
+            ...consultationData,
+            problemDuration: durationMap[consultationData.problemDuration!] ?? consultationData.problemDuration?.toUpperCase(),
+            symptomFrequency: consultationData.symptomFrequency?.toUpperCase(),
+            dailyImpact: consultationData.dailyImpact?.toUpperCase(),
+            sleepQuality: consultationData.sleepQuality?.toUpperCase(),
+            selfHarmThoughts: consultationData.selfHarmThoughts?.toUpperCase(),
+            eatingPattern: consultationData.eatingPattern?.toUpperCase(),
+            exerciseFrequency: consultationData.exerciseFrequency?.toUpperCase(),
+            stressLevel: stressMap[consultationData.stressLevel!] ?? consultationData.stressLevel?.toUpperCase(),
+            therapyPreference: therapyMap[consultationData.therapyPreference!] ?? consultationData.therapyPreference?.toUpperCase(),
+          };
+
           const payload = {
             serviceId: Number(serviceId),
-            psychologistId: psychologistId, // assumes it's string, change if backend expects number
-            date,
-            time,
-            consultationForm: consultationData,
-            consentForm: consentData,
+            psychologistId: psychologistId,
+            scheduledDate: date,
+            scheduledTime: time,
+            consultationForm: mappedConsultation,
+            consentForm: {
+              consentDate: consentData.consentDate,
+              clientNameConfirmation: consentData.clientNameConfirmation,
+              signatureData: consentData.signature,        
+              signatureType: useTextSignature ? 'TEXT' : 'DRAWING',  
+              agreedToTerms: consentData.agreedToTerms ?? false,
+            },
           };
           
+          console.log("scheduledDate:", date);
+          console.log("scheduledTime:", time);
+          console.log("psychologistId:", psychologistId);
+          console.log("serviceId:", serviceId);
+          console.log("PAYLOAD:", payload); 
           const booking = await createBooking(payload);
           
           router.push(
-            `/booking/payment-method?bookingId=${booking.id}`
+            `/booking/payment-method?bookingId=${booking.data.id}` 
           );
         } catch (error: any) {
           console.error(error);
@@ -418,7 +507,7 @@ function ConsultationFormContent() {
         );
       }
 
-      const safeName = dummyClientData.fullName.replace(/[\\/:*?"<>|]/g, "_");
+      const safeName = clientData.fullName.replace(/[\\/:*?"<>|]/g, "_");
       const fileName = `Formulir-Konsultasi-${safeName}.pdf`;
 
       pdf.save(fileName);
@@ -519,47 +608,47 @@ function ConsultationFormContent() {
           <div className="flex gap-2">
             <span className="w-28 font-semibold text-[#1f3b5b]">Nama</span>
             <span>:</span>
-            <span>{dummyClientData.fullName}</span>
+            <span>{clientData.fullName}</span>
           </div>
           <div className="flex gap-2">
             <span className="w-28 font-semibold text-[#1f3b5b]">Jenis Kelamin</span>
             <span>:</span>
-            <span>{getLabelForValue("gender", dummyClientData.gender)}</span>
+            <span>{getLabelForValue("gender", clientData.gender)}</span>
           </div>
           <div className="flex gap-2">
             <span className="w-28 font-semibold text-[#1f3b5b]">Tanggal Lahir</span>
             <span>:</span>
-            <span>{new Date(dummyClientData.birthDate).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</span>
+            <span>{new Date(clientData.birthDate + 'T00:00:00').toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</span>
           </div>
           <div className="flex gap-2">
             <span className="w-28 font-semibold text-[#1f3b5b]">Usia</span>
             <span>:</span>
-            <span>{dummyClientData.age} tahun</span>
+            <span>{clientData.age} tahun</span>
           </div>
           <div className="flex gap-2">
             <span className="w-28 font-semibold text-[#1f3b5b]">Alamat</span>
             <span>:</span>
-            <span>{dummyClientData.address}</span>
+            <span>{clientData.address}</span>
           </div>
           <div className="flex gap-2">
             <span className="w-28 font-semibold text-[#1f3b5b]">Telepon</span>
             <span>:</span>
-            <span>{dummyClientData.phone}</span>
+            <span>{clientData.phone}</span>
           </div>
           <div className="flex gap-2">
             <span className="w-28 font-semibold text-[#1f3b5b]">Email</span>
             <span>:</span>
-            <span>{dummyClientData.email}</span>
+            <span>{clientData.email}</span>
           </div>
           <div className="flex gap-2">
             <span className="w-28 font-semibold text-[#1f3b5b]">Pekerjaan</span>
             <span>:</span>
-            <span>{dummyClientData.occupation}</span>
+            <span>{clientData.occupation}</span>
           </div>
           <div className="flex gap-2">
             <span className="w-28 font-semibold text-[#1f3b5b]">Status</span>
             <span>:</span>
-            <span>{getLabelForValue("maritalStatus", dummyClientData.maritalStatus)}</span>
+            <span>{getLabelForValue("maritalStatus", clientData.maritalStatus)}</span>
           </div>
         </div>
       </div>
@@ -764,7 +853,7 @@ function ConsultationFormContent() {
               )
             )}
           </div>
-          <p className="text-sm font-medium">{consentData.clientNameConfirmation || dummyClientData.fullName}</p>
+          <p className="text-sm font-medium">{consentData.clientNameConfirmation || clientData.fullName}</p>
           <p className="text-xs text-gray-500">Klien</p>
         </div>
       </div>
@@ -836,7 +925,7 @@ function ConsultationFormContent() {
           </label>
           <input
             type="text"
-            value={dummyClientData.fullName}
+            value={clientData.fullName}
             disabled
             className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-100 text-gray-600 cursor-not-allowed"
           />
@@ -850,7 +939,7 @@ function ConsultationFormContent() {
               <input
                 type="radio"
                 name="gender"
-                checked={dummyClientData.gender === "male"}
+                checked={clientData.gender === "male"}
                 disabled
                 className="w-4 h-4 text-[#2B5379]"
               />
@@ -860,7 +949,7 @@ function ConsultationFormContent() {
               <input
                 type="radio"
                 name="gender"
-                checked={dummyClientData.gender === "female"}
+                checked={clientData.gender === "female"}
                 disabled
                 className="w-4 h-4 text-[#2B5379]"
               />
@@ -877,10 +966,8 @@ function ConsultationFormContent() {
           </label>
           <input
             type="text"
-            value={new Date(dummyClientData.birthDate).toLocaleDateString("id-ID", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
+            value={new Date(clientData.birthDate + 'T00:00:00').toLocaleDateString("id-ID", {
+              day: "numeric", month: "long", year: "numeric",
             })}
             disabled
             className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-100 text-gray-600 cursor-not-allowed"
@@ -892,7 +979,7 @@ function ConsultationFormContent() {
           <label className="block text-sm font-medium text-slate-700 mb-2">Usia</label>
           <input
             type="text"
-            value={`${dummyClientData.age} tahun`}
+            value={`${clientData.age} tahun`}
             disabled
             className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-100 text-gray-600 cursor-not-allowed"
           />
@@ -905,7 +992,7 @@ function ConsultationFormContent() {
             Alamat
           </label>
           <textarea
-            value={dummyClientData.address}
+            value={clientData.address}
             disabled
             rows={2}
             className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-100 text-gray-600 cursor-not-allowed resize-none"
@@ -920,7 +1007,7 @@ function ConsultationFormContent() {
           </label>
           <input
             type="text"
-            value={dummyClientData.phone}
+            value={clientData.phone}
             disabled
             className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-100 text-gray-600 cursor-not-allowed"
           />
@@ -934,41 +1021,7 @@ function ConsultationFormContent() {
           </label>
           <input
             type="text"
-            value={dummyClientData.email}
-            disabled
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-100 text-gray-600 cursor-not-allowed"
-          />
-        </div>
-
-        {/* Pekerjaan */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            <Briefcase className="w-4 h-4 inline mr-2" />
-            Pekerjaan
-          </label>
-          <input
-            type="text"
-            value={dummyClientData.occupation}
-            disabled
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-100 text-gray-600 cursor-not-allowed"
-          />
-        </div>
-
-        {/* Status Pernikahan */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            <Heart className="w-4 h-4 inline mr-2" />
-            Status Pernikahan
-          </label>
-          <input
-            type="text"
-            value={
-              dummyClientData.maritalStatus === "single"
-                ? "Belum Menikah"
-                : dummyClientData.maritalStatus === "married"
-                  ? "Menikah"
-                  : "Cerai"
-            }
+            value={clientData.email}
             disabled
             className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-100 text-gray-600 cursor-not-allowed"
           />
@@ -979,7 +1032,7 @@ function ConsultationFormContent() {
           <label className="flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200 bg-gray-100 cursor-not-allowed">
             <input
               type="checkbox"
-              checked={dummyClientData.isFirstVisit}
+              checked={clientData.isFirstVisit}
               disabled
               className="w-5 h-5 rounded text-[#2B5379]"
             />

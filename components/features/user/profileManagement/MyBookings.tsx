@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { getUserBookings } from "@/lib/api/booking";
 import Link from "next/link";
-import { Calendar, Clock, User, FileText, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { Calendar, Clock, User, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function MyBookings() {
@@ -15,7 +15,14 @@ export default function MyBookings() {
         const fetchBookings = async () => {
             try {
                 const data = await getUserBookings();
-                setBookings(data);
+                const list = Array.isArray(data)
+                    ? data
+                    : Array.isArray(data?.data)
+                    ? data.data
+                    : Array.isArray(data?.bookings)
+                    ? data.bookings
+                    : [];
+                setBookings(list);
             } catch (error) {
                 console.error("Failed to fetch user bookings:", error);
             } finally {
@@ -38,6 +45,10 @@ export default function MyBookings() {
                 return <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold flex items-center gap-1"><CheckCircle size={14} /> Lunas</span>;
             case "REJECTED":
                 return <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold flex items-center gap-1"><XCircle size={14} /> Ditolak / Dibatalkan</span>;
+            case "COMPLETED":
+                return <span className="px-3 py-1 bg-teal-100 text-teal-800 rounded-full text-xs font-semibold flex items-center gap-1"><CheckCircle size={14} /> Selesai</span>;
+            case "CANCELLED":
+                return <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-semibold flex items-center gap-1"><XCircle size={14} /> Dibatalkan</span>;
             default:
                 return <span className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-semibold">{status}</span>;
         }
@@ -68,6 +79,20 @@ export default function MyBookings() {
         );
     }
 
+    const formatDate = (dateString: string) => {
+        if (!dateString || dateString === "-") return "-";
+        try {
+            const date = new Date(dateString);
+            return new Intl.DateTimeFormat("id-ID", {
+                day: "2-digit",
+                month: "long",
+                year: "numeric",
+            }).format(date);
+        } catch {
+            return dateString;
+        }
+    };
+
     return (
         <div className="space-y-6">
             <h2 className="text-2xl font-bold text-blue-950">Riwayat Booking Saya</h2>
@@ -77,7 +102,7 @@ export default function MyBookings() {
                     <div key={booking.id} className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 hover:shadow-md transition-shadow">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 pb-4 border-b border-gray-100">
                             <div>
-                                <p className="text-sm text-gray-500 mb-1">ID Booking: BKG-{booking.id}</p>
+                                <p className="text-sm text-gray-500 mb-1">{booking.bookingCode ?? `BKG-${booking.id}`}</p>
                                 <h3 className="text-lg font-bold text-blue-950">{booking.service?.nama || "Layanan Konseling"}</h3>
                             </div>
                             <div>
@@ -92,7 +117,7 @@ export default function MyBookings() {
                                 </div>
                                 <div>
                                     <p className="text-xs text-gray-500">Psikolog</p>
-                                    <p className="font-medium text-blue-950">{booking.psychologist?.nama || "Sedang dialokasikan"}</p>
+                                    <p className="font-medium text-blue-950">{booking.psychologist?.fullName ?? booking.psychologist?.nama ?? "Sedang dialokasikan"}</p>
                                 </div>
                             </div>
                             <div className="flex items-start gap-3">
@@ -101,7 +126,7 @@ export default function MyBookings() {
                                 </div>
                                 <div>
                                     <p className="text-xs text-gray-500">Jadwal Sesi</p>
-                                    <p className="font-medium text-blue-950">{booking.date} • {booking.time} WIB</p>
+                                    <p className="font-medium text-blue-950">{formatDate(booking.scheduledDate ?? booking.date ?? "-")} • {booking.scheduledTime ?? booking.time ?? "-"} WIB</p>
                                 </div>
                             </div>
                         </div>
@@ -116,14 +141,6 @@ export default function MyBookings() {
                                 </button>
                             )}
                             
-                            {booking.status === "APPROVED" && (
-                                <button
-                                    onClick={() => router.push(`/booking/payment-method?bookingId=${booking.id}&type=full`)}
-                                    className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition"
-                                >
-                                    Bayar Lunas
-                                </button>
-                            )}
                         </div>
                     </div>
                 ))}

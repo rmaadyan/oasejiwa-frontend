@@ -54,18 +54,11 @@ export default function PaymentDetailsCard({
             <p className="text-sm text-[#4B4B4B]">Bank Tujuan</p>
             <p className="font-semibold text-[#234463]">{bank}</p>
           </div>
-          <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-sm">
-            <img
-              src={`/assets/payments/${bank.toLowerCase()}.png`}
-              alt={bank}
-              className="max-w-[32px] max-h-[32px] object-contain"
-            />
-          </div>
         </div>
 
         {/* Virtual Account */}
         <div className="p-4 bg-gray-50 rounded-xl">
-          <p className="text-sm text-[#4B4B4B] mb-2">Nomor Virtual Account</p>
+          <p className="text-sm text-[#4B4B4B] mb-2">Nomor Pembayaran (Rekening / E-Wallet)</p>
           <div className="flex items-center justify-between">
             <p className="text-xl font-mono font-bold text-[#234463] tracking-wider">
               {virtualAccount}

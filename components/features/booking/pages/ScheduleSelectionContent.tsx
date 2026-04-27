@@ -9,20 +9,19 @@ import {
   ScheduleSection,
   ScheduleSummary,
   PsychologistProfile,
-  TimeSlot,
-  DateOption,
 } from "@/components/features/booking";
+import { DateOption, RawSchedule } from "@/lib/booking-data";
 
 interface ScheduleSelectionContentProps {
   psychologist: PsychologistProfile;
   dates: DateOption[];
-  timeSlots: TimeSlot[];
+  rawSchedules: RawSchedule[]; 
 }
 
 function ScheduleSelectionInner({
   psychologist,
   dates,
-  timeSlots,
+  rawSchedules,
 }: ScheduleSelectionContentProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -30,19 +29,20 @@ function ScheduleSelectionInner({
   const psychologistId = searchParams.get("psychologist");
 
   const [selectedDate, setSelectedDate] = useState<string | null>(
-    dates[0]?.fullDate || null
+    dates[0]?.value || null
   );
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
+  const selectedSlot = rawSchedules.find(s => s.id === selectedScheduleId);
 
   const handleDateSelect = (date: string) => {
     setSelectedDate(date);
-    setSelectedTime(null);
+    setSelectedScheduleId(null);
   };
 
   const handleNext = () => {
-    if (selectedDate && selectedTime) {
+    if (selectedDate && selectedScheduleId) {
       router.push(
-        `/booking/form?service=${serviceId}&psychologist=${psychologistId}&date=${selectedDate}&time=${selectedTime}`
+        `/booking/form?service=${serviceId}&psychologist=${psychologistId}&date=${selectedDate}&scheduleId=${selectedScheduleId}&time=${selectedSlot?.startTime}`
       );
     }
   };
@@ -67,18 +67,18 @@ function ScheduleSelectionInner({
         <ScheduleSection
           psychologist={psychologist}
           dates={dates}
-          timeSlots={timeSlots}
+          rawSchedules={rawSchedules}   
           selectedDate={selectedDate}
-          selectedTime={selectedTime}
+          selectedScheduleId={selectedScheduleId} 
           onDateSelect={handleDateSelect}
-          onTimeSelect={setSelectedTime}
+          onScheduleSelect={setSelectedScheduleId}
         />
 
-        {selectedDate && selectedTime && (
+        {selectedDate && selectedScheduleId && selectedSlot &&(
           <ScheduleSummary
             selectedDate={selectedDate}
-            selectedTime={selectedTime}
-            timeSlots={timeSlots}
+            selectedScheduleId={selectedScheduleId}
+            selectedStartTime={selectedSlot.startTime}
           />
         )}
 
@@ -86,7 +86,7 @@ function ScheduleSelectionInner({
           <BookingNavigation
             onBack={() => router.back()}
             onNext={handleNext}
-            isNextDisabled={!selectedDate || !selectedTime}
+            isNextDisabled={!selectedDate || !selectedScheduleId}
           />
         </div>
       </section>

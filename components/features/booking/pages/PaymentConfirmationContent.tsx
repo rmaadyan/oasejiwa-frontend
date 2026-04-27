@@ -15,7 +15,7 @@ import { uploadPaymentDP, uploadPaymentFull } from "@/lib/api/payment";
 
 export interface PaymentData {
   orderId: string;
-  virtualAccount: string;
+  accountNumber: string;
   bank: string;
   amount: number;
   expiredAt: Date;
@@ -92,9 +92,9 @@ function PaymentConfirmationInner({
     try {
       setIsSubmitting(true);
       if (paymentType === "full") {
-        await uploadPaymentFull(bookingId, uploadedFile);
+        await uploadPaymentFull(bookingId, uploadedFile, paymentMethod ?? "");
       } else {
-        await uploadPaymentDP(bookingId, uploadedFile);
+        await uploadPaymentDP(bookingId, uploadedFile, paymentMethod ?? ""); 
       }
       setIsSuccess(true);
     } catch (error: any) {
@@ -137,7 +137,7 @@ function PaymentConfirmationInner({
 
         <PaymentDetailsCard
           bank={paymentData.bank}
-          virtualAccount={paymentData.virtualAccount}
+          virtualAccount={paymentData.accountNumber}
           amount={paymentData.amount}
         />
 

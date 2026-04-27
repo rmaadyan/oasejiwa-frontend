@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import BookingStepper from "@/components/booking/BookingStepper";
 import {
@@ -28,8 +28,13 @@ function PsychologistSelectionInner({
     string | null
   >(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedSpecialization, setSelectedSpecialization] =
-    useState("Semua");
+  const [selectedSpecialization, setSelectedSpecialization] = useState("Semua");
+
+  useEffect(() => {
+    if (!serviceId) {
+        router.replace("/booking/services");
+    }
+  }, [serviceId]);
 
   const filteredPsychologists = psychologists.filter((psy) => {
     const matchesSearch =

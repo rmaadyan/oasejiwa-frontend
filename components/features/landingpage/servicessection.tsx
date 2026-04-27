@@ -2,6 +2,7 @@
 
 import type { LayananItem } from "@/components/features/manajemen-layanan/types";
 import { getAllLayanan } from "@/lib/api/layanan";
+import { useRouter } from "next/navigation";
 
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -42,6 +43,7 @@ export default function ServicesSection() {
 
   const activeServices = services.filter((item) => item.status === "Aktif");
   const displayedServices = activeServices.slice(0, 5);
+  const router = useRouter();
 
   const checkScrollPosition = () => {
     const el = scrollerRef.current;
@@ -64,6 +66,10 @@ export default function ServicesSection() {
   };
 
   const formatPrice = (price: number) => `Rp ${price.toLocaleString("id-ID")}`;
+
+  const handleLihatDetail = (id: number) => {
+    router.push(`/layanan/layanan-preview/preview/${id}`);
+  };
 
   if (loading) {
     return (
@@ -193,13 +199,13 @@ export default function ServicesSection() {
                     </div>
 
                     <div className="flex justify-center">
-                      <a
-                        href="https://wa.me/6281313888830"
-                        target="_blank"
+                      <button
+                        type="button"
+                        onClick={() => handleLihatDetail(item.id)}
                         className="inline-flex h-11 items-center justify-center rounded-full bg-[#3AB64C] px-10 text-sm font-semibold text-white"
                       >
-                        Booking
-                      </a>
+                        Lihat Detail
+                      </button>
                     </div>
                   </div>
                 </motion.div>

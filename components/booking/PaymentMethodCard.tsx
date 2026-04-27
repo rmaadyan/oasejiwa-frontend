@@ -12,7 +12,6 @@ interface PaymentMethodCardProps {
 export default function PaymentMethodCard({
   id,
   name,
-  logo,
   description,
   isSelected = false,
   onSelect,
@@ -45,15 +44,6 @@ export default function PaymentMethodCard({
         {isSelected && (
           <div className="w-2 h-2 bg-white rounded-full animate-scaleIn" />
         )}
-      </div>
-
-      {/* Logo */}
-      <div className="w-12 h-12 flex items-center justify-center flex-shrink-0">
-        <img
-          src={logo}
-          alt={name}
-          className="max-w-full max-h-full object-contain"
-        />
       </div>
 
       {/* Info */}

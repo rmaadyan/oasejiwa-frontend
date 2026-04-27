@@ -1,7 +1,7 @@
 "use client";
 
-import Footer from "@/components/common/footer";
-import Navbar from "@/components/common/navbar";
+import Footer from "@/components/common/Footer";
+import Navbar from "@/components/common/Navbar";
 import type { TesItem } from "@/components/features/manajemen-tes/types";
 import { getAllTes } from "@/lib/api/tes";
 import { useRouter } from "next/navigation";
