@@ -56,7 +56,7 @@ export default function CreateNoteModal({
         objective: editNote.objective || "",
         assessment: editNote.assessment || "",
         plan: editNote.plan || "",
-        riskLevel: editNote.riskLevel || "low",
+        riskLevel: (editNote.riskLevel?.toLowerCase() || "low") as "low" | "medium" | "high",
         followUpDate: editNote.followUpDate || "",
         nextSessionRecommendation: editNote.nextSessionRecommendation || "",
         tags: editNote.tags || [],
