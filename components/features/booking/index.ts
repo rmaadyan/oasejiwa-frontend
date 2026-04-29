@@ -14,8 +14,8 @@ export type { Psychologist } from "./PsychologistListSection";
 // Schedule Selection
 export { default as ScheduleSection } from "./ScheduleSection";
 export { default as ScheduleSummary } from "./ScheduleSummary";
-export type { PsychologistProfile, DateOption, TimeSlot } from "./ScheduleSection";
-
+export type { PsychologistProfile } from "./ScheduleSection";
+export type { DateOption, RawSchedule } from "@/lib/booking-data";
 // Payment
 export { default as PaymentMethodsSection } from "./PaymentMethodsSection";
 export { default as BookingSummaryCard } from "./BookingSummaryCard";
