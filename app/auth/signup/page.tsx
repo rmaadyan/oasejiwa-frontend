@@ -162,7 +162,7 @@ export default function SignUp() {
 
                         <div className="flex w-full flex-col gap-6">
                             <div>
-                                <label className="block text-sm font-bold text-blue-950 mb-2">
+                                <label className="block text-sm font-bold text-[#234463] mb-2">
                                     Birthday
                                 </label>
                                 <CustomCalendar
@@ -274,7 +274,7 @@ export default function SignUp() {
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="font-bold text-white bg-blue-900 w-full py-2 border border-blue-900 rounded-2xl hover:bg-blue-800 hover:shadow cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                                className="font-bold text-white bg-[#234463] w-full py-2 border border-[#2B5379] rounded-2xl hover:bg-[#2B5379] hover:shadow cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                                 {isLoading ? "Loading..." : "Save"}
                             </button>

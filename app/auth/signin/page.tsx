@@ -35,49 +35,53 @@ export default function SignIn() {
         const validationError = validateLogin(email, password);
 
         if (validationError) {
-            setError(validationError);
-            setIsLoading(false);
-            return;
+        setError(validationError);
+        setIsLoading(false);
+        return;
         }
 
         try {
-            const data = await loginUser({ email, password });
-    
-            console.log('Response:', data); 
+        const data = await loginUser({ email, password });
 
-            const token = data.accessToken ?? data.token ?? data.data?.accessToken;
-            const user = data.user ?? data.data?.user;
-            const role = user?.role;
+        console.log("Response:", data);
 
-            if (!token) {
-                setError("Token tidak ditemukan, cek response backend");
-                return;
-            }
+        const token = data.accessToken ?? data.token ?? data.data?.accessToken;
+        const user = data.user ?? data.data?.user;
+        const role = user?.role;
 
-            document.cookie = `token=${token}; path=/; max-age=${60 * 60 * 24 * 7}`;
-
-            console.log('Role:', role);
-
-            if (data.user.role === "PSYCHOLOGIST" && data.user.isFirstLogin) {
-                router.push("/auth/change-password-psychologist");
-            } else if (data.user.role === "PSYCHOLOGIST") {
-                router.push("/psychologist/dashboard");
-            } else if (data.user.role === "ADMIN") {
-                router.push("/admin");
-            } else {
-                router.push("/userprofile");
-            }
-        } catch (err: any) {
-            if (err.message?.includes("EMAIL_NOT_VERIFIED")) {
-                setRegisteredEmail(email);
-                setShowVerifyModal(true);
-            } else {
-                setError(err.message || "Login gagal");
-            }
-        } finally {
-            setIsLoading(false);
+        if (!token) {
+            setError("Token tidak ditemukan, cek response backend");
+            return;
         }
-    };
+
+        if (!user || !role) {
+            setError("Data user tidak ditemukan, cek response backend");
+            return;
+        }
+        localStorage.setItem("user", JSON.stringify(user));
+
+        console.log("Role:", role);
+
+        if (role === "PSYCHOLOGIST" && user.isFirstLogin) {
+            router.push("/auth/change-password-psychologist");
+        } else if (role === "PSYCHOLOGIST") {
+            router.push("/psychologist/dashboard");
+        } else if (role === "ADMIN") {
+            router.push("/admin");
+        } else {
+            router.push("/userprofile");
+        }
+        } catch (err: any) {
+        if (err.message?.includes("EMAIL_NOT_VERIFIED")) {
+            setRegisteredEmail(email);
+            setShowVerifyModal(true);
+        } else {
+            setError(err.message || "Login gagal");
+        }
+        } finally {
+        setIsLoading(false);
+        }
+        };
 
     return (
         <div>
@@ -124,17 +128,17 @@ export default function SignIn() {
                             )}
 
                         <div className="w-full max-w-xl flex flex-col justify-center gap-6">
-                            <Link href="/auth/email-input" className="text-center text-blue-950 font-bold text-sm hover:text-blue-900 cursor-pointer">
+                            <Link href="/auth/email-input" className="text-center text-[#234463] font-bold text-sm hover:text-[#2B5379] cursor-pointer">
                                 Forgot Password?
                             </Link>
                             <button 
                             suppressHydrationWarning
-                            className="font-bold text-white bg-blue-900 w-full py-2 border rounded-2xl hover:bg-blue-800 hover:shadow cursor-pointer">Sign in</button>
+                            className="font-bold text-white bg-[#234463] w-full py-2 border rounded-2xl hover:[#2B5379] hover:shadow cursor-pointer">Sign in</button>
                         </div>
 
                         <div className="text-center">
                             <span className="text-gray-600 pr-2">Belum punya akun?</span>
-                            <Link href="/auth/signup" className="text-blue-950 font-bold hover:text-blue-900">Daftar Sekarang</Link>
+                            <Link href="/auth/signup" className="text-[#234463] font-bold hover:[#2B5379]">Daftar Sekarang</Link>
                         </div>
                     </div>
                 </form>
@@ -145,14 +149,14 @@ export default function SignIn() {
                             <div className="w-full border-t border-gray-300"></div>
                         </div>
                         <div className="relative flex justify-center mb-6">
-                            <span className="font-light text-center text-blue-950 bg-white">Or login with</span>
+                            <span className="font-light text-center text-[#234463] bg-white">Or login with</span>
                         </div>
                     </div>
                 </div>
 
 
                 <div className="flex justify-center">
-                    <button className="flex justify-center gap-2 mb-10 py-2 md:py-3 px-8 md:px-12 border border-blue-950 rounded-4xl bg-blue-50 text-md font-bold text-blue-950 hover:shadow-md hover:border-blue-900 cursor-pointer"
+                    <button className="flex justify-center gap-2 mb-10 py-2 md:py-3 px-8 md:px-12 border border-[#234463] rounded-4xl bg-blue-50 text-md font-bold text-[#234463] hover:shadow-md hover:border-blue-900 cursor-pointer"
                     suppressHydrationWarning
                     type="button"
                     onClick={googleLogin}

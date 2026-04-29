@@ -58,7 +58,7 @@ export default function PaymentDetailsCard({
 
         {/* Virtual Account */}
         <div className="p-4 bg-gray-50 rounded-xl">
-          <p className="text-sm text-[#4B4B4B] mb-2">Nomor Pembayaran (Rekening / E-Wallet)</p>
+          <p className="text-sm text-[#4B4B4B] mb-2">Nomor Pembayaran (an. CV. sinergi jiwa harmoni)</p>
           <div className="flex items-center justify-between">
             <p className="text-xl font-mono font-bold text-[#234463] tracking-wider">
               {virtualAccount}

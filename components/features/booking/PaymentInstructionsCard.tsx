@@ -17,8 +17,8 @@ export default function PaymentInstructionsCard({
 
   const instructions = [
     `Buka aplikasi mobile banking atau ATM ${bank}`,
-    "Pilih menu Transfer > Virtual Account",
-    "Masukkan nomor Virtual Account di atas",
+    "Pilih menu Transfer",
+    "Masukkan nomor rekening di atas",
     `Pastikan jumlah pembayaran adalah ${formatPrice(amount)}`,
     "Konfirmasi dan selesaikan pembayaran",
     "Simpan bukti pembayaran dan upload di bawah",

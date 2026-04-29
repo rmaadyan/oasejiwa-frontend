@@ -6,11 +6,7 @@ import { useEffect, useState } from "react";
 import { getUserBookingDetail } from "@/lib/api/booking";
 
 const BANK_ACCOUNTS: Record<string, string> = {
-  "bca": "123-456-7890",
-  "bni": "098-765-4321",
-  "mandiri": "111-222-333-444",
-  "gopay": "0812-3456-7890",
-  "ovo": "0812-9876-5432",
+  "mandiri": "144-00-2860616-5",
 };
 
 function Content() {
@@ -33,7 +29,9 @@ function Content() {
           accountNumber: accountNumber,
           bank: selectedPayment?.toUpperCase() ?? data.bank?.toUpperCase() ?? "-",
           amount: data.dpAmount ?? Math.ceil((data.totalPrice ?? 0) * 0.5),
-          expiredAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          expiredAt: data.payments?.find((p: any) => p.type === 'DOWN_PAYMENT')?.expiredAt
+          ? new Date(data.payments.find((p: any) => p.type === 'DOWN_PAYMENT').expiredAt)
+          : new Date(Date.now() + 5 * 60 * 1000),
           service: data.service?.nama ?? "-",
           psychologist: data.psychologist?.fullName ?? "-",
           date: data.scheduledDate ?? "-",

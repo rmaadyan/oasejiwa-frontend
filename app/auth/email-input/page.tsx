@@ -71,7 +71,7 @@ export default function EmailInput() {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="font-bold text-white bg-blue-900 w-full py-2 border border-blue-950 rounded-2xl hover:bg-blue-800 hover:shadow cursor-pointer"
+                            className="font-bold text-white bg-[#234463] w-full py-2 border border-[#234463] rounded-2xl hover:bg-[#2B5379] hover:shadow cursor-pointer"
                         >
                             {isLoading ? "Sending..." : "Send"}
                         </button>

@@ -60,7 +60,7 @@ export default function PaymentMethodsSection({
         </div>
       </div>
 
-      {/* E-Wallet */}
+      {/* E-wallet
       <div className="animate-fadeIn stagger-4">
         <h2 className="text-lg font-bold text-[#234463] mb-4 flex items-center gap-2">
           <svg
@@ -96,6 +96,8 @@ export default function PaymentMethodsSection({
           ))}
         </div>
       </div>
+      */}
+      
     </div>
   );
 }

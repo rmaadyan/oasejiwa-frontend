@@ -1,16 +1,16 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import FilterBar from "@/components/features/psychologist/schedule/filterbar";
 import ScheduleCalendar from "@/components/features/psychologist/schedule/schedulecalendar";
 import ScheduleList from "@/components/features/psychologist/schedule/schedulelist";
 import SessionDetailModal from "@/components/features/psychologist/schedule/sessiondetailmodal";
-import {
+import { 
+  getAllSessions, 
+  markSessionCompleted, 
   cancelSession,
-  getAllSessions,
-  markSessionCompleted,
 } from "@/lib/api/psychologist";
-import type { ScheduleResponse, Session, SessionStatus } from "@/lib/types/psychologist";
-import { useEffect, useState } from "react";
+import type { Session, SessionStatus, ScheduleResponse } from "@/lib/types/psychologist";
 
 export default function SchedulePage() {
   const [loading, setLoading] = useState(true);

@@ -27,12 +27,12 @@ export default function PendingPayments({ payments }: PendingPaymentsProps) {
     <div className="bg-white rounded-xl border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Pembayaran Pending</h2>
+          <h2 className="text-xl font-semibold text-[#2B5379]">Pembayaran Pending</h2>
           <p className="text-sm text-gray-600 mt-1">Memerlukan validasi segera</p>
         </div>
         <Link 
           href="/admin/payments" 
-          className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1"
+          className="text-sm font-medium text-[#2B5379] hover:text-[#1e3d57] flex items-center gap-1"
         >
           Validasi Semua
           <ArrowUpRight className="h-4 w-4" />
@@ -43,8 +43,10 @@ export default function PendingPayments({ payments }: PendingPaymentsProps) {
         {payments.map((payment) => (
           <div 
             key={payment.id} 
-            className={`border-2 rounded-lg p-4 ${
-              payment.urgent ? "border-red-200 bg-red-50" : "border-gray-200 bg-gray-50"
+            className={`rounded-lg p-4 border-l-4 ${
+              payment.urgent 
+                ? "border-red-500 bg-red-50" 
+                : "border-[#2B5379] bg-gray-50"
             }`}
           >
             <div className="flex items-start justify-between mb-3">
@@ -59,14 +61,14 @@ export default function PendingPayments({ payments }: PendingPaymentsProps) {
               )}
             </div>
             <div className="flex items-center justify-between mb-3">
-              <span className="text-lg font-bold text-gray-900">
+              <span className="text-lg font-bold text-[#2B5379]">
                 {formatCurrency(payment.amount)}
               </span>
               <span className="text-xs text-gray-500">{payment.uploadedAt}</span>
             </div>
             <Link
               href={`/admin/payments/${payment.id}`}
-              className="block w-full text-center py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+              className="block w-full text-center py-2 bg-[#2B5379] hover:bg-[#1e3d57] text-white text-sm font-medium rounded-lg transition-colors"
             >
               Validasi Sekarang
             </Link>

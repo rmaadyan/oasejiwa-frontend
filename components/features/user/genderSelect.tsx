@@ -1,5 +1,4 @@
 'use client'
-import React from "react";
 
 type GenderSelectProps = {
     value: "MALE" | "FEMALE";
@@ -12,7 +11,7 @@ export default function GenderSelect({
 }: GenderSelectProps) {
     return (
         <div className="w-full">
-            <label className="block text-sm font-semibold text-blue-950 mb-2">
+            <label className="block text-sm font-semibold text-[#234463] mb-2">
                 Gender
             </label>
 
@@ -22,8 +21,8 @@ export default function GenderSelect({
                     onClick={() => onChange("MALE")}
                     className={`px-6 py-2 rounded-full border font-medium cursor-pointer ${
                         value === "MALE"
-                            ? "bg-blue-900 text-white hover:bg-blue-800 cursor-pointer"
-                            : "border-blue-950 text-blue-950"
+                            ? "bg-[#234463] text-white hover:bg-[#2B5379] cursor-pointer"
+                            : "border-[#2B5379] text-[#234463]"
                     }`}
                 >
                     Male
@@ -34,8 +33,8 @@ export default function GenderSelect({
                     onClick={() => onChange("FEMALE")}
                     className={`px-6 py-2 rounded-full border font-medium cursor-pointer ${
                         value === "FEMALE"
-                            ? "bg-blue-900 text-white hover:bg-blue-800 cursor-pointer"
-                            : "border-blue-950 text-blue-950"
+                            ? "bg-blue-900 text-white hover:bg-[#2B5379] cursor-pointer"
+                            : "border-[#2B5379] text-[#234463]"
                     }`}
                 >
                     Female

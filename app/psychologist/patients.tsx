@@ -1,18 +1,18 @@
 "use client";
 
-import PatientDetailModal from "@/components/features/psychologist/patients/patientdetailmodal";
-import PatientsList from "@/components/features/psychologist/patients/patientslist";
+import { useState, useEffect } from "react";
 import PatientStats from "@/components/features/psychologist/patients/patientstats";
+import PatientsList from "@/components/features/psychologist/patients/patientslist";
+import PatientDetailModal from "@/components/features/psychologist/patients/patientdetailmodal";
 import { getAllPatients } from "@/lib/api/psychologist";
-import type { PatientsResponse, PsychologistPatient } from "@/lib/types/psychologist";
-import { useEffect, useState } from "react";
+import type { PsychologistPatient, PatientsResponse } from "@/lib/types/psychologist";
 
 export default function PatientsPage() {
   const [loading, setLoading] = useState(true);
   const [patientsData, setPatientsData] = useState<PatientsResponse | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "lastSession" | "totalSessions">("name");
-  const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchPatients = async () => {

@@ -38,7 +38,7 @@ export default function MyBookings() {
             case "PENDING_DP":
                 return <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold flex items-center gap-1"><AlertCircle size={14} /> Menunggu DP</span>;
             case "WAITING_APPROVAL":
-                return <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold flex items-center gap-1"><Clock size={14} /> Menunggu Validasi Admin</span>;
+                return <span className="px-3 py-1 bg-blue-100 text-[#234463] rounded-full text-xs font-semibold flex items-center gap-1"><Clock size={14} /> Menunggu Validasi Admin</span>;
             case "APPROVED":
                 return <span className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-semibold flex items-center gap-1"><CheckCircle size={14} /> DP Divalidasi (Menunggu Lunas)</span>;
             case "FULLY_PAID":
@@ -69,10 +69,10 @@ export default function MyBookings() {
                     <Calendar size={32} />
                 </div>
                 <div>
-                    <h3 className="text-lg font-semibold text-blue-950">Belum Ada Riwayat Booking</h3>
+                    <h3 className="text-lg font-semibold text-[#234463]">Belum Ada Riwayat Booking</h3>
                     <p className="text-gray-500 mt-1">Anda belum pernah melakukan booking layanan kami.</p>
                 </div>
-                <Link href="/layanan" className="inline-block mt-4 px-6 py-2.5 bg-blue-900 text-white font-medium rounded-xl hover:bg-blue-800 transition-colors">
+                <Link href="/layanan" className="inline-block mt-4 px-6 py-2.5 bg-[#234463] text-white font-medium rounded-xl hover:bg-[#2B5379] transition-colors">
                     Mulai Konsultasi
                 </Link>
             </div>
@@ -95,7 +95,7 @@ export default function MyBookings() {
 
     return (
         <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-blue-950">Riwayat Booking Saya</h2>
+            <h2 className="text-2xl font-bold text-[#234463]">Riwayat Booking Saya</h2>
             
             <div className="grid gap-4">
                 {bookings.map((booking) => (
@@ -103,7 +103,7 @@ export default function MyBookings() {
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 pb-4 border-b border-gray-100">
                             <div>
                                 <p className="text-sm text-gray-500 mb-1">{booking.bookingCode ?? `BKG-${booking.id}`}</p>
-                                <h3 className="text-lg font-bold text-blue-950">{booking.service?.nama || "Layanan Konseling"}</h3>
+                                <h3 className="text-lg font-bold text-[#234463]">{booking.service?.nama || "Layanan Konseling"}</h3>
                             </div>
                             <div>
                                 {getStatusBadge(booking.status)}
@@ -112,21 +112,21 @@ export default function MyBookings() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
                             <div className="flex items-start gap-3">
-                                <div className="p-2 bg-blue-50 rounded-lg text-blue-700">
+                                <div className="p-2 bg-blue-50 rounded-lg text-[#234463]">
                                     <User size={18} />
                                 </div>
                                 <div>
                                     <p className="text-xs text-gray-500">Psikolog</p>
-                                    <p className="font-medium text-blue-950">{booking.psychologist?.fullName ?? booking.psychologist?.nama ?? "Sedang dialokasikan"}</p>
+                                    <p className="font-medium text-[#234463]">{booking.psychologist?.fullName ?? booking.psychologist?.nama ?? "Sedang dialokasikan"}</p>
                                 </div>
                             </div>
                             <div className="flex items-start gap-3">
-                                <div className="p-2 bg-blue-50 rounded-lg text-blue-700">
+                                <div className="p-2 bg-blue-50 rounded-lg text-[#234463]">
                                     <Calendar size={18} />
                                 </div>
                                 <div>
                                     <p className="text-xs text-gray-500">Jadwal Sesi</p>
-                                    <p className="font-medium text-blue-950">{formatDate(booking.scheduledDate ?? booking.date ?? "-")} • {booking.scheduledTime ?? booking.time ?? "-"} WIB</p>
+                                    <p className="font-medium text-[#234463]">{formatDate(booking.scheduledDate ?? booking.date ?? "-")} • {booking.scheduledTime ?? booking.time ?? "-"} WIB</p>
                                 </div>
                             </div>
                         </div>
@@ -135,7 +135,7 @@ export default function MyBookings() {
                             {booking.status === "PENDING_DP" && (
                                 <button
                                     onClick={() => router.push(`/booking/payment-method?bookingId=${booking.id}`)}
-                                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition"
+                                    className="px-4 py-2 bg-[#234463] text-white text-sm font-medium rounded-lg hover:bg-[#2B5379] transition"
                                 >
                                     Lanjut Pembayaran DP
                                 </button>

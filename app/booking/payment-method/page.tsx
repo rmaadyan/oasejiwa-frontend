@@ -25,11 +25,7 @@ function Content() {
           price: data.totalPrice ?? 0, 
         });
         setPaymentMethods(data.paymentMethods ?? [
-          { id: "bca", name: "BCA",  category: "bank" },
-          { id: "bni", name: "BNI", category: "bank" },
-          { id: "mandiri", name: "Mandiri", category: "bank" },
-          { id: "gopay", name: "GoPay", category: "ewallet" },
-          { id: "ovo", name: "OVO", category: "ewallet" },
+          { id: "mandiri", name: "Mandiri",  category: "bank" },
         ]);
       })
       .catch(console.error)

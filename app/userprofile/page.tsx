@@ -2,8 +2,7 @@
 import EditAddress from "@/components/features/user/profileManagement/editAddress";
 import EditPersonalInformation from "@/components/features/user/profileManagement/editPersonalInfo";
 import ProfileInformation from "@/components/features/user/profileManagement/profileInfo";
-import { ArrowLeft, Calendar, LogOut, Mail, Menu, Pencil, Phone, User, X } from "lucide-react";
-import Link from "next/link";
+import { Home, Calendar, LogOut, Mail, Menu, Pencil, Phone, User, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { getMe, updateUserProfile } from "@/lib/api/user";
@@ -65,8 +64,12 @@ export default function Profile() {
                     city: data.profile?.city ?? "",
                 });
             } catch (err: any) {
+                if (err.message?.includes("401")) {
+                    localStorage.removeItem("user");
+                    router.push("/auth/signin");
+                    return;
+                }
                 setError(err.message);
-                throw err;
             } finally {
                 setIsLoading(false);
             }
@@ -143,6 +146,7 @@ export default function Profile() {
 
     const handleLogout = () => {
         document.cookie = "token=; path=/; max-age=0";
+        localStorage.removeItem("user");
         setTimeout(() => {
             setIsSidebarOpen(false);
             router.push('/auth/signin');
@@ -152,7 +156,7 @@ export default function Profile() {
     if (isLoading) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <p className="text-blue-950 font-medium">Memuat profil...</p>
+                <p className="text-[#234463] font-medium">Memuat profil...</p>
             </div>
         );
     }
@@ -169,11 +173,7 @@ export default function Profile() {
         <div className="min-h-screen bg-gray-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-10 py-8">
                 <div className="flex items-center pb-6 sm:pb-8 relative">
-                    <Link href="/" className="lg:absolute lg:left-0 p-2 rounded-lg bg-white border border-gray-200 shadow-sm hover:bg-gray-50 flex items-center justify-center mr-4 lg:mr-0 transition-colors">
-                        <ArrowLeft size={24} className="text-blue-950" />
-                    </Link>
-
-                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-blue-950 flex-1 lg:text-center">
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#234463] flex-1 lg:text-center">
                         My Profile
                     </h1> 
 
@@ -181,7 +181,7 @@ export default function Profile() {
                         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                         className="lg:hidden p-2 rounded-lg bg-white border border-gray-200 shadow-sm"
                     >
-                        {isSidebarOpen ? <X size={24} className="text-blue-950" /> : <Menu size={24} className="text-blue-950" />}
+                        {isSidebarOpen ? <X size={24} className="text-[#234463]" /> : <Menu size={24} className="text-[#234463]" />}
                     </button>
                 </div>
 
@@ -225,15 +225,20 @@ export default function Profile() {
                             </button>
 
                             <div className="text-center pt-8 lg:pt-0">
-                                <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-full bg-gray-200 flex items-center justify-center text-xl font-bold text-blue-950">
+                                <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-full bg-gray-200 flex items-center justify-center text-xl font-bold text-[#234463]">
                                     <User size={48} className="sm:w-14 sm:h-14" />
                                 </div>
-                                <p className="mt-3 font-semibold text-blue-950 text-sm sm:text-base">{profileData.fullName || "—"}</p>
+                                <p className="mt-3 font-semibold text-[#234463] text-sm sm:text-base">{profileData.fullName || "—"}</p>
                                 <p className="text-xs sm:text-sm text-gray-500 break-all px-2">{profileData.email}</p>
                             </div>
 
                             {/* Menu */}
                             <nav className="space-y-2 text-sm">
+                                <SidebarItem
+                                    icon={<Home size={16} />}     
+                                    label="Dashboard"
+                                    onClick={() => { router.push('/'); setIsSidebarOpen(false); }}
+                                />
                                 <SidebarItem
                                     icon={<User size={16} />}
                                     label="My Profile"
@@ -262,10 +267,10 @@ export default function Profile() {
                                     {/* Profile Information */}
                                     <div className="bg-white border border-gray-200 rounded-2xl shadow p-4 sm:p-6 space-y-4">
                                         <div className="flex flex-row justify-between sm:items-center gap-3">
-                                            <h2 className="font-semibold text-blue-950 text-base sm:text-lg">Profile Information</h2>
+                                            <h2 className="font-semibold text-[#234463] text-base sm:text-lg">Profile Information</h2>
                                             <button
                                                 onClick={() => setIsEditPersonalInformation(true)}
-                                                className="flex items-center justify-center gap-2 text-sm bg-blue-900 text-white font-semibold rounded-lg px-4 py-2 hover:bg-blue-800 transition cursor-pointer w-auto">
+                                                className="flex items-center justify-center gap-2 text-sm bg-[#234463] text-white font-semibold rounded-lg px-4 py-2 hover:bg-[#2B5379] transition cursor-pointer w-auto">
                                                 <Pencil size={14} />
                                                 Edit
                                             </button>
@@ -283,10 +288,10 @@ export default function Profile() {
                                     {/* Address */}
                                     <div className="bg-white border border-gray-200 rounded-2xl shadow p-4 sm:p-6 space-y-4">
                                         <div className="flex flex-row justify-between sm:items-center gap-3">
-                                            <h2 className="font-semibold text-blue-950 text-base sm:text-lg">Address</h2>
+                                            <h2 className="font-semibold text-[#234463] text-base sm:text-lg">Address</h2>
                                             <button
                                                 onClick={() => setIsEditAddress(true)}
-                                                className="flex items-center justify-center gap-2 text-sm bg-blue-900 text-white font-semibold rounded-lg px-4 py-2 hover:bg-blue-800 transition cursor-pointer w-auto"
+                                                className="flex items-center justify-center gap-2 text-sm bg-[#234463] text-white font-semibold rounded-lg px-4 py-2 hover:bg-[#2B5379] transition cursor-pointer w-auto"
                                             >
                                                 <Pencil size={14} />
                                                 Edit
@@ -354,7 +359,7 @@ function SidebarItem({
         <div
             onClick={onClick}
             className={`flex items-center gap-3 px-3 py-2.5 sm:py-2 rounded-lg cursor-pointer transition-colors hover:bg-gray-100
-                ${active ? "bg-gray-100 text-blue-950 font-medium" : "text-gray-700"}
+                ${active ? "bg-gray-100 text-[#234463] font-medium" : "text-gray-700"}
                 ${danger ? "text-red-600" : ""}`}
         >
             {icon}

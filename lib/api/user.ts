@@ -1,23 +1,20 @@
-function getToken() {
-    return document.cookie
-        .split("; ")
-        .find(row => row.startsWith("token="))
-        ?.split("=")[1];
-}
-
+const API_BASE_URL =process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 export async function getMe() {
-    const res = await fetch("/api/user/me", {
-        credentials: "include", 
+    const res = await fetch(`${API_BASE_URL}/user/me`, {
+        credentials: "include",
+        cache: "no-store",
     });
 
-    const text = await res.text();
-    try {
-        const result = JSON.parse(text);
-        if (!res.ok) throw new Error(result.message || "Gagal ambil profil");
-        return result;
-    } catch {
+    if (res.status === 401) {
+        throw new Error("401: Unauthorized");
+    }
+
+    if (!res.ok) {
+        const text = await res.text();
         throw new Error("Server error: " + text.slice(0, 100));
     }
+
+    return res.json();
 }
 
 export async function updateUserProfile(data: any) {

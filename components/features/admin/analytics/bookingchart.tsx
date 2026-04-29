@@ -1,6 +1,6 @@
 "use client";
 
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 interface BookingChartProps {
   data: { returning: number; new: number };
@@ -8,8 +8,8 @@ interface BookingChartProps {
 }
 
 const COLORS = {
-  returning: "#3B82F6", // Blue
-  new: "#EF4444",       // Red
+  returning: "#2B5379", // Brand dark blue
+  new: "#D1EAFF",       // Brand light blue
 };
 
 const CustomTooltip = ({ active, payload }: any) => {
@@ -34,17 +34,17 @@ export default function BookingChart({ data, compact = false }: BookingChartProp
   const total = data.returning + data.new;
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center relative py-4">
-      {/* Chart Container */}
-      <div className="relative w-full" style={{ height: compact ? "200px" : "240px" }}>
+    <div className="w-full h-full flex flex-col items-center justify-center relative">
+      {/* Chart Container - Lebih besar */}
+      <div className="relative w-full" style={{ height: compact ? "220px" : "260px" }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
               data={chartData}
               cx="50%"
               cy="50%"
-              innerRadius={compact ? 50 : 60}
-              outerRadius={compact ? 80 : 90}
+              innerRadius={compact ? 55 : 70}
+              outerRadius={compact ? 85 : 100}
               paddingAngle={2}
               dataKey="value"
             >
@@ -59,23 +59,27 @@ export default function BookingChart({ data, compact = false }: BookingChartProp
         {/* Center Label - TOTAL */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="text-center">
-            <div className="text-xs text-gray-500 font-medium">TOTAL</div>
-            <div className="text-3xl font-bold text-gray-900">{total}</div>
+            <div className="text-xs text-gray-500 font-medium mb-1">
+              TOTAL
+            </div>
+            <div className="text-3xl font-bold text-gray-900">
+              {total}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Legend - INSIDE CARD */}
-      <div className="flex items-center justify-center gap-6 mt-6 px-4">
+      {/* Legend */}
+      <div className="flex items-center justify-center gap-6 px-4 mt-4">
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-blue-500 shrink-0" />
+          <div className="w-3 h-3 rounded-full bg-[#2B5379] shrink-0" />
           <div className="text-sm whitespace-nowrap">
             <span className="text-gray-600">Klien Lama</span>
             <span className="ml-2 font-semibold text-gray-900">{data.returning}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-red-500 shrink-0" />
+          <div className="w-3 h-3 rounded-full bg-[#D1EAFF] shrink-0" />
           <div className="text-sm whitespace-nowrap">
             <span className="text-gray-600">Klien Baru</span>
             <span className="ml-2 font-semibold text-gray-900">{data.new}</span>

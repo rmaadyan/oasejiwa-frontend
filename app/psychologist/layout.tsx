@@ -1,9 +1,14 @@
 import PsychologistLayoutClient from "@/components/common/PsychologistLayoutClient";
+import ProtectedRoute from "@/components/common/ProtectedRoute";
 
 export default function PsychologistLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <PsychologistLayoutClient>{children}</PsychologistLayoutClient>;
+  return (
+    <ProtectedRoute allowedRoles={["PSYCHOLOGIST"]}>
+      <PsychologistLayoutClient>{children}</PsychologistLayoutClient>
+    </ProtectedRoute>
+  );
 }

@@ -32,6 +32,10 @@ export default function EditPersonalInformation({
     );
     const [error, setError] = useState("");
 
+    const handlePhoneChange = (value: string) => {
+        const numbersOnly = value.replace(/\D/g, '');
+        setTelephone(numbersOnly);
+    };
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!name || !telephone || !email || !date) {
@@ -62,7 +66,7 @@ export default function EditPersonalInformation({
             <X size={20} />
             </button>
 
-            <h1 className="text-2xl font-bold text-blue-950 mb-6">
+            <h1 className="text-2xl font-bold text-[#234463] mb-6">
             Edit Profile
             </h1>
 
@@ -78,7 +82,7 @@ export default function EditPersonalInformation({
 
             <div className="flex flex-col gap-6">
                 <div>
-                    <label className="block text-sm font-bold text-blue-950 mb-2">
+                    <label className="block text-sm font-bold text-[#234463] mb-2">
                         Birthday
                     </label>
                     <CustomCalendar
@@ -97,7 +101,7 @@ export default function EditPersonalInformation({
                 name="number"
                 type="tel"
                 value={telephone}
-                onChange={setTelephone}
+                onChange={handlePhoneChange}
             />
 
             <FormField
@@ -124,7 +128,7 @@ export default function EditPersonalInformation({
                 </button>
                 <button
                 type="submit"
-                className="px-4 py-2 rounded-lg bg-blue-900 hover:bg-blue-800 text-white font-semibold cursor-pointer">
+                className="px-4 py-2 rounded-lg bg-[#234463] hover:bg-[#2B5379] text-white font-semibold cursor-pointer">
                     Save
                 </button>
             </div>

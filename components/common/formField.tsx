@@ -53,12 +53,12 @@ export default function FormField({
 
     return(
         <div className="w-full max-w-xl">
-            <label htmlFor={id} className="block text-sm font-bold text-blue-950 mb-1">
+            <label htmlFor={id} className="block text-sm font-bold text-[#234463] mb-1">
                 {label}
             </label>
             <div className="relative">
                 {icon && (
-                    <div className="absolute inset-y-0 inset-left-0 pl-3 flex items-center pointer-events-none text-blue-950">
+                    <div className="absolute inset-y-0 inset-left-0 pl-3 flex items-center pointer-events-none text-[#234463]">
                         {icon}
                     </div>
                 )}
@@ -70,7 +70,7 @@ export default function FormField({
                     onChange={(e) => onChange(e.target.value)}
                     placeholder={placeholder}
                     rows={4}
-                    className={`appearance-none relative block w-full py-2 border rounded-xl placeholder-gray-350 text-blue-950 focus:outline-none focus:ring-1 focus:border-transparent
+                    className={`appearance-none relative block w-full py-2 border rounded-xl placeholder-gray-350 text-[#234463] focus:outline-none focus:ring-1 focus:border-transparent
                         ${icon ? "pl-10" : "pl-4"} ${enableToggle ? "pr-10" : "pr-4"}`}
                     />
                 ):(
@@ -90,9 +90,9 @@ export default function FormField({
                     placeholder={placeholder}
                     autoComplete={autoComplete}
                     disabled={disabled}
-                    className={`appearance-none relative block w-full py-2 border rounded-xl placeholder-gray-350 text-blue-950 focus:outline-none focus:ring-1 focus:border-transparent
+                    className={`appearance-none relative block w-full py-2 border rounded-xl placeholder-gray-350 text-[#234463] focus:outline-none focus:ring-1 focus:border-transparent
                         ${icon ? "pl-10" : "pl-4"} ${enableToggle ? "pr-10" : "pr-4"}
-                        ${error ? "border-red-500 focus:ring-red-400" : "border-blue-950"}`}
+                        ${error ? "border-red-500 focus:ring-red-400" : "border-[#234463]"}`}
                     />
                 )}
 
@@ -101,7 +101,7 @@ export default function FormField({
                     type="button"
                     suppressHydrationWarning
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-shadow-blue-950"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-shadow-[#234463]"
                     >
                         {showPassword? (
                             <EyeOff className="h-5 w-5 cursor-pointer"/>

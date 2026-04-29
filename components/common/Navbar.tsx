@@ -1,26 +1,39 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
-import { Menu, X } from "lucide-react";
+import { Menu, X, User } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation"; 
+import { useAuth } from "@/hooks/use-auth";
 
 export default function Navbar() {
   const [isSpecialPage, setIsSpecialPage] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const { isLoggedIn, isLoading } = useAuth();
+  const pathname = usePathname();
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
 
-    const pathname = window.location.pathname;
-    setIsSpecialPage(pathname === "/about" || pathname.startsWith("/booking") || pathname.startsWith("/layanan") || pathname.startsWith("/psikologlist") || pathname.startsWith("/psikologdetail") || pathname.startsWith("/tes"));
+    setIsSpecialPage(
+      pathname === "/about" ||
+        pathname.startsWith("/booking") ||
+        pathname.startsWith("/layanan") ||
+        pathname.startsWith("/psikologlist") ||
+        pathname.startsWith("/psikologdetail") ||
+        pathname.startsWith("/tes")
+    );
+
+    handleScroll();
+
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [pathname]);
 
   const navItems = [
     { name: "Beranda", href: "/" },
@@ -30,12 +43,22 @@ export default function Navbar() {
     { name: "Tes Psikologi", href: "/tes" },
   ];
 
+  const authHref = isLoggedIn ? "/userprofile" : "/auth/signin";
+  const authLabel = isLoggedIn ? "Profile" : "Login";
+
+  const buttonClassName = `transition-all ${
+    isScrolled
+      ? "bg-blue-600 text-white hover:bg-blue-700"
+      : isSpecialPage
+        ? "border-2 border-blue-600 !text-blue-600 hover:bg-blue-600/10 bg-transparent"
+        : "border-2 border-white text-white hover:bg-white/10 bg-transparent"
+  }`;
+
   return (
     <nav
-      className={`fixed top-0 w-full z-50 transition-all duration-300 font-poppins no-print ${isScrolled
-        ? "bg-[#D1EAFF] shadow-md"
-        : "bg-transparent"
-        }`}
+      className={`fixed top-0 w-full z-50 transition-all duration-300 font-poppins no-print ${
+        isScrolled ? "bg-[#D1EAFF] shadow-md" : "bg-transparent"
+      }`}
     >
       <div className="max-w-7xl mx-auto px-2 sm:px-3 lg:px-4">
         <div className="flex justify-between items-center h-20">
@@ -50,13 +73,15 @@ export default function Navbar() {
                 priority
               />
             </div>
+
             <span
-              className={`text-2xl font-semibold transition-colors duration-300 ${isScrolled
-                ? "text-[#2B5379]"
-                : isSpecialPage
-                  ? "text-[#234463]"
-                  : "text-white"
-                }`}
+              className={`text-2xl font-semibold transition-colors duration-300 ${
+                isScrolled
+                  ? "text-[#2B5379]"
+                  : isSpecialPage
+                    ? "text-[#234463]"
+                    : "text-white"
+              }`}
             >
               Oase Jiwa
             </span>
@@ -68,13 +93,13 @@ export default function Navbar() {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`font-medium transition-colors duration-300 select-none ${isScrolled
-                  ? "text-[#2B5379] hover:text-blue-600"
-                  : isSpecialPage
-                    ? "text-[#234463] hover:text-[#234463]/80"
-                    : "text-white hover:text-white/80"
-                  } active:text-white`}
-
+                className={`font-medium transition-colors duration-300 select-none ${
+                  isScrolled
+                    ? "text-[#2B5379] hover:text-blue-600"
+                    : isSpecialPage
+                      ? "text-[#234463] hover:text-[#234463]/80"
+                      : "text-white hover:text-white/80"
+                } active:text-white`}
                 style={{
                   WebkitUserSelect: "none",
                   userSelect: "none",
@@ -83,29 +108,27 @@ export default function Navbar() {
                 {item.name}
               </Link>
             ))}
-            <Link href="/auth/signin">
-              <Button
-                className={`transition-all ${isScrolled
-                  ? "bg-blue-600 text-white hover:bg-blue-700"
-                  : isSpecialPage
-                    ? "border-2 border-blue-600 !text-blue-600 hover:bg-blue-600/10 bg-transparent"
-                    : "border-2 border-white text-white hover:bg-white/10 bg-transparent"
-                  }`}
-              >
-                Login
-              </Button>
-            </Link>
+
+            {!isLoading && (
+              <Link href={authHref}>
+                <Button className={buttonClassName}>
+                  {isLoggedIn && <User className="w-4 h-4 mr-2" />}
+                  {authLabel}
+                </Button>
+              </Link>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className={`md:hidden p-2 transition-colors duration-300 ${isScrolled
-              ? "text-[#2B5379]"
-              : isSpecialPage
-                ? "text-[#234463]"
-                : "text-white"
-              }`}
+            className={`md:hidden p-2 transition-colors duration-300 ${
+              isScrolled
+                ? "text-[#2B5379]"
+                : isSpecialPage
+                  ? "text-[#234463]"
+                  : "text-white"
+            }`}
           >
             {isOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -113,29 +136,41 @@ export default function Navbar() {
 
         {/* Mobile Menu */}
         {isOpen && (
-          <div className={`md:hidden pb-4 transition-all duration-300 ${isScrolled ? "bg-[#D1EAFF]" : isSpecialPage ? "bg-white" : "bg-black/50"
-            }`}>
+          <div
+            className={`md:hidden pb-4 transition-all duration-300 ${
+              isScrolled
+                ? "bg-[#D1EAFF]"
+                : isSpecialPage
+                  ? "bg-white"
+                  : "bg-black/50"
+            }`}
+          >
             {navItems.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
-                className={`block py-3 px-4 font-medium transition-colors ${isScrolled
-                  ? "text-[#2B5379] hover:text-blue-600"
-                  : isSpecialPage
-                    ? "text-[#234463] hover:text-[#234463]/80"
-                    : "text-white hover:text-white/80"
-                  }`}
+                className={`block py-3 px-4 font-medium transition-colors ${
+                  isScrolled
+                    ? "text-[#2B5379] hover:text-blue-600"
+                    : isSpecialPage
+                      ? "text-[#234463] hover:text-[#234463]/80"
+                      : "text-white hover:text-white/80"
+                }`}
                 onClick={() => setIsOpen(false)}
               >
                 {item.name}
               </Link>
             ))}
+
             <div className="px-4 pt-2">
-              <Link href="/auth/signin" onClick={() => setIsOpen(false)}>
-                <Button className={`w-full ${isScrolled ? "bg-blue-600 text-white hover:bg-blue-700" : isSpecialPage ? "border-2 border-blue-600 !text-blue-600 hover:bg-blue-600/10 bg-transparent" : "border-2 border-white text-white hover:bg-white/10 bg-transparent"}`}>
-                  Login
-                </Button>
-              </Link>
+              {!isLoading && (
+                <Link href={authHref} onClick={() => setIsOpen(false)}>
+                  <Button className={`w-full ${buttonClassName}`}>
+                    {isLoggedIn && <User className="w-4 h-4 mr-2" />}
+                    {authLabel}
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         )}

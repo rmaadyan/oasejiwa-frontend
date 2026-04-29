@@ -1,13 +1,12 @@
 "use client";
 
-import AvailabilitySettings from "@/components/features/psychologist/profile/availabilitysettings";
+import { useEffect, useState } from "react";
+import ProfileHeader from "@/components/features/psychologist/profile/profileheader";
 import PersonalInfo from "@/components/features/psychologist/profile/personalinfo";
 import ProfessionalInfo from "@/components/features/psychologist/profile/professionalinfo";
-import ProfileHeader from "@/components/features/psychologist/profile/profileheader";
-import SecuritySettings from "@/components/features/psychologist/profile/securitysettings";
-import { getPsychologistProfile, updatePsychologistProfile } from "@/lib/api/psychologist";
+import AvailabilitySettings from "@/components/features/psychologist/profile/availabilitysettings";
+import { getPsychologistProfile } from "@/lib/api/psychologist";
 import type { Psychologist } from "@/lib/types/psychologist";
-import { useEffect, useState } from "react";
 
 export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
@@ -15,6 +14,7 @@ export default function ProfilePage() {
 
   const fetchProfile = async () => {
     setLoading(true);
+
     try {
       const data = await getPsychologistProfile();
       setProfile(data);
@@ -28,16 +28,6 @@ export default function ProfilePage() {
   useEffect(() => {
     fetchProfile();
   }, []);
-
-  const handleUpdateProfile = async (data: Partial<Psychologist>) => {
-    try {
-      const updated = await updatePsychologistProfile(data);
-      setProfile(updated);
-    } catch (error) {
-      console.error("Failed to update profile:", error);
-      throw error;
-    }
-  };
 
   if (loading) {
     return (
@@ -68,32 +58,21 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-[#2B5379]">Profil Saya</h1>
-        <p className="text-gray-600 mt-1">Kelola informasi profil dan pengaturan akun</p>
+        <p className="text-gray-600 mt-1">Informasi profil psikolog</p>
       </div>
 
-      {/* Profile Header */}
       <ProfileHeader psychologist={profile} />
 
-      {/* Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Column */}
-        <div className="space-y-6">
-          <PersonalInfo
-            psychologist={profile}
-            onSave={handleUpdateProfile}
-          />
-
-          <SecuritySettings />
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
+        <div className="xl:col-span-2 space-y-6">
+          <PersonalInfo psychologist={profile} />
+          <ProfessionalInfo psychologist={profile} />
         </div>
 
-        {/* Right Column */}
-        <div className="space-y-6">
-          <ProfessionalInfo psychologist={profile} />
-
-          <AvailabilitySettings />
+        <div className="xl:col-span-1">
+          <AvailabilitySettings schedules={profile.schedules} />
         </div>
       </div>
     </div>

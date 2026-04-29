@@ -1,4 +1,3 @@
-// hooks/useRequireCompleteProfile.ts
 'use client'
 
 import { useEffect, useState } from "react";

@@ -1,100 +1,40 @@
-import {
-  Calendar,
-  CreditCard,
+"use client";
+
+import { useEffect, useState } from "react";
+import { 
+  Users, 
+  Calendar, 
+  CreditCard, 
   TrendingUp,
-  Users
+  UserCheck,
+  Activity,
+  ArrowUpRight,
+  Loader2
 } from "lucide-react";
-
-// ✅ Import dari components/features/admin/dashboard
-import PendingPayments from "@/components/features/admin/dashboard/pendingpayments";
-import RecentBookings from "@/components/features/admin/dashboard/recentbookings";
 import StatCard from "@/components/features/admin/dashboard/statcard";
+import RecentBookings from "@/components/features/admin/dashboard/recentbookings";
 import TodaySchedule from "@/components/features/admin/dashboard/todayschedule";
-
-// Import API layer
+import PendingPayments from "@/components/features/admin/dashboard/pendingpayments";
 import { getAllDashboardData } from "@/lib/api/dashboard";
+import type { DashboardDataResponse } from "@/lib/types/dashboard";
 
-// Import mock UI data untuk development/preview
-import {
-  mockAlerts,
-  mockDashboardStats,
-  mockPendingPayments,
-  mockRecentBookings,
-  mockTodaySchedule
-} from "@/lib/data/mock-ui-data";
 
-export default async function Dashboard() {
-  let dashboardData = null;
-  let error = null;
-  const showMockUI = true;
+export default function Dashboard() {
+  const [data, setData] = useState<DashboardDataResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  try {
-    // Fetch data dari API layer (tidak hardcoded)
-    dashboardData = await getAllDashboardData();
-  } catch (err) {
-    error = err instanceof Error ? err.message : 'Gagal memuat data dashboard';
-    if (!showMockUI) {
-      console.error('Dashboard Error:', error);
-    }
 
-    // Jika SHOW_MOCK_UI aktif, gunakan mock data untuk preview UI
-    if (showMockUI) {
-      dashboardData = {
-        stats: mockDashboardStats,
-        recentBookings: mockRecentBookings,
-        pendingPayments: mockPendingPayments,
-        todaySchedule: mockTodaySchedule,
-        alerts: mockAlerts
-      };
-      error = null; // Clear error jika menampilkan mock UI
-    }
-  }
+  useEffect(() => {
+    getAllDashboardData()
+      .then(setData)
+      .catch((err) => {
+        console.error(err);
+        setError("Failed to load dashboard data");
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
-  // Jika SHOW_MOCK_UI aktif dan belum ada data, gunakan mock
-  if (showMockUI && !dashboardData) {
-    dashboardData = {
-      stats: mockDashboardStats,
-      recentBookings: mockRecentBookings,
-      pendingPayments: mockPendingPayments,
-      todaySchedule: mockTodaySchedule,
-      alerts: mockAlerts
-    };
-  }
-
-  // Jika error dan bukan mode mock UI, tampilkan pesan error
-  if (error || !dashboardData) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard Admin</h1>
-          <p className="text-gray-600 mt-1">
-            Selamat datang kembali! Berikut ringkasan hari ini
-          </p>
-        </div>
-
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-5 h-5 rounded-full bg-red-500" />
-            <h2 className="text-lg font-semibold text-red-900">Koneksi Backend Error</h2>
-          </div>
-          <p className="text-red-800 text-sm">
-            Tidak dapat terhubung ke server backend. Pastikan backend API berjalan di:
-            <code className="block mt-2 p-2 bg-red-100 rounded text-xs font-mono">
-              {process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}
-            </code>
-          </p>
-          <details className="mt-4 text-sm">
-            <summary className="cursor-pointer text-red-700 font-medium">Error Details</summary>
-            <pre className="mt-2 p-2 bg-red-100 rounded text-xs overflow-auto">
-              {error}
-            </pre>
-          </details>
-        </div>
-      </div>
-    );
-  }
-
-  const { stats, recentBookings, pendingPayments, todaySchedule, alerts } = dashboardData;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -103,6 +43,41 @@ export default async function Dashboard() {
       minimumFractionDigits: 0
     }).format(amount);
   };
+
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto" />
+          <p className="text-gray-600 mt-4">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+
+  // Error state
+  if (error || !data) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <p className="text-red-600 font-semibold">{error || "No data available"}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+
+  const { stats, recentBookings, pendingPayments, todaySchedule, alerts } = data;
+
 
   return (
     <div className="space-y-6">
@@ -113,6 +88,7 @@ export default async function Dashboard() {
           Selamat datang kembali! Berikut ringkasan hari ini
         </p>
       </div>
+
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -129,6 +105,7 @@ export default async function Dashboard() {
           }}
         />
 
+
         <StatCard
           title="Booking Hari Ini"
           value={stats.todayBookings}
@@ -142,6 +119,7 @@ export default async function Dashboard() {
           }}
         />
 
+
         <StatCard
           title="Pending Pembayaran"
           value={stats.pendingPayments}
@@ -150,6 +128,7 @@ export default async function Dashboard() {
           iconColor="text-orange-600"
           subtitle="Perlu validasi"
         />
+
 
         <StatCard
           title="Revenue Feb 2026"
@@ -165,16 +144,19 @@ export default async function Dashboard() {
         />
       </div>
 
+
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <RecentBookings bookings={recentBookings} />
         </div>
 
-        <div>
+
+        <div className="space-y-6">
           <TodaySchedule schedule={todaySchedule} />
         </div>
       </div>
+
 
       {/* Pending Payments */}
       <PendingPayments payments={pendingPayments} />

@@ -4,7 +4,10 @@ interface AnalyticsStatsProps {
   label: string;
   value: string | number;
   sublabel?: string;
-  trend?: { direction: "up" | "down"; percent: number };
+  trend?: {
+    direction: "up" | "down";
+    percent: number;
+  };
 }
 
 export default function AnalyticsStats({
@@ -22,15 +25,17 @@ export default function AnalyticsStats({
         </div>
         {trend && (
           <span
-            className={`text-xs font-semibold ${
-              trend.direction === "up" ? "text-green-600" : "text-red-600"
+            className={`text-xs font-medium px-2 py-1 rounded ${
+              trend.direction === "up" 
+                ? "bg-green-100 text-green-700" 
+                : "bg-red-100 text-red-700"
             }`}
           >
             {trend.direction === "up" ? "↑" : "↓"} {trend.percent}%
           </span>
         )}
       </div>
-      <p className="mt-3 text-2xl font-bold text-gray-900">{value}</p>
+      <p className="mt-3 text-2xl font-bold text-[#2B5379]">{value}</p>
     </div>
   );
 }

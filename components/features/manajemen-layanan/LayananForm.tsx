@@ -128,7 +128,8 @@ export default function LayananForm({ mode, initialData, onCancel, onSubmitLocal
             >
               <option value="">Pilih jenis...</option>
               <option value="Konseling">Konseling</option>
-              <option value="Workshop">Workshop</option>
+              <option value="Seminar">Seminar</option>
+              <option value="Tes">Tes</option>
               <option value="Training">Training</option>
               <option value="Lainnya">Lainnya</option>
             </select>

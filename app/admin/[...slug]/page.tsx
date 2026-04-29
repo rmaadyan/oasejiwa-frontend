@@ -1,36 +1,28 @@
-import Dashboard from "@/app/admin/dashboard";
-import Analytics from "@/components/features/admin/analytics/page";
 import { notFound } from "next/navigation";
+import Dashboard from "@/app/admin/dashboard";
+import Analytics from "@/app/admin/analytics";
+import Users from "@/app/admin/users";
 
-export default async function AdminRouter({
+export default async function AdminCatchAllRouter({
   params,
 }: {
   params: Promise<{ slug?: string[] }>;
 }) {
-  const resolvedParams = await params;
-  const slug = resolvedParams?.slug;
+  const { slug } = await params;
   const pageName = slug?.[0] || "dashboard";
 
-  // Master router logic
-  const renderPage = () => {
-    switch (pageName) {
-      case "dashboard":
-      case "": // untuk /admin root
-        return <Dashboard />;
-      case "analytics":
-        return <Analytics />;
-      // case "psychologists":
-      //   return <Psychologists />;
-      // case "users":
-      //   return <Users />;
-      // case "services":
-      //   return <Services />;
-      // case "payments":
-      //   return <Payments />;
-      default:
-        notFound();
-    }
-  };
+  switch (pageName) {
+    case "dashboard":
+    case "":
+      return <Dashboard />;
 
-  return <>{renderPage()}</>;
+    case "analytics":
+      return <Analytics />;
+
+    case "users":
+      return <Users />;
+
+    default:
+      notFound();
+  }
 }

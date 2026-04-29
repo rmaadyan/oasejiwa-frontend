@@ -810,7 +810,7 @@ export const mockAllSessions: Session[] = [
 // All Patients List
 export const mockAllPatients: PsychologistPatient[] = [
   {
-    id: 1,
+    id: "1",
     name: "Budi Santoso",
     email: "budi.santoso@email.com",
     firstSessionDate: "15 Jan 2026",
@@ -819,7 +819,7 @@ export const mockAllPatients: PsychologistPatient[] = [
     upcomingSessionDate: "11 Feb 2026"
   },
   {
-    id: 2,
+    id: "2",
     name: "Siti Rahayu",
     email: "siti.rahayu@email.com",
     firstSessionDate: "9 Feb 2026",
@@ -828,7 +828,7 @@ export const mockAllPatients: PsychologistPatient[] = [
     upcomingSessionDate: "16 Feb 2026"
   },
   {
-    id: 3,
+    id: "3",
     name: "Ahmad Rizki",
     email: "ahmad.rizki@email.com",
     firstSessionDate: "20 Jan 2026",
@@ -837,7 +837,7 @@ export const mockAllPatients: PsychologistPatient[] = [
     upcomingSessionDate: "10 Feb 2026"
   },
   {
-    id: 4,
+    id: "4",
     name: "Dewi Lestari",
     email: "dewi.lestari@email.com",
     firstSessionDate: "22 Jan 2026",
@@ -846,7 +846,7 @@ export const mockAllPatients: PsychologistPatient[] = [
     upcomingSessionDate: "14 Feb 2026"
   },
   {
-    id: 5,
+    id: "5",
     name: "Eko Prasetyo",
     email: "eko.prasetyo@email.com",
     firstSessionDate: "25 Jan 2026",
@@ -863,10 +863,10 @@ export const mockRecentPatients: PsychologistPatient[] = mockAllPatients.slice(0
 // ========================================
 // 📝 PATIENT DETAILS (Psychologist View)
 // ========================================
-export const mockPatientDetails: Record<number, PsychologistPatientDetail> = {
+export const mockPatientDetails: Record<string, PsychologistPatientDetail> = {
   // Budi Santoso - 3 Sessions
-  1: {
-    id: 1,
+  "1": {
+    id: "1",
     name: "Budi Santoso",
     email: "budi.santoso@email.com",
     phone: "081234567890",
@@ -887,7 +887,7 @@ export const mockPatientDetails: Record<number, PsychologistPatientDetail> = {
     allergies: ["Tidak ada"],
     sessionHistory: [
       {
-        id: 20,
+        id: "20",
         date: "9 Feb 2026",
         time: "09:00",
         duration: 60,
@@ -896,7 +896,7 @@ export const mockPatientDetails: Record<number, PsychologistPatientDetail> = {
         hasNotes: true
       },
       {
-        id: 17,
+        id: "17",
         date: "5 Feb 2026",
         time: "09:00",
         duration: 60,
@@ -905,7 +905,7 @@ export const mockPatientDetails: Record<number, PsychologistPatientDetail> = {
         hasNotes: true
       },
       {
-        id: 21,
+        id: "21",
         date: "15 Jan 2026",
         time: "14:00",
         duration: 60,
@@ -918,8 +918,8 @@ export const mockPatientDetails: Record<number, PsychologistPatientDetail> = {
   },
 
   // Siti Rahayu - 1 Session
-  2: {
-    id: 2,
+  "2": {
+    id: "2",
     name: "Siti Rahayu",
     email: "siti.rahayu@email.com",
     phone: "082345678901",
@@ -940,7 +940,7 @@ export const mockPatientDetails: Record<number, PsychologistPatientDetail> = {
     allergies: ["Penicillin"],
     sessionHistory: [
       {
-        id: 25,
+        id: "25",
         date: "9 Feb 2026",
         time: "11:00",
         duration: 60,
@@ -953,8 +953,8 @@ export const mockPatientDetails: Record<number, PsychologistPatientDetail> = {
   },
 
   // Ahmad Rizki - 5 Sessions
-  3: {
-    id: 3,
+  "3": {
+    id: "3",
     name: "Ahmad Rizki",
     email: "ahmad.rizki@email.com",
     phone: "083456789012",
@@ -975,7 +975,7 @@ export const mockPatientDetails: Record<number, PsychologistPatientDetail> = {
     allergies: ["Tidak ada"],
     sessionHistory: [
       {
-        id: 16,
+        id: "16",
         date: "5 Feb 2026",
         time: "14:00",
         duration: 45,
@@ -984,7 +984,7 @@ export const mockPatientDetails: Record<number, PsychologistPatientDetail> = {
         hasNotes: true
       },
       {
-        id: 14,
+        id: "14",
         date: "1 Feb 2026",
         time: "14:00",
         duration: 45,
@@ -993,7 +993,7 @@ export const mockPatientDetails: Record<number, PsychologistPatientDetail> = {
         hasNotes: true
       },
       {
-        id: 11,
+        id: "11",
         date: "28 Jan 2026",
         time: "10:00",
         duration: 60,
@@ -1002,7 +1002,7 @@ export const mockPatientDetails: Record<number, PsychologistPatientDetail> = {
         hasNotes: true
       },
       {
-        id: 10,
+        id: "10",
         date: "25 Jan 2026",
         time: "14:00",
         duration: 45,
@@ -1011,7 +1011,7 @@ export const mockPatientDetails: Record<number, PsychologistPatientDetail> = {
         hasNotes: true
       },
       {
-        id: 22,
+        id: "22",
         date: "20 Jan 2026",
         time: "09:00",
         duration: 60,
@@ -1024,8 +1024,8 @@ export const mockPatientDetails: Record<number, PsychologistPatientDetail> = {
   },
 
   // Dewi Lestari - 2 Sessions
-  4: {
-    id: 4,
+  "4": {
+    id: "4",
     name: "Dewi Lestari",
     email: "dewi.lestari@email.com",
     phone: "084567890123",
@@ -1046,7 +1046,7 @@ export const mockPatientDetails: Record<number, PsychologistPatientDetail> = {
     allergies: ["Tidak ada"],
     sessionHistory: [
       {
-        id: 19,
+        id: "19",
         date: "7 Feb 2026",
         time: "13:00",
         duration: 60,
@@ -1055,7 +1055,7 @@ export const mockPatientDetails: Record<number, PsychologistPatientDetail> = {
         hasNotes: true
       },
       {
-        id: 23,
+        id: "23",
         date: "22 Jan 2026",
         time: "15:00",
         duration: 60,
@@ -1068,8 +1068,8 @@ export const mockPatientDetails: Record<number, PsychologistPatientDetail> = {
   },
 
   // Eko Prasetyo - 4 Sessions (3 completed + 1 cancelled)
-  5: {
-    id: 5,
+  "5": {
+    id: "5",
     name: "Eko Prasetyo",
     email: "eko.prasetyo@email.com",
     phone: "085678901234",
@@ -1090,7 +1090,7 @@ export const mockPatientDetails: Record<number, PsychologistPatientDetail> = {
     allergies: ["Tidak ada"],
     sessionHistory: [
       {
-        id: 18,
+        id: "18",
         date: "6 Feb 2026",
         time: "11:00",
         duration: 60,
@@ -1099,7 +1099,7 @@ export const mockPatientDetails: Record<number, PsychologistPatientDetail> = {
         hasNotes: true
       },
       {
-        id: 15,
+        id: "15",
         date: "2 Feb 2026",
         time: "09:00",
         duration: 60,
@@ -1108,7 +1108,7 @@ export const mockPatientDetails: Record<number, PsychologistPatientDetail> = {
         hasNotes: true
       },
       {
-        id: 12,
+        id: "12",
         date: "28 Jan 2026",
         time: "11:00",
         duration: 60,
@@ -1117,7 +1117,7 @@ export const mockPatientDetails: Record<number, PsychologistPatientDetail> = {
         hasNotes: false
       },
       {
-        id: 24,
+        id: "24",
         date: "25 Jan 2026",
         time: "16:00",
         duration: 60,
@@ -1137,10 +1137,10 @@ export const mockPatientDetails: Record<number, PsychologistPatientDetail> = {
 export const mockSessionNotes: SessionNote[] = [
   // BUDI SANTOSO - Session 3 (Latest)
   {
-    id: 1,
-    sessionId: 20,
-    psychologistId: 6,
-    patientId: 1,
+    id: "1",
+    sessionId: "20",
+    psychologistId: "6",
+    patientId: "1",
     patientName: "Budi Santoso",
     sessionDate: "9 Feb 2026",
     sessionTime: "09:00",
@@ -1167,10 +1167,10 @@ export const mockSessionNotes: SessionNote[] = [
 
   // BUDI SANTOSO - Session 2
   {
-    id: 2,
-    sessionId: 17,
-    psychologistId: 6,
-    patientId: 1,
+    id: "2",
+    sessionId: "17",
+    psychologistId: "6",
+    patientId: "1",
     patientName: "Budi Santoso",
     sessionDate: "5 Feb 2026",
     sessionTime: "09:00",
@@ -1197,10 +1197,10 @@ export const mockSessionNotes: SessionNote[] = [
 
   // BUDI SANTOSO - Session 1
   {
-    id: 3,
-    sessionId: 21,
-    psychologistId: 6,
-    patientId: 1,
+    id: "3",
+    sessionId: "21",
+    psychologistId: "6",
+    patientId: "1",
     patientName: "Budi Santoso",
     sessionDate: "15 Jan 2026",
     sessionTime: "14:00",
@@ -1227,10 +1227,10 @@ export const mockSessionNotes: SessionNote[] = [
 
   // SITI RAHAYU - Session 1
   {
-    id: 4,
-    sessionId: 25,
-    psychologistId: 6,
-    patientId: 2,
+    id: "4",
+    sessionId: "25",
+    psychologistId: "6",
+    patientId: "2",
     patientName: "Siti Rahayu",
     sessionDate: "9 Feb 2026",
     sessionTime: "11:00",
@@ -1257,10 +1257,10 @@ export const mockSessionNotes: SessionNote[] = [
 
   // AHMAD RIZKI - Session 5 (Latest)
   {
-    id: 5,
-    sessionId: 16,
-    psychologistId: 6,
-    patientId: 3,
+    id: "5",
+    sessionId: "16",
+    psychologistId: "6",
+    patientId: "3",
     patientName: "Ahmad Rizki",
     sessionDate: "5 Feb 2026",
     sessionTime: "14:00",
@@ -1287,10 +1287,10 @@ export const mockSessionNotes: SessionNote[] = [
 
   // AHMAD RIZKI - Session 4
   {
-    id: 6,
-    sessionId: 14,
-    psychologistId: 6,
-    patientId: 3,
+    id: "6",
+    sessionId: "14",
+    psychologistId: "6",
+    patientId: "3",
     patientName: "Ahmad Rizki",
     sessionDate: "1 Feb 2026",
     sessionTime: "14:00",
@@ -1317,10 +1317,10 @@ export const mockSessionNotes: SessionNote[] = [
 
   // AHMAD RIZKI - Session 3
   {
-    id: 7,
-    sessionId: 11,
-    psychologistId: 6,
-    patientId: 3,
+    id: "7",
+    sessionId: "11",
+    psychologistId: "6",
+    patientId: "3",
     patientName: "Ahmad Rizki",
     sessionDate: "28 Jan 2026",
     sessionTime: "10:00",
@@ -1347,10 +1347,10 @@ export const mockSessionNotes: SessionNote[] = [
 
   // AHMAD RIZKI - Session 2
   {
-    id: 8,
-    sessionId: 10,
-    psychologistId: 6,
-    patientId: 3,
+    id: "8",
+    sessionId: "10",
+    psychologistId: "6",
+    patientId: "3",
     patientName: "Ahmad Rizki",
     sessionDate: "25 Jan 2026",
     sessionTime: "14:00",
@@ -1377,10 +1377,10 @@ export const mockSessionNotes: SessionNote[] = [
 
   // AHMAD RIZKI - Session 1 (Initial Assessment)
   {
-    id: 9,
-    sessionId: 22,
-    psychologistId: 6,
-    patientId: 3,
+    id: "9",
+    sessionId: "22",
+    psychologistId: "6",
+    patientId: "3",
     patientName: "Ahmad Rizki",
     sessionDate: "20 Jan 2026",
     sessionTime: "09:00",
@@ -1407,10 +1407,10 @@ export const mockSessionNotes: SessionNote[] = [
 
   // DEWI LESTARI - Session 2 (Latest)
   {
-    id: 10,
-    sessionId: 19,
-    psychologistId: 6,
-    patientId: 4,
+    id: "10",
+    sessionId: "19",
+    psychologistId: "6",
+    patientId: "4",
     patientName: "Dewi Lestari",
     sessionDate: "7 Feb 2026",
     sessionTime: "13:00",
@@ -1437,10 +1437,10 @@ export const mockSessionNotes: SessionNote[] = [
 
   // DEWI LESTARI - Session 1
   {
-    id: 11,
-    sessionId: 23,
-    psychologistId: 6,
-    patientId: 4,
+    id: "11",
+    sessionId: "23",
+    psychologistId: "6",
+    patientId: "4",
     patientName: "Dewi Lestari",
     sessionDate: "22 Jan 2026",
     sessionTime: "15:00",
@@ -1467,10 +1467,10 @@ export const mockSessionNotes: SessionNote[] = [
 
   // EKO PRASETYO - Session 4 (Latest - Completed)
   {
-    id: 12,
-    sessionId: 18,
-    psychologistId: 6,
-    patientId: 5,
+    id: "12",
+    sessionId: "18",
+    psychologistId: "6",
+    patientId: "5",
     patientName: "Eko Prasetyo",
     sessionDate: "6 Feb 2026",
     sessionTime: "11:00",
@@ -1497,10 +1497,10 @@ export const mockSessionNotes: SessionNote[] = [
 
   // EKO PRASETYO - Session 3 (Completed)
   {
-    id: 13,
-    sessionId: 15,
-    psychologistId: 6,
-    patientId: 5,
+    id: "13",
+    sessionId: "15",
+    psychologistId: "6",
+    patientId: "5",
     patientName: "Eko Prasetyo",
     sessionDate: "2 Feb 2026",
     sessionTime: "09:00",
@@ -1530,10 +1530,10 @@ export const mockSessionNotes: SessionNote[] = [
 
   // EKO PRASETYO - Session 1
   {
-    id: 14,
-    sessionId: 24,
-    psychologistId: 6,
-    patientId: 5,
+    id: "14",
+    sessionId: "24",
+    psychologistId: "6",
+    patientId: "5",
     patientName: "Eko Prasetyo",
     sessionDate: "25 Jan 2026",
     sessionTime: "16:00",
@@ -1560,10 +1560,10 @@ export const mockSessionNotes: SessionNote[] = [
 
   // RINA KUSUMA - Session 1 (Preventive/Wellness)
   {
-    id: 15,
-    sessionId: 13,
-    psychologistId: 6,
-    patientId: 7,
+    id: "15",
+    sessionId: "13",
+    psychologistId: "6",
+    patientId: "7",
     patientName: "Rina Kusuma",
     sessionDate: "1 Feb 2026",
     sessionTime: "10:00",

@@ -12,41 +12,6 @@ type GroupedTes = {
   items: TesItem[];
 };
 
-// Konversi response backend ke format TesItem frontend
-function mapBackendToTesItem(raw: any): TesItem {
-  // Konversi sectionKategori dari array flat ke object map
-  const sectionKategoriMap: Record<string, any[]> = {};
-  for (const s of raw.sectionKategori ?? []) {
-    if (!sectionKategoriMap[s.sectionNama]) {
-      sectionKategoriMap[s.sectionNama] = [];
-    }
-    sectionKategoriMap[s.sectionNama].push({
-      id: s.id,
-      nama: s.nama,
-      minSkor: s.minSkor,
-      maxSkor: s.maxSkor,
-      deskripsi: s.deskripsi,
-    });
-  }
-
-  return {
-    id: raw.id,
-    nama: raw.nama,
-    jumlah: raw.jumlah,
-    status: raw.status,
-    deskripsi: raw.deskripsi,
-    penjelasanHasil: raw.penjelasanHasil,
-    jenis: raw.jenis,
-    coverUrl: raw.coverUrl,
-    pertanyaan: raw.pertanyaan ?? [],
-    likert: raw.likertOptions ?? [], // backend pakai likertOptions
-    kategori: raw.kategori ?? [],
-    sectionKategori: Object.keys(sectionKategoriMap).length > 0
-      ? sectionKategoriMap
-      : undefined,
-  };
-}
-
 export default function TesPsikologiUserPage() {
   const router = useRouter();
   const [tesList, setTesList] = useState<TesItem[]>([]);
@@ -56,9 +21,8 @@ export default function TesPsikologiUserPage() {
   useEffect(() => {
     async function fetchTes() {
       try {
-        const raw = await getAllTes();
-        const mapped: TesItem[] = raw.map(mapBackendToTesItem);
-        const aktif = mapped.filter((t) => t.status === "Aktif");
+        const data = await getAllTes();
+        const aktif = data.filter((t: TesItem) => t.status === "Aktif");
         setTesList(aktif);
       } catch (err) {
         console.error("Gagal fetch tes:", err);

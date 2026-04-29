@@ -50,7 +50,7 @@ export default function EditAddress({
             <X size={20} />
             </button>
 
-            <h1 className="text-2xl font-bold text-blue-950 mb-6">
+            <h1 className="text-2xl font-bold text-[#234463] mb-6">
                 Edit Address
             </h1>
 
@@ -105,7 +105,7 @@ export default function EditAddress({
                     </button>
                     <button
                     type="submit"
-                    className="px-4 py-2 rounded-lg bg-blue-900 hover:bg-blue-800 text-white font-semibold cursor-pointer"
+                    className="px-4 py-2 rounded-lg bg-[#234463] hover:bg-[#2B5379] text-white font-semibold cursor-pointer"
                     >
                         Save
                     </button>

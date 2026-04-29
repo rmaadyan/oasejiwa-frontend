@@ -49,7 +49,7 @@ export default function ResetPassword(){
                     error={error} 
                     />
                     <div className="w-full max-w-xl flex flex-col justify-center mt-8">
-                        <button type="submit" className="font-bold text-white bg-blue-900 w-full py-2 border border-blue-950 rounded-2xl hover:bg-blue-800 hover:shadow cursor-pointer">Send</button>
+                        <button type="submit" className="font-bold text-white bg-[#234463] w-full py-2 border border-[#234463] rounded-2xl hover:bg-[#2B5379] hover:shadow cursor-pointer">Send</button>
                     </div>
                 </form>
             </AuthLayout>

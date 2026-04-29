@@ -1,8 +1,8 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { X, Trash2 } from "lucide-react";
 import type { User, UserFormData } from "@/lib/types/users";
-import { Trash2, X } from "lucide-react";
-import { useEffect, useState } from "react";
 
 interface UserModalProps {
   isOpen: boolean;
@@ -174,7 +174,7 @@ export default function UserModal({
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 text-sm font-medium text-white bg-[#2B5379] rounded-lg hover:bg-[#1e3d57] transition-colors disabled:opacity-50"
             >
               {loading ? "Menyimpan..." : "Simpan Role"}
             </button>

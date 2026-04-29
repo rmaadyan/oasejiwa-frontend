@@ -140,7 +140,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
                     ${className}
                 `}
             >
-                <span className={value ? 'text-blue-950' : 'text-gray-400'}>
+                <span className={value ? 'text-[#234463]' : 'text-gray-400'}>
                     {value ? formatDisplayDate(value) : placeholder}
                 </span>
                 <CalendarIcon size={20} className="text-[#234463]" />
@@ -238,7 +238,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
                                     ${isSelectedDate(day || 0)
                                         ? 'bg-[#234463] text-white font-semibold'
                                         : isToday(day || 0)
-                                        ? 'bg-blue-100 text-blue-950 font-medium'
+                                        ? 'bg-blue-100 text-[#234463] font-medium'
                                         : 'hover:bg-gray-100 text-gray-700'
                                     }
                                 `}
