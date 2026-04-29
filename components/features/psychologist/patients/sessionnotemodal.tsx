@@ -1,6 +1,6 @@
 "use client";
 
-import { X, Calendar, Clock, FileText, AlertTriangle } from "lucide-react";
+import { X, Calendar, Clock, AlertTriangle } from "lucide-react";
 import type { SessionNote } from "@/lib/types/psychologist";
 
 interface SessionNoteModalProps {
@@ -11,6 +11,8 @@ interface SessionNoteModalProps {
 
 export default function SessionNoteModal({ isOpen, onClose, note }: SessionNoteModalProps) {
   if (!isOpen || !note) return null;
+  
+  const riskLevel = (note.riskLevel?.toLowerCase() || "low") as "low" | "medium" | "high";
 
   const getRiskBadge = () => {
     const styles = {
@@ -26,16 +28,16 @@ export default function SessionNoteModal({ isOpen, onClose, note }: SessionNoteM
     };
 
     return (
-      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${styles[note.riskLevel || "low"]}`}>
+      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${styles[riskLevel]}`}>
         <AlertTriangle className="w-3 h-3" />
-        {labels[note.riskLevel || "low"]}
+        {labels[riskLevel]}
       </span>
     );
   };
 
   return (
     <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
-      <div 
+      <div
         className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
@@ -72,25 +74,21 @@ export default function SessionNoteModal({ isOpen, onClose, note }: SessionNoteM
 
           {/* SOAP Notes */}
           <div className="space-y-4">
-            {/* Subjective */}
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <h3 className="text-sm font-semibold text-[#2B5379] mb-2">Subjective (Keluhan Pasien)</h3>
               <p className="text-sm text-gray-700 whitespace-pre-wrap">{note.subjective}</p>
             </div>
 
-            {/* Objective */}
             <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
               <h3 className="text-sm font-semibold text-[#2B5379] mb-2">Objective (Observasi)</h3>
               <p className="text-sm text-gray-700 whitespace-pre-wrap">{note.objective}</p>
             </div>
 
-            {/* Assessment */}
             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <h3 className="text-sm font-semibold text-[#2B5379] mb-2">Assessment (Analisis)</h3>
               <p className="text-sm text-gray-700 whitespace-pre-wrap">{note.assessment}</p>
             </div>
 
-            {/* Plan */}
             <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
               <h3 className="text-sm font-semibold text-[#2B5379] mb-2">Plan (Rencana)</h3>
               <p className="text-sm text-gray-700 whitespace-pre-wrap">{note.plan}</p>
