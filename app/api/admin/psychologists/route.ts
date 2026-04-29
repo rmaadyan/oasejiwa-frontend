@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 export async function GET(req: NextRequest) {
     const token = req.headers.get("authorization");
 
-    const res = await fetch("http://localhost:3001/admin/psychologists", {
+    const res = await fetch(`${API_URL}/admin/psychologists`, {
         headers: {
             Authorization: token || "",
         },
@@ -17,7 +19,7 @@ export async function POST(req: NextRequest) {
     const token = req.headers.get("authorization");
     const formData = await req.formData();
 
-    const res = await fetch("http://localhost:3001/admin/psychologists", {
+    const res = await fetch(`${API_URL}/admin/psychologists`, {
         method: "POST",
         headers: {
             Authorization: token || "",

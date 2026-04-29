@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 export async function PATCH(req: NextRequest) {
     const token = req.cookies.get("token")?.value;
 
@@ -9,7 +11,7 @@ export async function PATCH(req: NextRequest) {
 
     const body = await req.json();
 
-    const res = await fetch("http://localhost:3001/user/profile", {
+    const res = await fetch(`${API_URL}/user/profile`, {
         method: "PATCH",
         headers: {
             "Content-Type": "application/json",

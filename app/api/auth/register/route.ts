@@ -1,8 +1,10 @@
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 export async function POST(req: Request) {
     try {
         const body = await req.json();
 
-        const res = await fetch("http://localhost:3001/auth/register", { // ✅ FIX DI SINI
+        const res = await fetch(`${API_URL}/auth/register`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

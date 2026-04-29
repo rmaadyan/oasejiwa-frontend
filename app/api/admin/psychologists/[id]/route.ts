@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 export async function GET(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
@@ -7,7 +9,7 @@ export async function GET(
     const { id } = await params;
     const token = req.headers.get("authorization");
 
-    const res = await fetch(`http://localhost:3001/admin/psychologists/${id}`, {
+    const res = await fetch(`${API_URL}/admin/psychologists/${id}`, {
         headers: { Authorization: token || "" },
     });
     const data = await res.json();
@@ -22,7 +24,7 @@ export async function PATCH(
     const token = req.headers.get("authorization");
     const formData = await req.formData();
 
-    const res = await fetch(`http://localhost:3001/admin/psychologists/${id}`, {
+    const res = await fetch(`${API_URL}/admin/psychologists/${id}`, {
         method: "PATCH",
         headers: { Authorization: token || "" },
         body: formData,
@@ -38,7 +40,7 @@ export async function DELETE(
     const { id } = await params;
     const token = req.headers.get("authorization");
 
-    const res = await fetch(`http://localhost:3001/admin/psychologists/${id}`, {
+    const res = await fetch(`${API_URL}/admin/psychologists/${id}`, {
         method: "DELETE",
         headers: { Authorization: token || "" },
     });

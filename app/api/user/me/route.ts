@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 export async function GET(req: NextRequest) {
     const token = req.cookies.get("token")?.value;
 
@@ -7,7 +9,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const res = await fetch("http://localhost:3001/user/me", {
+    const res = await fetch(`${API_URL}/user/me`, {
         headers: {
             Authorization: `Bearer ${token}`,
         },

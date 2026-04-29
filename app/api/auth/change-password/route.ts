@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
@@ -8,7 +10,7 @@ export async function POST(req: NextRequest) {
         req.headers.get("authorization") ||
         req.headers.get("Authorization");
 
-        const res = await fetch("http://localhost:3001/auth/change-password", {
+        const res = await fetch(`${API_URL}/auth/change-password`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
