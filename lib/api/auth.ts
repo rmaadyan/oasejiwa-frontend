@@ -1,4 +1,5 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+// Tambahkan fallback "https://api.oasejiwa.id" di sini!
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id";
 
 export async function registerUser(data: any) {
   const res = await fetch(`${API_BASE_URL}/auth/register`, {
@@ -66,6 +67,7 @@ export async function loginUser(data: { email: string; password: string }) {
 }
 
 export function googleLogin() {
+  // Tanpa fallback, baris ini sebelumnya akan mengarahkan ke "undefined/auth/google"
   window.location.href = `${API_BASE_URL}/auth/google`;
 }
 
@@ -144,5 +146,5 @@ export async function getAuthMe() {
     throw new Error(result.message || "Unauthorized");
   }
 
-  return result; // returns: { id, email, role, isProfileComplete, isEmailVerified, isFirstLogin }
+  return result;
 }
