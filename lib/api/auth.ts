@@ -1,5 +1,4 @@
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function registerUser(data: any) {
   const res = await fetch(`${API_BASE_URL}/auth/register`, {
