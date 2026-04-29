@@ -16,7 +16,7 @@ export default function NoteCard({ note, onViewDetails }: NoteCardProps) {
       high: { bg: "bg-red-100", text: "text-red-700", label: "Risiko Tinggi" }
     };
 
-    const style = styles[note.riskLevel || "low"];
+    const style = styles[(note.riskLevel?.toLowerCase() || "low") as "low" | "medium" | "high"];
 
     return (
       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${style.bg} ${style.text}`}>

@@ -31,7 +31,7 @@ export default function NoteDetailModal({
       high: { bg: "bg-red-100", text: "text-red-700", border: "border-red-200", label: "Risiko Tinggi" }
     };
 
-    const style = styles[note.riskLevel || "low"];
+    const style = styles[(note.riskLevel?.toLowerCase() || "low") as "low" | "medium" | "high"];
 
     return (
       <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border ${style.bg} ${style.text} ${style.border}`}>
