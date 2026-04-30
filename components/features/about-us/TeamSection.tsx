@@ -16,7 +16,7 @@ const teamMembers = [
       "Mengatur standar kualitas internal dengan pendekatan psikologi lingkungan demi menjamin kenyamanan dan ketenangan setiap pengguna jasa.",
   },
   {
-    imageSrc: "/assets/about-us/Famila.jpg",
+    imageSrc: "/assets/about-us/Famila.png",
     name: "Famila",
     role: "Chief Operating Officier",
     experience:
