@@ -65,7 +65,7 @@ export default function HeroSection() {
       {/* Hero Image */}
       <div className="relative w-full h-[300px] md:h-[400px] lg:h-[500px]">
         <Image
-          src="/assets/about-us.jpg"
+          src="/assets/about-us/aboutus1.JPG"
           alt="About Us Hero"
           fill
           className="object-cover"
@@ -82,7 +82,7 @@ export default function HeroSection() {
             <div className="flex justify-center">
               <StatCard
                 icon={<UserIcon />}
-                value="1K+"
+                value="50+"
                 label="Jumlah orang terbantu"
               />
             </div>

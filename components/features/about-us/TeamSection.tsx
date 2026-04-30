@@ -2,25 +2,25 @@ import TeamMemberCard from "@/components/ui/TeamMemberCard";
 
 const teamMembers = [
   {
-    imageSrc: "/assets/about-us/about-us.jpg",
-    name: "Dr. Sarah Wijaya",
+    imageSrc: "/assets/about-us/founder.JPG",
+    name: "Andi Zaenuddin Japeri",
     role: "Founder",
     experience:
-      "Psikolog klinis dengan pengalaman lebih dari 15 tahun dalam bidang kesehatan mental dan konseling.",
+      "Psikolog klinis dengan pengalaman lebih dari 5 tahun dalam bidang kesehatan mental dan konseling.",
   },
   {
-    imageSrc: "/assets/about-us/about-us.jpg",
-    name: "Dr. Budi Santoso",
-    role: "Co-Founder",
+    imageSrc: "/assets/about-us/Hana bilqisty .png",
+    name: "Hana Bilqisty",
+    role: "Head of Internal Affairs & Quality",
     experience:
-      "Ahli psikologi perkembangan dengan spesialisasi dalam terapi keluarga dan anak-anak.",
+      "Mengatur standar kualitas internal dengan pendekatan psikologi lingkungan demi menjamin kenyamanan dan ketenangan setiap pengguna jasa.",
   },
   {
-    imageSrc: "/assets/about-us/about-us.jpg",
-    name: "Putri Rahayu, M.Psi",
-    role: "Lead Psychologist",
+    imageSrc: "/assets/about-us/Famila.jpg",
+    name: "Famila",
+    role: "Chief Operating Officier",
     experience:
-      "Spesialis dalam terapi kognitif-behavioral dengan fokus pada kecemasan dan depresi.",
+      "Mahir dalam psikologi konsumen untuk memastikan komunikasi yang empatik, solutif, dan bebas stress selama proses booking.",
   },
 ];
 
