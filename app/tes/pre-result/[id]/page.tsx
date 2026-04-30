@@ -103,7 +103,7 @@ export default function PreResultPage() {
       <div className="mx-auto flex max-w-3xl flex-col items-center rounded-2xl bg-white px-6 pb-10 pt-8 shadow-sm">
         <div className="mb-6 flex justify-center">
           <img
-            src="\assets\imghasiltes.png"
+            src="\assets\imghasiltes.PNG"
             alt="Ilustrasi kondisi emosional"
             className="h-60 w-auto object-contain"
           />
