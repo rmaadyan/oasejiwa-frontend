@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id";
 
 export async function GET(req: NextRequest) {
     const token = req.headers.get("authorization");
