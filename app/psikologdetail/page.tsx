@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { BadgeCheck, GraduationCap, Stethoscope, User } from "lucide-react";
 import Navbar from "@/components/common/Navbar";
-import { getPsychologistByIdPublic } from "@/lib/api/psychologistsUserSide";
+import { getPsychologistByIdPublic } from "@/lib/api/psychologists";
 
 type Schedule = {
   id: string;

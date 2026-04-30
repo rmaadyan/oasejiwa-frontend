@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { BadgeCheck, User } from "lucide-react"
 import Navbar from "@/components/common/Navbar"
-import { getAllPsychologistsPublic } from "@/lib/api/psychologistsUserSide"
+import { getAllPsychologistsPublic } from "@/lib/api/psychologists"
 
 type Psikolog = {
     id: string;

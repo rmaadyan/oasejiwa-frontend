@@ -77,7 +77,6 @@ export default function ManagePsikolog() {
                 date: s.date,
                 startTime: s.startTime,
                 duration: s.duration,
-                isAvailable: true,
             })),
         };
 
