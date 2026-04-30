@@ -29,7 +29,7 @@ export default function WelcomeCard({ psychologist, nextSessionTime }: WelcomeCa
     <div className="bg-[#D1EAFF] rounded-xl p-6">
       <div className="flex-1">
         <h1 className="text-2xl font-bold mb-1 text-[#2B5379]">
-          {getCurrentGreeting()}, {psychologist.name.split(' ')[1]}! 👋
+          {getCurrentGreeting()}, {psychologist.name.split(' ')[1]}
         </h1>
         <p className="text-[#2B5379]/70 mb-4">
           Semangat untuk membantu pasien hari ini

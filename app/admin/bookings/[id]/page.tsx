@@ -881,7 +881,7 @@ const handleContactClient = () => {
           {booking.status !== "WAITING_APPROVAL" && (
             <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-xl">
               <p className="text-sm text-yellow-700">
-                ⚠️ Backend hanya mendukung pembatalan saat status{" "}
+                Hanya mendukung pembatalan saat status{" "}
                 <strong>WAITING_APPROVAL</strong>. Status saat ini:{" "}
                 <strong>{booking.status}</strong>. Pembatalan mungkin gagal.
               </p>

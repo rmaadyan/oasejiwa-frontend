@@ -27,6 +27,15 @@ export default function SignIn() {
         setPasswordError,
     } = useAuthValidation();
 
+    const handleGoogleLogin = () => {
+        const existingUser = localStorage.getItem("user");
+        if (existingUser) {
+            setError("Kamu sudah login. Silakan logout terlebih dahulu untuk login dengan Google.");
+            return;
+        }
+        googleLogin();
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
@@ -35,53 +44,53 @@ export default function SignIn() {
         const validationError = validateLogin(email, password);
 
         if (validationError) {
-        setError(validationError);
-        setIsLoading(false);
-        return;
+            setError(validationError);
+            setIsLoading(false);
+            return;
         }
 
         try {
-        const data = await loginUser({ email, password });
+            const data = await loginUser({ email, password });
 
-        console.log("Response:", data);
+            console.log("Response:", data);
 
-        const token = data.accessToken ?? data.token ?? data.data?.accessToken;
-        const user = data.user ?? data.data?.user;
-        const role = user?.role;
+            const token = data.accessToken ?? data.token ?? data.data?.accessToken;
+            const user = data.user ?? data.data?.user;
+            const role = user?.role;
 
-        if (!token) {
-            setError("Token tidak ditemukan, cek response backend");
-            return;
-        }
+            if (!token) {
+                setError("Token tidak ditemukan, cek response backend");
+                return;
+            }
 
-        if (!user || !role) {
-            setError("Data user tidak ditemukan, cek response backend");
-            return;
-        }
-        localStorage.setItem("user", JSON.stringify(user));
+            if (!user || !role) {
+                setError("Data user tidak ditemukan, cek response backend");
+                return;
+            }
+            localStorage.setItem("user", JSON.stringify(user));
 
-        console.log("Role:", role);
+            console.log("Role:", role);
 
-        if (role === "PSYCHOLOGIST" && user.isFirstLogin) {
-            router.push("/auth/change-password-psychologist");
-        } else if (role === "PSYCHOLOGIST") {
-            router.push("/psychologist/dashboard");
-        } else if (role === "ADMIN") {
-            router.push("/admin");
-        } else {
-            router.push("/userprofile");
-        }
+            if (role === "PSYCHOLOGIST" && user.isFirstLogin) {
+                router.push("/auth/change-password-psychologist");
+            } else if (role === "PSYCHOLOGIST") {
+                router.push("/psychologist/dashboard");
+            } else if (role === "ADMIN") {
+                router.push("/admin");
+            } else {
+                router.push("/userprofile");
+            }
         } catch (err: any) {
-        if (err.message?.includes("EMAIL_NOT_VERIFIED")) {
-            setRegisteredEmail(email);
-            setShowVerifyModal(true);
-        } else {
-            setError(err.message || "Login gagal");
-        }
+            if (err.message?.includes("EMAIL_NOT_VERIFIED")) {
+                setRegisteredEmail(email);
+                setShowVerifyModal(true);
+            } else {
+                setError(err.message || "Login gagal");
+            }
         } finally {
-        setIsLoading(false);
+            setIsLoading(false);
         }
-        };
+    };
 
     return (
         <div>
@@ -159,7 +168,7 @@ export default function SignIn() {
                     <button className="flex justify-center gap-2 mb-10 py-2 md:py-3 px-8 md:px-12 border border-[#234463] rounded-4xl bg-blue-50 text-md font-bold text-[#234463] hover:shadow-md hover:border-blue-900 cursor-pointer"
                     suppressHydrationWarning
                     type="button"
-                    onClick={googleLogin}
+                    onClick={handleGoogleLogin}
                     >
                         <svg className="w-6 h-6" viewBox="0 0 24 24">
                             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />

@@ -1,4 +1,5 @@
-const API_BASE_URL =process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id";
+
 export async function getMe() {
     const res = await fetch(`${API_BASE_URL}/user/me`, {
         credentials: "include",
@@ -18,7 +19,7 @@ export async function getMe() {
 }
 
 export async function updateUserProfile(data: any) {
-    const res = await fetch("/api/user/profile", {
+    const res = await fetch(`${API_BASE_URL}/user/profile`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

@@ -11,14 +11,14 @@ type EditAddressProps = {
         city: string;
     };
     onClose: () => void;
-    onSave: (data: EditAddressProps["initialData"]) => void
+    onSave: (data: EditAddressProps["initialData"]) => Promise<void>;
 };
 
 export default function EditAddress({
     initialData,
     onSave,
     onClose,
-    }: EditAddressProps) {
+}: EditAddressProps) {
     const [address, setAddress] = useState(initialData.address);
     const [country, setCountry] = useState(initialData.country);
     const [city, setCity] = useState(initialData.city);
@@ -28,14 +28,18 @@ export default function EditAddress({
     const [cities, setCities] = useState<string[]>([]);
     const [countryCode, setCountryCode] = useState("");
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!country || !city || !address) {
             setError("Lengkapi semua data!");
             return;
         }
-        onSave({country, city, address});
-        onClose();
+        try {
+            await onSave({ country, city, address });
+            onClose(); 
+        } catch (err) {
+            setError("Gagal menyimpan. Coba lagi.");
+        }
     };
 
     return (

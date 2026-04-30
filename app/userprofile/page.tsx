@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { getMe, updateUserProfile } from "@/lib/api/user";
 import MyBookings from "@/components/features/user/profileManagement/MyBookings";
+import { logoutUser } from "@/lib/api/auth";
 
 type ProfileData = {
     fullName: string;
@@ -94,7 +95,7 @@ export default function Profile() {
         setProfileData(prev => ({ ...prev, ...updatedData }));
         setIsEditPersonalInformation(false);
 
-        // Cek apakah semua data sudah lengkap setelah save lalu redirect balik ke booking kalau ada redirectUrl
+        //cek apakah semua data sudah lengkap setelah save lalu redirect balik ke booking kalau ada redirectUrl
         if (redirectUrl) {
             const currentProfile = {
                 ...profileData,
@@ -122,7 +123,6 @@ export default function Profile() {
             fullAddress: data.address,
         });
         setProfileData(prev => ({ ...prev, ...data }));
-        setIsEditAddress(false);
 
         if (redirectUrl) {
             const currentProfile = {
@@ -144,13 +144,11 @@ export default function Profile() {
         }
     };
 
-    const handleLogout = () => {
-        document.cookie = "token=; path=/; max-age=0";
+    const handleLogout = async() => {
+        await logoutUser();
         localStorage.removeItem("user");
-        setTimeout(() => {
-            setIsSidebarOpen(false);
-            router.push('/auth/signin');
-        }, 500);
+        setIsSidebarOpen(false);
+        router.push('/auth/signin');
     };
 
     if (isLoading) {
