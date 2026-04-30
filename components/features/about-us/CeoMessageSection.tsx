@@ -51,7 +51,7 @@ export default function CeoMessageSection() {
             <div className="flex items-center gap-3 mt-6">
               <div className="w-12 h-[2px] bg-[#2B5379]"></div>
               <p className="text-[14px] md:text-[16px] font-semibold text-[#234463]">
-                Dr. Sarah Wijaya, Founder & CEO Oase Jiwa
+                Andi Zainuddin Japeri, M. Psi., Psikolog., Founder & CEO Oase Jiwa
               </p>
             </div>
           </div>

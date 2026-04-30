@@ -3,7 +3,7 @@ import TeamMemberCard from "@/components/ui/TeamMemberCard";
 const teamMembers = [
   {
     imageSrc: "/assets/about-us/founder.JPG",
-    name: "Andi Zaenuddin Japeri",
+    name: "Andi Zainuddin Japeri, M. Psi., Psikolog.",
     role: "Founder",
     experience:
       "Psikolog klinis dengan pengalaman lebih dari 5 tahun dalam bidang kesehatan mental dan konseling.",
