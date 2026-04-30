@@ -9,7 +9,7 @@ const teamMembers = [
       "Psikolog klinis dengan pengalaman lebih dari 5 tahun dalam bidang kesehatan mental dan konseling.",
   },
   {
-    imageSrc: "/assets/about-us/Hana bilqisty .png",
+    imageSrc: "/assets/about-us/bilqisty.png",
     name: "Hana Bilqisty",
     role: "Head of Internal Affairs & Quality",
     experience:
