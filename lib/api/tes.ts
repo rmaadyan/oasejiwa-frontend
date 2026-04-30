@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:3001";
+const API_BASE_URL = "https://api.oasejiwa.id";
 
 function getAuthToken(): string {
   if (typeof window !== "undefined") {

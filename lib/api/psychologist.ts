@@ -24,7 +24,7 @@ import {
 } from "@/lib/data/mock-ui-data";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+  process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id";
 
 const USE_REAL_NOTES_API = true;
 

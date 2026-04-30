@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:3001";
+const API_BASE_URL = "https://api.oasejiwa.id";
 
 // Helper terpusat — selalu pakai cookie
 const authFetch = (url: string, options: RequestInit = {}) =>

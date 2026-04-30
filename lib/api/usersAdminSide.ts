@@ -7,7 +7,7 @@ import type {
 } from "@/lib/types/users";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+  process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id";
 
 function normalizeSort(sort?: string) {
   if (sort === "name-asc") return "name_asc";
