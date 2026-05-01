@@ -21,7 +21,7 @@ export default function PaymentHelpSection() {
         <p className="text-xs text-[#4B4B4B]">
           Hubungi customer service kami di{" "}
           <a
-            href="https://wa.me/6281234567890"
+            href="https://wa.me/6281313888830"
             className="text-[#2B5379] font-medium hover:underline"
           >
             WhatsApp
