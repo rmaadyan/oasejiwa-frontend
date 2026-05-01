@@ -12,69 +12,102 @@ interface Payment {
 
 interface PendingPaymentsProps {
   payments: Payment[];
+  totalPendingPayments?: number;
 }
 
-export default function PendingPayments({ payments }: PendingPaymentsProps) {
+export default function PendingPayments({
+  payments,
+  totalPendingPayments = payments.length,
+}: PendingPaymentsProps) {
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
     }).format(amount);
   };
 
+  const displayedPayments = payments.slice(0, 3);
+
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="rounded-xl border border-gray-200 bg-white p-6">
+      <div className="mb-6 flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-[#2B5379]">Pembayaran Pending</h2>
-          <p className="text-sm text-gray-600 mt-1">Memerlukan validasi segera</p>
+          <h2 className="text-xl font-semibold text-[#2B5379]">
+            Pembayaran Pending
+          </h2>
+
+          <p className="mt-1 text-sm text-gray-600">
+            {totalPendingPayments} pembayaran perlu divalidasi
+          </p>
         </div>
-        <Link 
-          href="/admin/payments" 
-          className="text-sm font-medium text-[#2B5379] hover:text-[#1e3d57] flex items-center gap-1"
+
+        <Link
+          href="/admin/bookings"
+          className="flex items-center gap-1 text-sm font-medium text-[#2B5379] hover:text-[#1e3d57]"
         >
           Validasi Semua
           <ArrowUpRight className="h-4 w-4" />
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {payments.map((payment) => (
-          <div 
-            key={payment.id} 
-            className={`rounded-lg p-4 border-l-4 ${
-              payment.urgent 
-                ? "border-red-500 bg-red-50" 
-                : "border-[#2B5379] bg-gray-50"
-            }`}
-          >
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex-1">
-                <p className="font-semibold text-gray-900">{payment.patient}</p>
-                <p className="text-sm text-gray-600">{payment.service}</p>
-              </div>
-              {payment.urgent && (
-                <span className="text-xs font-semibold text-red-600 bg-red-100 px-2 py-1 rounded">
-                  URGENT
-                </span>
-              )}
-            </div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-lg font-bold text-[#2B5379]">
-                {formatCurrency(payment.amount)}
-              </span>
-              <span className="text-xs text-gray-500">{payment.uploadedAt}</span>
-            </div>
-            <Link
-              href={`/admin/payments/${payment.id}`}
-              className="block w-full text-center py-2 bg-[#2B5379] hover:bg-[#1e3d57] text-white text-sm font-medium rounded-lg transition-colors"
+      {displayedPayments.length > 0 ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {displayedPayments.map((payment) => (
+            <div
+              key={payment.id}
+              className={`rounded-lg border-l-4 p-4 ${
+                payment.urgent
+                  ? "border-red-500 bg-red-50"
+                  : "border-[#2B5379] bg-gray-50"
+              }`}
             >
-              Validasi Sekarang
-            </Link>
-          </div>
-        ))}
-      </div>
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold text-gray-900">
+                    {payment.patient}
+                  </p>
+                  <p className="truncate text-sm text-gray-600">
+                    {payment.service}
+                  </p>
+                </div>
+
+                {payment.urgent && (
+                  <span className="rounded bg-red-100 px-2 py-1 text-xs font-semibold text-red-600">
+                    URGENT
+                  </span>
+                )}
+              </div>
+
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <span className="text-lg font-bold text-[#2B5379]">
+                  {formatCurrency(payment.amount)}
+                </span>
+
+                <span className="text-xs text-gray-500">
+                  {payment.uploadedAt}
+                </span>
+              </div>
+
+              <Link
+                href={`/admin/bookings/${payment.id}`}
+                className="block w-full rounded-lg bg-[#2B5379] py-2 text-center text-sm font-medium text-white transition-colors hover:bg-[#1e3d57]"
+              >
+                Validasi Sekarang
+              </Link>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 text-center">
+          <p className="text-sm font-medium text-gray-600">
+            Tidak ada pembayaran pending
+          </p>
+          <p className="mt-1 text-xs text-gray-500">
+            Pembayaran yang perlu divalidasi akan muncul di sini.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

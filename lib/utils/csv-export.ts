@@ -1,38 +1,72 @@
-/**
- * Export data to CSV file
- * @param data Array of objects to export
- * @param filename Name of the CSV file to download
- */
-export const downloadToCSV = (data: any[], filename: string) => {
-  if (!data || data.length === 0) return;
+type CsvValue = string | number | boolean | null | undefined | Date;
 
-  // Get headers from first object
-  const headers = Object.keys(data[0]);
-  
-  // Create CSV content
-  const csvContent = [
-    headers.join(","),
-    ...data.map(row =>
-      headers.map(header => {
-        const value = row[header];
-        // Escape quotes and wrap in quotes if contains comma
-        if (typeof value === "string" && (value.includes(",") || value.includes('"'))) {
-          return `"${value.replace(/"/g, '""')}"`;
-        }
-        return typeof value === "string" ? `"${value}"` : value;
-      }).join(",")
-    )
-  ].join("\n");
+type CsvRow = Record<string, CsvValue>;
 
-  // Create blob and download
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const link = document.createElement("a");
+interface DownloadCsvOptions {
+  delimiter?: "," | ";";
+  includeBom?: boolean;
+  includeExcelSeparatorHint?: boolean;
+}
+
+export function downloadToCSV(
+  rows: CsvRow[],
+  filename: string,
+  options: DownloadCsvOptions = {}
+) {
+  const delimiter = options.delimiter ?? ";";
+  const includeBom = options.includeBom ?? true;
+  const includeExcelSeparatorHint = options.includeExcelSeparatorHint ?? true;
+
+  if (!rows || rows.length === 0) {
+    alert("Tidak ada data untuk diexport.");
+    return;
+  }
+
+  const headers = Object.keys(rows[0]);
+
+  const csvRows = [
+    headers.map((header) => escapeCsvValue(header)).join(delimiter),
+    ...rows.map((row) =>
+      headers.map((header) => escapeCsvValue(row[header])).join(delimiter)
+    ),
+  ];
+
+  const separatorHint = includeExcelSeparatorHint ? `sep=${delimiter}\r\n` : "";
+  const csvContent = separatorHint + csvRows.join("\r\n");
+
+  const bom = includeBom ? "\uFEFF" : "";
+
+  const blob = new Blob([bom + csvContent], {
+    type: "text/csv;charset=utf-8;",
+  });
+
   const url = URL.createObjectURL(blob);
-  
-  link.setAttribute("href", url);
-  link.setAttribute("download", filename);
-  link.style.visibility = "hidden";
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = filename.endsWith(".csv") ? filename : `${filename}.csv`;
+  link.style.display = "none";
+
   document.body.appendChild(link);
   link.click();
+
   document.body.removeChild(link);
-};
+  URL.revokeObjectURL(url);
+}
+
+function escapeCsvValue(value: CsvValue) {
+  if (value === null || value === undefined) {
+    return '""';
+  }
+
+  let text =
+    value instanceof Date
+      ? value.toISOString().slice(0, 10)
+      : String(value);
+
+  text = text.replace(/\r?\n|\r/g, " ");
+
+  const escaped = text.replace(/"/g, '""');
+
+  return `"${escaped}"`;
+}

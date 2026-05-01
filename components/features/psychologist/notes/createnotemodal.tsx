@@ -2,11 +2,17 @@
 
 import { X, AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
-import { getAllPatients, createNote, updateNote } from "@/lib/api/psychologist";
+import {
+  getAllPatients,
+  getPatientDetail,
+  createNote,
+  updateNote,
+} from "@/lib/api/psychologist";
 import type {
   PsychologistPatient,
   SessionNote,
   SessionNotePayload,
+  SessionSummary,
 } from "@/lib/types/psychologist";
 
 interface CreateNoteModalProps {
@@ -23,13 +29,18 @@ export default function CreateNoteModal({
   editNote,
 }: CreateNoteModalProps) {
   const [patients, setPatients] = useState<PsychologistPatient[]>([]);
+  const [patientSessions, setPatientSessions] = useState<SessionSummary[]>([]);
+
   const [loading, setLoading] = useState(false);
+  const [loadingSessions, setLoadingSessions] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
   const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     patientId: "",
     patientName: "",
+    scheduleId: "",
     subjective: "",
     objective: "",
     assessment: "",
@@ -47,16 +58,21 @@ export default function CreateNoteModal({
 
     fetchPatients();
     setError(null);
+    setPatientSessions([]);
 
     if (editNote) {
       setFormData({
         patientId: editNote.patientId,
         patientName: editNote.patientName,
+        scheduleId: editNote.scheduleId || "",
         subjective: editNote.subjective || "",
         objective: editNote.objective || "",
         assessment: editNote.assessment || "",
         plan: editNote.plan || "",
-        riskLevel: (editNote.riskLevel?.toLowerCase() || "low") as "low" | "medium" | "high",
+        riskLevel: (editNote.riskLevel?.toLowerCase() || "low") as
+          | "low"
+          | "medium"
+          | "high",
         followUpDate: editNote.followUpDate || "",
         nextSessionRecommendation: editNote.nextSessionRecommendation || "",
         tags: editNote.tags || [],
@@ -65,6 +81,7 @@ export default function CreateNoteModal({
       setFormData({
         patientId: "",
         patientName: "",
+        scheduleId: "",
         subjective: "",
         objective: "",
         assessment: "",
@@ -78,6 +95,38 @@ export default function CreateNoteModal({
 
     setTagInput("");
   }, [isOpen, editNote]);
+
+  const formatDate = (date?: string | Date | null) => {
+    if (!date) return "-";
+
+    const rawDate = String(date);
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+      const [year, month, day] = rawDate.split("-").map(Number);
+
+      return new Intl.DateTimeFormat("id-ID", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      }).format(new Date(year, month - 1, day));
+    }
+
+    const parsedDate = new Date(date);
+
+    if (Number.isNaN(parsedDate.getTime())) return "-";
+
+    return parsedDate.toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
+  const getStatusLabel = (status?: string) => {
+    if (status === "completed") return "Selesai";
+    if (status === "cancelled") return "Dibatalkan";
+    return "Terjadwal";
+  };
 
   const fetchPatients = async () => {
     setLoading(true);
@@ -93,31 +142,50 @@ export default function CreateNoteModal({
       setPatients(normalizedPatients);
     } catch (error) {
       console.error("Failed to fetch patients:", error);
-
-      // Sementara fallback untuk testing lokal.
-      // Ganti id ini dengan id pasien dummy dari database kamu.
-      setPatients([
-        {
-          id: "ISI_ID_PASIEN_DUMMY_DI_SINI",
-          name: "Pasien Test",
-          email: "pasien@test.com",
-          firstSessionDate: "",
-          totalSessions: 0,
-        },
-      ]);
+      setPatients([]);
+      setError("Gagal memuat daftar pasien.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPatientSessions = async (patientId: string) => {
+    if (!patientId) {
+      setPatientSessions([]);
+      return;
+    }
+
+    setLoadingSessions(true);
+    setError(null);
+
+    try {
+      const detail = await getPatientDetail(patientId);
+
+      const sessions = (detail?.sessionHistory || []).filter(
+        (session) => session.status !== "cancelled"
+      );
+
+      setPatientSessions(sessions);
+    } catch (error) {
+      console.error("Failed to fetch patient sessions:", error);
+      setPatientSessions([]);
+      setError("Gagal memuat riwayat sesi pasien.");
+    } finally {
+      setLoadingSessions(false);
     }
   };
 
   const handlePatientChange = (patientId: string) => {
     const patient = patients.find((p) => p.id === patientId);
 
-    setFormData({
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       patientId,
       patientName: patient?.name || "",
-    });
+      scheduleId: "",
+    }));
+
+    fetchPatientSessions(patientId);
   };
 
   const handleAddTag = () => {
@@ -125,24 +193,28 @@ export default function CreateNoteModal({
 
     if (!cleanedTag || formData.tags.includes(cleanedTag)) return;
 
-    setFormData({
-      ...formData,
-      tags: [...formData.tags, cleanedTag],
-    });
+    setFormData((prev) => ({
+      ...prev,
+      tags: [...prev.tags, cleanedTag],
+    }));
 
     setTagInput("");
   };
 
   const handleRemoveTag = (tagToRemove: string) => {
-    setFormData({
-      ...formData,
-      tags: formData.tags.filter((tag) => tag !== tagToRemove),
-    });
+    setFormData((prev) => ({
+      ...prev,
+      tags: prev.tags.filter((tag) => tag !== tagToRemove),
+    }));
   };
 
   const validateForm = () => {
     if (!formData.patientId && !editNote) {
       return "Pilih pasien terlebih dahulu";
+    }
+
+    if (!formData.scheduleId && !editNote) {
+      return "Pilih sesi terkait terlebih dahulu";
     }
 
     if (
@@ -186,6 +258,7 @@ export default function CreateNoteModal({
       } else {
         const payload: SessionNotePayload = {
           userId: formData.patientId,
+          scheduleId: formData.scheduleId,
           subjective: formData.subjective,
           objective: formData.objective,
           assessment: formData.assessment,
@@ -212,43 +285,48 @@ export default function CreateNoteModal({
 
   if (!isOpen) return null;
 
+  const selectableSessions = patientSessions.filter(
+    (session) => session.scheduleId && !session.hasNotes
+  );
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+        className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white p-6">
           <div>
             <h2 className="text-xl font-semibold text-[#2B5379]">
               {editNote ? "Edit Catatan" : "Buat Catatan Baru"}
             </h2>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="mt-1 text-sm text-gray-600">
               Format SOAP: Subjective, Objective, Assessment, Plan
             </p>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="rounded-lg p-2 transition-colors hover:bg-gray-100"
+            type="button"
           >
-            <X className="w-5 h-5 text-gray-600" />
+            <X className="h-5 w-5 text-gray-600" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6 p-6">
           {error && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
+            <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4">
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
               <p className="text-sm text-red-700">{error}</p>
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-medium text-gray-700">
               Pasien <span className="text-red-500">*</span>
             </label>
 
@@ -257,7 +335,7 @@ export default function CreateNoteModal({
               onChange={(e) => handlePatientChange(e.target.value)}
               disabled={loading || !!editNote}
               required={!editNote}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5379] focus:border-transparent outline-none"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2 outline-none focus:border-transparent focus:ring-2 focus:ring-[#2B5379]"
             >
               <option value="">
                 {loading ? "Memuat pasien..." : "Pilih Pasien"}
@@ -272,98 +350,161 @@ export default function CreateNoteModal({
             </select>
 
             {editNote && (
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="mt-1 text-xs text-gray-500">
                 Pasien tidak bisa diubah saat edit catatan.
               </p>
             )}
           </div>
+
+          {!editNote && (
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700">
+                Sesi Terkait <span className="text-red-500">*</span>
+              </label>
+
+              <select
+                value={formData.scheduleId}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    scheduleId: e.target.value,
+                  }))
+                }
+                disabled={
+                  !formData.patientId ||
+                  loadingSessions ||
+                  selectableSessions.length === 0
+                }
+                required
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 outline-none focus:border-transparent focus:ring-2 focus:ring-[#2B5379] disabled:bg-gray-100"
+              >
+                <option value="">
+                  {!formData.patientId
+                    ? "Pilih pasien terlebih dahulu"
+                    : loadingSessions
+                      ? "Memuat sesi..."
+                      : selectableSessions.length === 0
+                        ? "Tidak ada sesi yang bisa dibuatkan catatan"
+                        : "Pilih sesi"}
+                </option>
+
+                {selectableSessions.map((session) => (
+                  <option
+                    key={session.id}
+                    value={session.scheduleId || ""}
+                  >
+                    {formatDate(session.date)} • {session.time || "-"} •{" "}
+                    {session.service || "Konseling"} •{" "}
+                    {getStatusLabel(session.status)}
+                  </option>
+                ))}
+              </select>
+
+              <p className="mt-1 text-xs text-gray-500">
+                Catatan akan ditempelkan ke sesi yang dipilih agar tanggal dan
+                waktu sesi bisa tampil di riwayat.
+              </p>
+            </div>
+          )}
 
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-[#2B5379]">
               Catatan SOAP
             </h3>
 
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <label className="block text-sm font-bold text-[#2B5379] mb-2">
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+              <label className="mb-2 block text-sm font-bold text-[#2B5379]">
                 S - SUBJECTIVE <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={formData.subjective}
                 onChange={(e) =>
-                  setFormData({ ...formData, subjective: e.target.value })
+                  setFormData((prev) => ({
+                    ...prev,
+                    subjective: e.target.value,
+                  }))
                 }
                 rows={4}
                 required
                 placeholder="Keluhan, perasaan, cerita, atau pengalaman yang disampaikan pasien..."
-                className="w-full px-4 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-[#2B5379] focus:border-transparent outline-none bg-white"
+                className="w-full rounded-lg border border-blue-300 bg-white px-4 py-2 outline-none focus:border-transparent focus:ring-2 focus:ring-[#2B5379]"
               />
             </div>
 
-            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-              <label className="block text-sm font-bold text-[#2B5379] mb-2">
+            <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+              <label className="mb-2 block text-sm font-bold text-[#2B5379]">
                 O - OBJECTIVE <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={formData.objective}
                 onChange={(e) =>
-                  setFormData({ ...formData, objective: e.target.value })
+                  setFormData((prev) => ({
+                    ...prev,
+                    objective: e.target.value,
+                  }))
                 }
                 rows={4}
                 required
                 placeholder="Observasi objektif: ekspresi, kontak mata, bahasa tubuh, perilaku..."
-                className="w-full px-4 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-[#2B5379] focus:border-transparent outline-none bg-white"
+                className="w-full rounded-lg border border-green-300 bg-white px-4 py-2 outline-none focus:border-transparent focus:ring-2 focus:ring-[#2B5379]"
               />
             </div>
 
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <label className="block text-sm font-bold text-[#2B5379] mb-2">
+            <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+              <label className="mb-2 block text-sm font-bold text-[#2B5379]">
                 A - ASSESSMENT <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={formData.assessment}
                 onChange={(e) =>
-                  setFormData({ ...formData, assessment: e.target.value })
+                  setFormData((prev) => ({
+                    ...prev,
+                    assessment: e.target.value,
+                  }))
                 }
                 rows={4}
                 required
                 placeholder="Analisis psikolog, progress, clinical impression, atau kesimpulan sementara..."
-                className="w-full px-4 py-2 border border-yellow-300 rounded-lg focus:ring-2 focus:ring-[#2B5379] focus:border-transparent outline-none bg-white"
+                className="w-full rounded-lg border border-yellow-300 bg-white px-4 py-2 outline-none focus:border-transparent focus:ring-2 focus:ring-[#2B5379]"
               />
             </div>
 
-            <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-              <label className="block text-sm font-bold text-[#2B5379] mb-2">
+            <div className="rounded-lg border border-purple-200 bg-purple-50 p-4">
+              <label className="mb-2 block text-sm font-bold text-[#2B5379]">
                 P - PLAN <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={formData.plan}
                 onChange={(e) =>
-                  setFormData({ ...formData, plan: e.target.value })
+                  setFormData((prev) => ({
+                    ...prev,
+                    plan: e.target.value,
+                  }))
                 }
                 rows={4}
                 required
                 placeholder="Rencana treatment, latihan rumah, follow-up, atau rekomendasi..."
-                className="w-full px-4 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-[#2B5379] focus:border-transparent outline-none bg-white"
+                className="w-full rounded-lg border border-purple-300 bg-white px-4 py-2 outline-none focus:border-transparent focus:ring-2 focus:ring-[#2B5379]"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="mb-2 block text-sm font-medium text-gray-700">
                 Risk Level <span className="text-red-500">*</span>
               </label>
 
               <select
                 value={formData.riskLevel}
                 onChange={(e) =>
-                  setFormData({
-                    ...formData,
+                  setFormData((prev) => ({
+                    ...prev,
                     riskLevel: e.target.value as "low" | "medium" | "high",
-                  })
+                  }))
                 }
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5379] focus:border-transparent outline-none"
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 outline-none focus:border-transparent focus:ring-2 focus:ring-[#2B5379]"
               >
                 <option value="low">Risiko Rendah</option>
                 <option value="medium">Risiko Sedang</option>
@@ -372,7 +513,7 @@ export default function CreateNoteModal({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="mb-2 block text-sm font-medium text-gray-700">
                 Tanggal Follow-up
               </label>
 
@@ -380,38 +521,41 @@ export default function CreateNoteModal({
                 type="date"
                 value={formData.followUpDate}
                 onChange={(e) =>
-                  setFormData({ ...formData, followUpDate: e.target.value })
+                  setFormData((prev) => ({
+                    ...prev,
+                    followUpDate: e.target.value,
+                  }))
                 }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5379] focus:border-transparent outline-none"
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 outline-none focus:border-transparent focus:ring-2 focus:ring-[#2B5379]"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-medium text-gray-700">
               Rekomendasi Sesi Berikutnya
             </label>
 
             <textarea
               value={formData.nextSessionRecommendation}
               onChange={(e) =>
-                setFormData({
-                  ...formData,
+                setFormData((prev) => ({
+                  ...prev,
                   nextSessionRecommendation: e.target.value,
-                })
+                }))
               }
               rows={2}
               placeholder="Fokus atau topik untuk sesi berikutnya..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5379] focus:border-transparent outline-none"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2 outline-none focus:border-transparent focus:ring-2 focus:ring-[#2B5379]"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-medium text-gray-700">
               Tags
             </label>
 
-            <div className="flex gap-2 mb-2">
+            <div className="mb-2 flex gap-2">
               <input
                 type="text"
                 value={tagInput}
@@ -423,13 +567,13 @@ export default function CreateNoteModal({
                   }
                 }}
                 placeholder="Tambah tag lalu tekan Enter"
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2B5379] focus:border-transparent outline-none"
+                className="flex-1 rounded-lg border border-gray-300 px-4 py-2 outline-none focus:border-transparent focus:ring-2 focus:ring-[#2B5379]"
               />
 
               <button
                 type="button"
                 onClick={handleAddTag}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                className="rounded-lg bg-gray-100 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-200"
               >
                 Tambah
               </button>
@@ -439,7 +583,7 @@ export default function CreateNoteModal({
               {formData.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#D1EAFF] text-[#2B5379] text-sm rounded-md"
+                  className="inline-flex items-center gap-1.5 rounded-md bg-[#D1EAFF] px-3 py-1 text-sm text-[#2B5379]"
                 >
                   {tag}
                   <button
@@ -447,18 +591,18 @@ export default function CreateNoteModal({
                     onClick={() => handleRemoveTag(tag)}
                     className="hover:text-red-600"
                   >
-                    <X className="w-3 h-3" />
+                    <X className="h-3 w-3" />
                   </button>
                 </span>
               ))}
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <div className="flex justify-end gap-3 border-t border-gray-200 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="rounded-lg border border-gray-300 bg-white px-6 py-2 text-gray-700 transition-colors hover:bg-gray-50"
             >
               Batal
             </button>
@@ -466,7 +610,7 @@ export default function CreateNoteModal({
             <button
               type="submit"
               disabled={submitting}
-              className="px-6 py-2 text-white bg-[#2B5379] rounded-lg hover:bg-[#2B5379]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-lg bg-[#2B5379] px-6 py-2 text-white transition-colors hover:bg-[#2B5379]/90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {submitting
                 ? "Menyimpan..."

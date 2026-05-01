@@ -189,61 +189,55 @@ export async function getSessionDetails(
   return res.json();
 }
 
-export async function markSessionCompleted(sessionId: number): Promise<Session> {
-  await delay(500);
+export async function markSessionCompleted(
+  sessionId: number | string
+): Promise<Session> {
+  const res = await fetch(
+    `${API_BASE_URL}/psychologist/sessions/${sessionId}/complete`,
+    {
+      method: "PATCH",
+      cache: "no-store",
+      credentials: "include",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({}),
+    }
+  );
 
-  let session = mockAllSessions.find((s) => s.id === sessionId);
-
-  if (!session) {
-    session = mockTodaySessions.find((s) => s.id === sessionId);
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(
+      `Failed to mark session as completed: ${res.status} ${errorText}`
+    );
   }
 
-  if (!session) {
-    throw new Error("Session not found");
-  }
-
-  session.status = "completed";
-
-  const todaySession = mockTodaySessions.find((s) => s.id === sessionId);
-  if (todaySession) {
-    todaySession.status = "completed";
-  }
-
-  return session;
+  return res.json();
 }
 
 export async function cancelSession(
-  sessionId: number,
+  sessionId: number | string,
   payload: SessionActionPayload
 ): Promise<Session> {
-  await delay(500);
-
-  let session = mockAllSessions.find((s) => s.id === sessionId);
-
-  if (!session) {
-    session = mockTodaySessions.find((s) => s.id === sessionId);
-  }
-
-  if (!session) {
-    throw new Error("Session not found");
-  }
-
-  session.status = "cancelled";
-
-  if (payload.reason) {
-    session.notes = payload.reason;
-  }
-
-  const todaySession = mockTodaySessions.find((s) => s.id === sessionId);
-  if (todaySession) {
-    todaySession.status = "cancelled";
-
-    if (payload.reason) {
-      todaySession.notes = payload.reason;
+  const res = await fetch(
+    `${API_BASE_URL}/psychologist/sessions/${sessionId}/cancel`,
+    {
+      method: "PATCH",
+      cache: "no-store",
+      credentials: "include",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        reason: payload.reason,
+      }),
     }
+  );
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(
+      `Failed to cancel session: ${res.status} ${errorText}`
+    );
   }
 
-  return session;
+  return res.json();
 }
 
 export async function getAllPatients(

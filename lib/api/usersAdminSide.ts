@@ -45,6 +45,34 @@ function normalizeUserFromApi(user: any): User {
   };
 }
 
+function formatDateForDisplay(date?: string | Date | null) {
+  if (!date) return "-";
+
+  const rawDate = String(date);
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+    const [year, month, day] = rawDate.split("-").map(Number);
+
+    return new Intl.DateTimeFormat("id-ID", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    }).format(new Date(year, month - 1, day));
+  }
+
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "-";
+  }
+
+  return parsedDate.toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 export async function getUsers(
   params: UserQueryParams = {}
 ): Promise<UsersResponse> {
@@ -119,12 +147,27 @@ export async function getUserDetails(
 
   return {
     ...user,
-    totalBookings: 0,
-    completedBookings: 0,
-    totalSpent: 0,
-    lastBooking: undefined,
-    bookingHistory: [],
-    transactionHistory: [],
+    registeredAt: formatDateForDisplay(data.registeredAt ?? user.registeredAt),
+
+    totalBookings: data.totalBookings ?? 0,
+    completedBookings: data.completedBookings ?? 0,
+    totalTransactions: data.totalTransactions ?? 0,
+    totalSpent: data.totalSpent ?? 0,
+    lastBooking: data.lastBooking
+      ? formatDateForDisplay(data.lastBooking)
+      : undefined,
+
+    bookingHistory: (data.bookingHistory || []).map((booking: any) => ({
+      ...booking,
+      date: formatDateForDisplay(booking.date),
+    })),
+
+    transactionHistory: (data.transactionHistory || []).map(
+      (transaction: any) => ({
+        ...transaction,
+        date: formatDateForDisplay(transaction.date),
+      })
+    ),
   } as UserDetails;
 }
 

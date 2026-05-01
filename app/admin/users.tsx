@@ -6,7 +6,7 @@ import UserModal from "@/components/features/admin/users/usermodal";
 import UserDetailsModal from "@/components/features/admin/users/userdetailsmodal";
 import UserFilterBar from "@/components/features/admin/users/userfilterbar";
 import Pagination from "@/components/features/admin/users/pagination";
-import { getUsers, updateUser, deleteUser } from "@/lib/api/usersAdminSide";
+import { getUsers, updateUser } from "@/lib/api/usersAdminSide";
 import { downloadToCSV } from "@/lib/utils/csv-export";
 import type {
   User,
@@ -18,6 +18,7 @@ import type {
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -37,6 +38,65 @@ export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [genderFilter, setGenderFilter] = useState<GenderFilter>("all");
+
+  const formatDateForCsv = (date?: string | Date | null) => {
+    if (!date) return "";
+
+    const rawDate = String(date);
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+      const [year, month, day] = rawDate.split("-").map(Number);
+
+      return new Intl.DateTimeFormat("id-ID", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      }).format(new Date(year, month - 1, day));
+    }
+
+    const parsedDate = new Date(date);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return "";
+    }
+
+    return parsedDate.toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
+  const formatGender = (gender?: string | null) => {
+    if (gender === "male") return "Laki-laki";
+    if (gender === "female") return "Perempuan";
+    return "";
+  };
+
+  const formatRole = (role?: string | null) => {
+    if (role === "admin") return "Admin";
+    if (role === "psychologist") return "Psikolog";
+    if (role === "user" || role === "patient") return "Pasien";
+    return role || "";
+  };
+
+  const formatStatus = (status?: string | null) => {
+    if (status === "active") return "Aktif";
+    if (status === "inactive") return "Nonaktif";
+    return status || "";
+  };
+
+  const formatPhoneForCsv = (phone?: string | null) => {
+    if (!phone) return "";
+
+    const cleanedPhone = String(phone).trim();
+
+    /**
+     * Format ini sengaja supaya Excel membaca nomor HP sebagai teks,
+     * bukan angka scientific notation seperti 8,21E+10.
+     */
+    return `="${cleanedPhone}"`;
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -84,33 +144,41 @@ export default function UsersPage() {
     setSelectedUser(null);
   };
 
-  const handleDeleteUser = async () => {
-    if (!selectedUser) return;
+  const handleExport = async () => {
+    try {
+      const response = await getUsers({
+        page: 1,
+        perPage: Math.max(totalUsers, 1),
+        sort: sortBy,
+        gender: genderFilter,
+        search: searchQuery,
+      });
 
-    await deleteUser(selectedUser.id);
-    await fetchUsers();
+      const exportData = response.users.map((user, index) => ({
+        No: index + 1,
+        Nama: user.name || "",
+        Email: user.email || "",
+        Role: formatRole(user.role),
+        Status: formatStatus(user.status),
+        "Jenis Kelamin": formatGender(user.gender),
+        Telepon: formatPhoneForCsv(user.phone),
+        "Tanggal Bergabung": formatDateForCsv(user.registeredAt),
+        "Total Booking": user.bookingCount || 0,
+      }));
 
-    setSelectedUser(null);
-    setIsModalOpen(false);
-  };
-
-  const handleExport = () => {
-    const exportData = users.map((user) => ({
-      ID: user.id,
-      Nama: user.name,
-      Email: user.email,
-      "Jenis Kelamin": user.gender === "male" ? "Laki-laki" : "Perempuan",
-      Role: user.role === "psychologist" ? "Psikolog" : "Pasien",
-      Telepon: user.phone || "-",
-      "Tanggal Bergabung": user.registeredAt || "-",
-      Status: user.status === "active" ? "Aktif" : "Nonaktif",
-      "Total Booking": user.bookingCount || 0,
-    }));
-
-    downloadToCSV(
-      exportData,
-      `users-${new Date().toISOString().split("T")[0]}.csv`
-    );
+      downloadToCSV(
+        exportData,
+        `user-oase-jiwa-${new Date().toISOString().split("T")[0]}.csv`,
+        {
+          delimiter: ";",
+          includeBom: true,
+          includeExcelSeparatorHint: true,
+        }
+      );
+    } catch (error) {
+      console.error("Failed to export users:", error);
+      alert("Gagal export data user.");
+    }
   };
 
   const openEditModal = (user: User) => {
@@ -126,37 +194,39 @@ export default function UsersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-[#2B5379]">Manajemen User</h1>
-        <p className="text-gray-600 mt-1">
-          Lihat rincian user, ubah role, atau hapus user
+        <h1 className="text-3xl font-bold text-[#2B5379]">
+          Manajemen User
+        </h1>
+        <p className="mt-1 text-gray-600">
+          Lihat rincian user dan ubah role pengguna
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+        <div className="rounded-xl border border-gray-200 bg-white p-6">
           <p className="text-sm font-medium text-gray-600">Total User</p>
-          <p className="text-3xl font-bold text-[#2B5379] mt-2">
+          <p className="mt-2 text-3xl font-bold text-[#2B5379]">
             {userStats.totalUsers}
           </p>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="rounded-xl border border-gray-200 bg-white p-6">
           <p className="text-sm font-medium text-gray-600">Pasien</p>
-          <p className="text-3xl font-bold text-green-600 mt-2">
+          <p className="mt-2 text-3xl font-bold text-green-600">
             {userStats.totalPatients}
           </p>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="rounded-xl border border-gray-200 bg-white p-6">
           <p className="text-sm font-medium text-gray-600">Psikolog</p>
-          <p className="text-3xl font-bold text-purple-600 mt-2">
+          <p className="mt-2 text-3xl font-bold text-purple-600">
             {userStats.totalPsychologists}
           </p>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="rounded-xl border border-gray-200 bg-white p-6">
           <p className="text-sm font-medium text-gray-600">Halaman Ini</p>
-          <p className="text-3xl font-bold text-blue-600 mt-2">
+          <p className="mt-2 text-3xl font-bold text-blue-600">
             {users.length}
           </p>
         </div>
@@ -195,7 +265,6 @@ export default function UsersPage() {
           setSelectedUser(null);
         }}
         onSubmit={handleEditUser}
-        onDelete={handleDeleteUser}
         user={selectedUser}
         mode="edit"
       />

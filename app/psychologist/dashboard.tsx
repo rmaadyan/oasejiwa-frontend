@@ -5,8 +5,16 @@ import WelcomeCard from "@/components/features/psychologist/dashboard/welcomecar
 import TodayStats from "@/components/features/psychologist/dashboard/todaystats";
 import TodaySchedule from "@/components/features/psychologist/dashboard/todayschedule";
 import UpcomingAppointments from "@/components/features/psychologist/dashboard/upcomingappointments";
-import { getPsychologistDashboard, getPsychologistProfile, markSessionCompleted } from "@/lib/api/psychologist";
-import type { Psychologist, PsychologistDashboardStats, Session } from "@/lib/types/psychologist";
+import {
+  getPsychologistDashboard,
+  getPsychologistProfile,
+  markSessionCompleted,
+} from "@/lib/api/psychologist";
+import type {
+  Psychologist,
+  PsychologistDashboardStats,
+  Session,
+} from "@/lib/types/psychologist";
 
 export default function PsychologistDashboard() {
   const [loading, setLoading] = useState(true);
@@ -17,10 +25,11 @@ export default function PsychologistDashboard() {
 
   const fetchDashboardData = async () => {
     setLoading(true);
+
     try {
       const [profileData, dashboardData] = await Promise.all([
         getPsychologistProfile(),
-        getPsychologistDashboard()
+        getPsychologistDashboard(),
       ]);
 
       setProfile(profileData);
@@ -38,7 +47,7 @@ export default function PsychologistDashboard() {
     fetchDashboardData();
   }, []);
 
-  const handleMarkCompleted = async (sessionId: number) => {
+  const handleMarkCompleted = async (sessionId: number | string) => {
     try {
       await markSessionCompleted(sessionId);
       await fetchDashboardData();
@@ -50,9 +59,9 @@ export default function PsychologistDashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex min-h-[60vh] items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-[#2B5379] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-[#2B5379] border-t-transparent" />
           <p className="text-gray-600">Memuat dashboard...</p>
         </div>
       </div>
@@ -61,12 +70,13 @@ export default function PsychologistDashboard() {
 
   if (!profile || !stats) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex min-h-[60vh] items-center justify-center">
         <div className="text-center">
           <p className="text-red-600">Gagal memuat data dashboard</p>
           <button
             onClick={fetchDashboardData}
-            className="mt-4 px-4 py-2 bg-[#2B5379] text-white rounded-lg hover:bg-[#2B5379]/90"
+            className="mt-4 rounded-lg bg-[#2B5379] px-4 py-2 text-white hover:bg-[#2B5379]/90"
+            type="button"
           >
             Coba Lagi
           </button>
@@ -77,28 +87,25 @@ export default function PsychologistDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-[#2B5379]">Dashboard</h1>
-        <p className="text-gray-600 mt-1">Overview aktivitas dan jadwal Anda</p>
+        <p className="mt-1 text-gray-600">
+          Overview aktivitas dan jadwal Anda
+        </p>
       </div>
 
-      {/* Welcome Card */}
-      <WelcomeCard 
-        psychologist={profile} 
-        nextSessionTime={stats.nextSessionTime} 
+      <WelcomeCard
+        psychologist={profile}
+        nextSessionTime={stats.nextSessionTime}
       />
 
-      {/* Stats Cards */}
       <TodayStats stats={stats} />
 
-      {/* Today's Schedule */}
-      <TodaySchedule 
+      <TodaySchedule
         sessions={todaySchedule}
         onMarkCompleted={handleMarkCompleted}
       />
 
-      {/* Upcoming Appointments */}
       <UpcomingAppointments sessions={upcomingSessions} />
     </div>
   );

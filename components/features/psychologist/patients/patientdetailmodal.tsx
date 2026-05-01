@@ -9,7 +9,7 @@ import {
   FileText,
   Calendar,
   Clock,
-  Edit
+  Edit,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import EditMedicalModal from "../notes/editmedicalmodal";
@@ -35,21 +35,53 @@ export default function PatientDetailModal({
   const [patient, setPatient] = useState<PsychologistPatientDetail | null>(
     null
   );
+
   const [selectedNote, setSelectedNote] = useState<SessionNote | null>(null);
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   const [loadingNote, setLoadingNote] = useState(false);
   const [noteError, setNoteError] = useState<string | null>(null);
+  const [isEditMedicalOpen, setIsEditMedicalOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen && patientId) {
       fetchPatientDetail();
+    }
+
+    if (!isOpen) {
+      setPatient(null);
+      setSelectedNote(null);
+      setIsNoteModalOpen(false);
+      setNoteError(null);
+      setIsEditMedicalOpen(false);
     }
   }, [isOpen, patientId]);
 
   const formatDate = (date?: string | Date | null) => {
     if (!date) return "-";
 
-    return new Date(date).toLocaleDateString("id-ID", {
+    const rawDate = String(date);
+
+    /**
+     * Kalau backend kirim date-only seperti "2026-05-01",
+     * jangan diparse langsung pakai new Date(date), karena rawan geser hari.
+     */
+    if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+      const [year, month, day] = rawDate.split("-").map(Number);
+
+      return new Intl.DateTimeFormat("id-ID", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      }).format(new Date(year, month - 1, day));
+    }
+
+    const parsedDate = new Date(date);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return "-";
+    }
+
+    return parsedDate.toLocaleDateString("id-ID", {
       day: "2-digit",
       month: "long",
       year: "numeric",
@@ -89,55 +121,62 @@ export default function PatientDetailModal({
     }
   };
 
-  const [isEditMedicalOpen, setIsEditMedicalOpen] = useState(false);
+  const handleMedicalUpdateSuccess = async () => {
+    await fetchPatientDetail();
+  };
 
   if (!isOpen) return null;
+
+  const sessionHistory = patient?.sessionHistory ?? [];
 
   return (
     <>
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
         onClick={onClose}
       >
         <div
-          className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+          className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl bg-white shadow-xl"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
+          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white p-6">
             <div>
               <h2 className="text-xl font-semibold text-[#2B5379]">
                 Detail Pasien
               </h2>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="mt-1 text-sm text-gray-600">
                 Informasi lengkap pasien
               </p>
             </div>
 
             <button
               onClick={onClose}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="rounded-lg p-2 transition-colors hover:bg-gray-100"
+              type="button"
             >
-              <X className="w-5 h-5 text-gray-600" />
+              <X className="h-5 w-5 text-gray-600" />
             </button>
           </div>
 
           {loading ? (
             <div className="p-12 text-center">
-              <div className="w-12 h-12 border-4 border-[#2B5379] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+              <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-[#2B5379] border-t-transparent" />
               <p className="text-gray-600">Memuat data pasien...</p>
             </div>
           ) : patient ? (
-            <div className="p-6 space-y-6">
-              <div className="p-4 bg-[#D1EAFF] rounded-lg">
+            <div className="space-y-6 p-6">
+              {/* Header Pasien */}
+              <div className="rounded-lg bg-[#D1EAFF] p-4">
                 <h3 className="text-lg font-semibold text-[#2B5379]">
                   {patient.name}
                 </h3>
 
-                <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-gray-600">
+                <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-gray-600">
                   {patient.age && <span>{patient.age} tahun</span>}
+
                   {patient.gender && (
                     <span>
-                      •{" "}
+                      {patient.age ? "• " : ""}
                       {String(patient.gender).toLowerCase() === "male"
                         ? "Laki-laki"
                         : "Perempuan"}
@@ -146,77 +185,73 @@ export default function PatientDetailModal({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-3">
-                  <h4 className="font-semibold text-[#2B5379]">
-                    Informasi Kontak
-                  </h4>
+              {/* Informasi Kontak */}
+              <div className="space-y-3">
+                <h4 className="font-semibold text-[#2B5379]">
+                  Informasi Kontak
+                </h4>
 
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <Mail className="w-5 h-5 text-gray-600" />
-                    <div>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                  <div className="flex items-center gap-3 rounded-lg bg-gray-50 p-3">
+                    <Mail className="h-5 w-5 shrink-0 text-gray-600" />
+                    <div className="min-w-0">
                       <p className="text-xs text-gray-600">Email</p>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="break-words text-sm font-medium text-gray-900">
                         {patient.email || "-"}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <Phone className="w-5 h-5 text-gray-600" />
-                    <div>
+                  <div className="flex items-center gap-3 rounded-lg bg-gray-50 p-3">
+                    <Phone className="h-5 w-5 shrink-0 text-gray-600" />
+                    <div className="min-w-0">
                       <p className="text-xs text-gray-600">Telepon</p>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="break-words text-sm font-medium text-gray-900">
                         {patient.phone || "-"}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                    <MapPin className="w-5 h-5 text-gray-600 mt-0.5" />
-                    <div>
+                  <div className="flex items-start gap-3 rounded-lg bg-gray-50 p-3">
+                    <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-gray-600" />
+                    <div className="min-w-0">
                       <p className="text-xs text-gray-600">Alamat</p>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="break-words text-sm font-medium text-gray-900">
                         {patient.address || "-"}
                       </p>
                     </div>
                   </div>
                 </div>
-
-                <div className="space-y-3">
-                  <h4 className="font-semibold text-[#2B5379]">
-                    Kontak Darurat
-                  </h4>
-
-                  <p className="text-sm text-gray-500 p-3 bg-gray-50 rounded-lg">
-                    Tidak ada kontak darurat
-                  </p>
-                </div>
               </div>
 
+              {/* Informasi Medis */}
               <div className="space-y-3">
-                <h4 className="font-semibold text-[#2B5379]">
-                  Informasi Medis
-                </h4>
+                <div className="flex items-center justify-between gap-3">
+                  <h4 className="font-semibold text-[#2B5379]">
+                    Informasi Medis
+                  </h4>
 
-                <button
-    onClick={() => setIsEditMedicalOpen(true)}
-    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#2B5379] bg-[#D1EAFF] rounded-lg hover:bg-[#2B5379] hover:text-white transition-colors"
-  >
-    <Edit className="w-4 h-4" />
-    Edit
-  </button>
+                  <button
+                    onClick={() => setIsEditMedicalOpen(true)}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-[#D1EAFF] px-3 py-1.5 text-sm text-[#2B5379] transition-colors hover:bg-[#2B5379] hover:text-white"
+                    type="button"
+                  >
+                    <Edit className="h-4 w-4" />
+                    Edit
+                  </button>
+                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-xs text-blue-900 font-medium mb-2">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                    <p className="mb-2 text-xs font-medium text-blue-900">
                       Diagnosis
                     </p>
+
                     {patient.diagnosis && patient.diagnosis.length > 0 ? (
                       <ul className="space-y-1">
-                        {patient.diagnosis.map((d, i) => (
-                          <li key={i} className="text-sm text-blue-700">
-                            • {d}
+                        {patient.diagnosis.map((diagnosis, index) => (
+                          <li key={index} className="text-sm text-blue-700">
+                            • {diagnosis}
                           </li>
                         ))}
                       </ul>
@@ -225,16 +260,17 @@ export default function PatientDetailModal({
                     )}
                   </div>
 
-                  <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                    <p className="text-xs text-orange-900 font-medium mb-2">
+                  <div className="rounded-lg border border-orange-200 bg-orange-50 p-4">
+                    <p className="mb-2 text-xs font-medium text-orange-900">
                       Obat Saat Ini
                     </p>
+
                     {patient.currentMedication &&
                     patient.currentMedication.length > 0 ? (
                       <ul className="space-y-1">
-                        {patient.currentMedication.map((m, i) => (
-                          <li key={i} className="text-sm text-orange-700">
-                            • {m}
+                        {patient.currentMedication.map((medication, index) => (
+                          <li key={index} className="text-sm text-orange-700">
+                            • {medication}
                           </li>
                         ))}
                       </ul>
@@ -243,15 +279,16 @@ export default function PatientDetailModal({
                     )}
                   </div>
 
-                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-xs text-red-900 font-medium mb-2">
+                  <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                    <p className="mb-2 text-xs font-medium text-red-900">
                       Alergi
                     </p>
+
                     {patient.allergies && patient.allergies.length > 0 ? (
                       <ul className="space-y-1">
-                        {patient.allergies.map((a, i) => (
-                          <li key={i} className="text-sm text-red-700">
-                            • {a}
+                        {patient.allergies.map((allergy, index) => (
+                          <li key={index} className="text-sm text-red-700">
+                            • {allergy}
                           </li>
                         ))}
                       </ul>
@@ -262,23 +299,24 @@ export default function PatientDetailModal({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 bg-gray-50 rounded-lg text-center">
-                  <p className="text-xs text-gray-600 mb-1">Total Sesi</p>
+              {/* Statistik Sesi */}
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="rounded-lg bg-gray-50 p-4 text-center">
+                  <p className="mb-1 text-xs text-gray-600">Total Sesi</p>
                   <p className="text-2xl font-bold text-[#2B5379]">
                     {patient.totalSessions}
                   </p>
                 </div>
 
-                <div className="p-4 bg-gray-50 rounded-lg text-center">
-                  <p className="text-xs text-gray-600 mb-1">Sesi Pertama</p>
+                <div className="rounded-lg bg-gray-50 p-4 text-center">
+                  <p className="mb-1 text-xs text-gray-600">Sesi Pertama</p>
                   <p className="text-sm font-medium text-gray-900">
                     {formatDate(patient.firstSessionDate)}
                   </p>
                 </div>
 
-                <div className="p-4 bg-gray-50 rounded-lg text-center">
-                  <p className="text-xs text-gray-600 mb-1">Sesi Terakhir</p>
+                <div className="rounded-lg bg-gray-50 p-4 text-center">
+                  <p className="mb-1 text-xs text-gray-600">Sesi Terakhir</p>
                   <p className="text-sm font-medium text-gray-900">
                     {formatDate(patient.lastSessionDate)}
                   </p>
@@ -286,139 +324,144 @@ export default function PatientDetailModal({
               </div>
 
               {noteError && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
+                <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4">
+                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
                   <p className="text-sm text-red-700">{noteError}</p>
                 </div>
               )}
 
+              {/* Riwayat Sesi */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="font-semibold text-[#2B5379]">
                     Riwayat Sesi
                   </h4>
+
                   <p className="text-xs text-gray-500">
-                    {patient.sessionHistory.length} sesi tercatat
+                    {sessionHistory.length} sesi tercatat
                   </p>
                 </div>
 
-                <div className="max-h-64 overflow-y-auto space-y-2">
-                  {patient.sessionHistory.map((session) => (
-                    <button
-                      key={session.id}
-                        onClick={() => {
-                          if (session.hasNotes && session.noteId) {
-                            handleViewNote(String(session.noteId));
-                          }
-                        }}
-                        disabled={!session.hasNotes || !session.noteId || loadingNote}
-                      className={`w-full flex items-center justify-between p-3 border rounded-lg transition-all ${
-                        session.hasNotes
-                          ? "bg-gray-50 border-gray-200 hover:bg-blue-50 hover:border-blue-300 cursor-pointer"
-                          : "bg-gray-50 border-gray-200 opacity-60 cursor-not-allowed"
-                      } ${loadingNote ? "opacity-50 cursor-wait" : ""}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-2 h-2 rounded-full shrink-0 ${
-                            session.status === "completed"
-                              ? "bg-green-500"
-                              : session.status === "cancelled"
-                                ? "bg-red-500"
-                                : "bg-gray-400"
-                          }`}
-                        />
+                {sessionHistory.length > 0 ? (
+                  <div className="max-h-64 space-y-2 overflow-y-auto">
+                    {sessionHistory.map((session) => {
+                      const canOpenNote =
+                        Boolean(session.hasNotes) && Boolean(session.noteId);
 
-                        <div className="text-left">
-                          <p className="text-sm font-medium text-gray-900">
-                            {session.service}
-                          </p>
+                      return (
+                        <button
+                          key={session.id}
+                          onClick={() => {
+                            if (canOpenNote) {
+                              handleViewNote(String(session.noteId));
+                            }
+                          }}
+                          disabled={!canOpenNote || loadingNote}
+                          className={`flex w-full items-center justify-between rounded-lg border p-3 transition-all ${
+                            canOpenNote
+                              ? "cursor-pointer border-gray-200 bg-gray-50 hover:border-blue-300 hover:bg-blue-50"
+                              : "cursor-not-allowed border-gray-200 bg-gray-50 opacity-60"
+                          } ${loadingNote ? "cursor-wait opacity-50" : ""}`}
+                          type="button"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`h-2 w-2 shrink-0 rounded-full ${
+                                session.status === "completed"
+                                  ? "bg-green-500"
+                                  : session.status === "cancelled"
+                                    ? "bg-red-500"
+                                    : "bg-gray-400"
+                              }`}
+                            />
 
-                          <div className="flex items-center gap-2 text-xs text-gray-600 mt-0.5">
-                            <Calendar className="w-3 h-3" />
-                            <span>{formatDate(session.date)}</span>
-                            <span>•</span>
-                            <Clock className="w-3 h-3" />
-                            <span>{session.time || "-"}</span>
-                            <span>•</span>
-                            <span className="capitalize">
-                              {session.status === "completed"
-                                ? "Selesai"
-                                : session.status === "cancelled"
-                                  ? "Dibatalkan"
-                                  : "Terjadwal"}
-                            </span>
+                            <div className="text-left">
+                              <p className="text-sm font-medium text-gray-900">
+                                {session.service}
+                              </p>
+
+                              <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-gray-600">
+                                <Calendar className="h-3 w-3" />
+                                <span>{formatDate(session.date)}</span>
+                                <span>•</span>
+                                <Clock className="h-3 w-3" />
+                                <span>{session.time || "-"}</span>
+                                <span>•</span>
+                                <span>
+                                  {session.status === "completed"
+                                    ? "Selesai"
+                                    : session.status === "cancelled"
+                                      ? "Dibatalkan"
+                                      : "Terjadwal"}
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
 
-                      <div className="flex items-center gap-2">
-                        {session.hasNotes ? (
-                          <>
-                            <FileText className="w-4 h-4 text-[#2B5379]" />
-                            <span className="text-xs text-[#2B5379] font-medium">
-                              Lihat Catatan
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-xs text-gray-400">
-                            Tidak ada catatan
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
+                          <div className="flex shrink-0 items-center gap-2">
+                            {canOpenNote ? (
+                              <>
+                                <FileText className="h-4 w-4 text-[#2B5379]" />
+                                <span className="text-xs font-medium text-[#2B5379]">
+                                  Lihat Catatan
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-xs text-gray-500">
+                                Tidak ada catatan
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-center">
+                    <p className="text-sm text-gray-600">
+                      Belum ada riwayat sesi.
+                    </p>
+                  </div>
+                )}
               </div>
-
-              {patient.lastNotes && (
-                <div className="p-4 bg-[#D1EAFF] border border-[#2B5379]/20 rounded-lg">
-                  <p className="text-xs text-[#2B5379] font-medium mb-2">
-                    Catatan Terakhir
-                  </p>
-                  <p className="text-sm text-gray-700">{patient.lastNotes}</p>
-                </div>
-              )}
             </div>
           ) : (
             <div className="p-12 text-center">
-              <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-              <p className="text-red-600 font-medium">
-                Gagal memuat data pasien
-              </p>
-              <p className="text-sm text-gray-500 mt-2">
-                Silakan coba lagi nanti
-              </p>
+              <p className="text-red-600">Gagal memuat data pasien</p>
+              <button
+                onClick={fetchPatientDetail}
+                className="mt-4 rounded-lg bg-[#2B5379] px-4 py-2 text-white hover:bg-[#2B5379]/90"
+                type="button"
+              >
+                Coba Lagi
+              </button>
             </div>
           )}
         </div>
       </div>
+
+      {patient && (
+        <EditMedicalModal
+          isOpen={isEditMedicalOpen}
+          onClose={() => setIsEditMedicalOpen(false)}
+          onSuccess={handleMedicalUpdateSuccess}
+          patientId={patient.id}
+          initialData={{
+            diagnosis: patient.diagnosis || [],
+            currentMedication: patient.currentMedication || [],
+            allergies: patient.allergies || [],
+          }}
+        />
+      )}
 
       <SessionNoteModal
         isOpen={isNoteModalOpen}
         onClose={() => {
           setIsNoteModalOpen(false);
           setSelectedNote(null);
-          setNoteError(null);
         }}
         note={selectedNote}
       />
-      {patient && (
-  <EditMedicalModal
-    isOpen={isEditMedicalOpen}
-    onClose={() => setIsEditMedicalOpen(false)}
-    onSuccess={() => {
-      fetchPatientDetail();
-      setIsEditMedicalOpen(false);
-    }}
-    patientId={patient.id}
-    initialData={{
-      diagnosis: patient.diagnosis || [],
-      currentMedication: patient.currentMedication || [],
-      allergies: patient.allergies || [],
-    }}
-  />
-)}
     </>
   );
 }

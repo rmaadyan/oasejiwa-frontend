@@ -12,14 +12,19 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 interface AdminSidebarProps {
   isOpen?: boolean;
   onClose: () => void;
 }
 
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id";
+
 export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   const pathname = usePathname();
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const menuItems = [
     {
@@ -59,7 +64,36 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
     },
   ];
 
-  // Fix active logic
+  const clearClientStorage = () => {
+    if (typeof window === "undefined") return;
+
+    localStorage.clear();
+    sessionStorage.clear();
+  };
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+
+      console.log("Admin logout status:", res.status);
+
+      clearClientStorage();
+
+      window.location.href = "/auth/signin";
+    } catch (error) {
+      console.error("Failed to logout admin:", error);
+
+      clearClientStorage();
+
+      window.location.href = "/auth/signin";
+    }
+  };
+
   const isActive = (href: string) => {
     if (href === "/admin") {
       return pathname === "/admin" || pathname === "/admin/dashboard";
@@ -72,16 +106,16 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
     <>
       {isOpen !== undefined && isOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
+          className="fixed inset-0 z-30 bg-black bg-opacity-50 lg:hidden"
           onClick={onClose}
         />
       )}
 
       <aside
         className={
-          "h-screen w-64 bg-white border-r border-gray-200" +
+          "h-screen w-64 border-r border-gray-200 bg-white" +
           (isOpen !== undefined
-            ? " fixed lg:static top-0 left-0 z-40 transform transition-transform duration-300 " +
+            ? " fixed left-0 top-0 z-40 transform transition-transform duration-300 lg:static " +
               (isOpen
                 ? "translate-x-0"
                 : "-translate-x-full lg:translate-x-0")
@@ -98,7 +132,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
           </div>
 
           {/* Menu */}
-          <nav className="flex-1 space-y-1 px-3 py-6 overflow-y-auto">
+          <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-6">
             {menuItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.href);
@@ -107,14 +141,12 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors
-                    ${
-                      active
-                        ? "bg-soft-bg text-secondary-heading font-bold"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }
-                  `}
-                  onClick={() => onClose()}
+                  className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
+                    active
+                      ? "bg-soft-bg font-bold text-secondary-heading"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                  onClick={onClose}
                 >
                   <Icon
                     size={20}
@@ -129,13 +161,13 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
           {/* Logout */}
           <div className="border-t border-gray-200 px-3 py-4">
             <button
-              className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
-              onClick={() => {
-                console.log("Logout clicked");
-              }}
+              type="button"
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <LogOut size={20} />
-              Logout
+              {loggingOut ? "Logout..." : "Logout"}
             </button>
           </div>
         </div>

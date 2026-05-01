@@ -1,6 +1,13 @@
 "use client";
 
-import { X, Clock, Calendar, MessageSquare, CheckCircle, XCircle } from "lucide-react";
+import {
+  X,
+  Clock,
+  Calendar,
+  MessageSquare,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
 import { useState } from "react";
 import type { Session } from "@/lib/types/psychologist";
 
@@ -8,8 +15,8 @@ interface SessionDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   session: Session | null;
-  onMarkCompleted?: (sessionId: number) => void;
-  onCancel?: (sessionId: number, reason: string) => void;
+  onMarkCompleted?: (sessionId: number | string) => void | Promise<void>;
+  onCancel?: (sessionId: number | string, reason: string) => void | Promise<void>;
 }
 
 export default function SessionDetailModal({
@@ -25,9 +32,39 @@ export default function SessionDetailModal({
 
   if (!isOpen || !session) return null;
 
+  const formatDate = (date?: string | Date | null) => {
+    if (!date) return "-";
+
+    const rawDate = String(date);
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+      const [year, month, day] = rawDate.split("-").map(Number);
+
+      return new Intl.DateTimeFormat("id-ID", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      }).format(new Date(year, month - 1, day));
+    }
+
+    const parsedDate = new Date(date);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return "-";
+    }
+
+    return parsedDate.toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
   const handleMarkCompleted = async () => {
     if (!onMarkCompleted) return;
+
     setLoading(true);
+
     try {
       await onMarkCompleted(session.id);
       onClose();
@@ -44,9 +81,11 @@ export default function SessionDetailModal({
       alert("Harap masukkan alasan pembatalan");
       return;
     }
+
     setLoading(true);
+
     try {
-      await onCancel(session.id, cancelReason);
+      await onCancel(session.id, cancelReason.trim());
       onClose();
     } catch (error) {
       console.error(error);
@@ -57,76 +96,115 @@ export default function SessionDetailModal({
   };
 
   const getStatusBadge = () => {
+    const safeStatus = session.status as
+      | "upcoming"
+      | "completed"
+      | "cancelled"
+      | "no-show";
+
     const styles = {
       upcoming: "bg-blue-100 text-blue-700",
       completed: "bg-green-100 text-green-700",
       cancelled: "bg-red-100 text-red-700",
-      "no-show": "bg-gray-100 text-gray-700"
+      "no-show": "bg-gray-100 text-gray-700",
     };
 
     const labels = {
       upcoming: "Akan Datang",
       completed: "Selesai",
       cancelled: "Dibatalkan",
-      "no-show": "Tidak Hadir"
+      "no-show": "Tidak Hadir",
     };
 
     return (
-      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${styles[session.status]}`}>
-        {labels[session.status]}
+      <span
+        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
+          styles[safeStatus] || "bg-gray-100 text-gray-700"
+        }`}
+      >
+        {labels[safeStatus] || session.status}
       </span>
     );
   };
 
+  const handleClose = () => {
+    setShowCancelForm(false);
+    setCancelReason("");
+    onClose();
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
-      <div 
-        className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={handleClose}
+    >
+      <div
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between border-b border-gray-200 p-6">
           <div>
-            <h2 className="text-xl font-semibold text-[#2B5379]">Detail Sesi</h2>
-            <p className="text-sm text-gray-600 mt-1">Informasi lengkap sesi konseling</p>
+            <h2 className="text-xl font-semibold text-[#2B5379]">
+              Detail Sesi
+            </h2>
+            <p className="mt-1 text-sm text-gray-600">
+              Informasi lengkap sesi konseling
+            </p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-            <X className="w-5 h-5 text-gray-600" />
+
+          <button
+            onClick={handleClose}
+            className="rounded-lg p-2 transition-colors hover:bg-gray-100"
+            type="button"
+          >
+            <X className="h-5 w-5 text-gray-600" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="space-y-6 p-6">
           {/* Patient Info */}
           <div>
-            <h3 className="text-lg font-semibold text-[#2B5379]">{session.patientName}</h3>
-            <p className="text-sm text-gray-600">{session.service}</p>
-            <div className="flex items-center gap-2 mt-2">
+            <h3 className="text-lg font-semibold text-[#2B5379]">
+              {session.patientName || "Pasien"}
+            </h3>
+            <p className="text-sm text-gray-600">
+              {session.service || "Konseling"}
+            </p>
+
+            <div className="mt-2 flex items-center gap-2">
               {getStatusBadge()}
-              <span className="text-xs text-gray-500">Sesi ke-{session.sessionNumber}</span>
+              <span className="text-xs text-gray-500">
+                Sesi ke-{session.sessionNumber || 1}
+              </span>
             </div>
           </div>
 
           {/* Session Details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <Calendar className="w-5 h-5 text-gray-600" />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="flex items-center gap-3 rounded-lg bg-gray-50 p-3">
+              <Calendar className="h-5 w-5 text-gray-600" />
               <div>
                 <p className="text-xs text-gray-600">Tanggal</p>
-                <p className="text-sm font-medium text-gray-900">{session.date}</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {formatDate(session.date)}
+                </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <Clock className="w-5 h-5 text-gray-600" />
+            <div className="flex items-center gap-3 rounded-lg bg-gray-50 p-3">
+              <Clock className="h-5 w-5 text-gray-600" />
               <div>
                 <p className="text-xs text-gray-600">Waktu</p>
-                <p className="text-sm font-medium text-gray-900">{session.time} ({session.duration} menit)</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {session.time || "-"} ({session.duration || 0} menit)
+                </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <CheckCircle className="w-5 h-5 text-gray-600" />
+            <div className="flex items-center gap-3 rounded-lg bg-gray-50 p-3">
+              <CheckCircle className="h-5 w-5 text-gray-600" />
               <div>
                 <p className="text-xs text-gray-600">Status Pembayaran</p>
                 <p className="text-sm font-medium text-gray-900">
@@ -135,27 +213,30 @@ export default function SessionDetailModal({
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <MessageSquare className="w-5 h-5 text-gray-600" />
+            <div className="flex items-center gap-3 rounded-lg bg-gray-50 p-3">
+              <MessageSquare className="h-5 w-5 text-gray-600" />
               <div>
                 <p className="text-xs text-gray-600">Catatan</p>
-                <p className="text-sm font-medium text-gray-900">{session.notes || "-"}</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {session.notes || "-"}
+                </p>
               </div>
             </div>
           </div>
 
           {/* Cancel Form */}
           {showCancelForm && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-              <label className="block text-sm font-medium text-gray-900 mb-2">
+            <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+              <label className="mb-2 block text-sm font-medium text-gray-900">
                 Alasan Pembatalan
               </label>
+
               <textarea
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
                 placeholder="Masukkan alasan pembatalan..."
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-transparent focus:ring-2 focus:ring-red-500"
               />
             </div>
           )}
@@ -163,22 +244,26 @@ export default function SessionDetailModal({
 
         {/* Actions */}
         {session.status === "upcoming" && (
-          <div className="flex items-center gap-3 p-6 border-t border-gray-200 bg-gray-50">
+          <div className="flex items-center gap-3 border-t border-gray-200 bg-gray-50 p-6">
             {!showCancelForm ? (
               <>
                 <button
                   onClick={handleMarkCompleted}
                   disabled={loading}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#2B5379] rounded-lg hover:bg-[#2B5379]/90 transition-colors disabled:opacity-50"
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#2B5379] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#2B5379]/90 disabled:opacity-50"
+                  type="button"
                 >
-                  <CheckCircle className="w-4 h-4" />
-                  Tandai Selesai
+                  <CheckCircle className="h-4 w-4" />
+                  {loading ? "Memproses..." : "Tandai Selesai"}
                 </button>
+
                 <button
                   onClick={() => setShowCancelForm(true)}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-300 rounded-lg hover:bg-red-100 transition-colors"
+                  disabled={loading}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-100 disabled:opacity-50"
+                  type="button"
                 >
-                  <XCircle className="w-4 h-4" />
+                  <XCircle className="h-4 w-4" />
                   Batalkan
                 </button>
               </>
@@ -189,14 +274,18 @@ export default function SessionDetailModal({
                     setShowCancelForm(false);
                     setCancelReason("");
                   }}
-                  className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  disabled={loading}
+                  className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+                  type="button"
                 >
                   Batal
                 </button>
+
                 <button
                   onClick={handleCancel}
                   disabled={loading || !cancelReason.trim()}
-                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                  className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+                  type="button"
                 >
                   {loading ? "Memproses..." : "Konfirmasi Pembatalan"}
                 </button>

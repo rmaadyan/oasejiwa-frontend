@@ -10,26 +10,53 @@ interface AvailabilitySettingsProps {
 export default function AvailabilitySettings({
   schedules = [],
 }: AvailabilitySettingsProps) {
-  const availableSchedules = schedules
-    .filter((schedule) => schedule.isAvailable)
-    .sort((a, b) => {
-      const dateA = new Date(a.date).getTime();
-      const dateB = new Date(b.date).getTime();
+  /**
+   * Ambil tanggal sebagai date-only.
+   *
+   * Tujuannya supaya tanggal dari backend seperti:
+   * "2026-05-01T17:00:00.000Z"
+   *
+   * tidak berubah jadi tanggal 2 ketika diparse oleh browser dengan timezone lokal.
+   */
+  const getDateKey = (date?: string | Date | null) => {
+    if (!date) return "";
 
-      if (dateA !== dateB) return dateA - dateB;
+    const rawDate = String(date);
 
-      return a.startTime.localeCompare(b.startTime);
-    });
+    if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+      return rawDate;
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}T/.test(rawDate)) {
+      return rawDate.slice(0, 10);
+    }
+
+    const parsedDate = new Date(date);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return "";
+    }
+
+    const year = parsedDate.getFullYear();
+    const month = String(parsedDate.getMonth() + 1).padStart(2, "0");
+    const day = String(parsedDate.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  };
 
   const formatDate = (date?: string | Date | null) => {
-    if (!date) return "-";
+    const dateKey = getDateKey(date);
 
-    return new Date(date).toLocaleDateString("id-ID", {
+    if (!dateKey) return "-";
+
+    const [year, month, day] = dateKey.split("-").map(Number);
+
+    return new Intl.DateTimeFormat("id-ID", {
       weekday: "long",
       day: "2-digit",
       month: "long",
       year: "numeric",
-    });
+    }).format(new Date(year, month - 1, day));
   };
 
   const formatDuration = (duration?: number | null) => {
@@ -49,13 +76,28 @@ export default function AvailabilitySettings({
     return `${hour} jam ${minute} menit`;
   };
 
+  const availableSchedules = schedules
+    .filter((schedule) => schedule.isAvailable)
+    .sort((a, b) => {
+      const dateA = getDateKey(a.date);
+      const dateB = getDateKey(b.date);
+
+      if (dateA !== dateB) {
+        return dateA.localeCompare(dateB);
+      }
+
+      return String(a.startTime || "").localeCompare(
+        String(b.startTime || "")
+      );
+    });
+
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="rounded-xl border border-gray-200 bg-white p-6">
       <div className="mb-6">
         <h2 className="text-lg font-semibold text-[#2B5379]">
           Ketersediaan
         </h2>
-        <p className="text-sm text-gray-600 mt-1">
+        <p className="mt-1 text-sm text-gray-600">
           Jadwal praktik Anda berdasarkan data dari admin
         </p>
       </div>
@@ -65,31 +107,32 @@ export default function AvailabilitySettings({
           availableSchedules.map((schedule) => (
             <div
               key={schedule.id}
-              className="p-4 rounded-lg border border-green-200 bg-green-50"
+              className="rounded-lg border border-green-200 bg-green-50 p-4"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-green-900 font-medium">
-                    <Calendar className="w-4 h-4" />
+                  <div className="flex items-center gap-2 font-medium text-green-900">
+                    <Calendar className="h-4 w-4" />
                     <span>{formatDate(schedule.date)}</span>
                   </div>
 
                   <div className="flex items-center gap-2 text-sm text-green-700">
-                    <Clock className="w-4 h-4" />
+                    <Clock className="h-4 w-4" />
                     <span>
-                      {schedule.startTime} • {formatDuration(schedule.duration)}
+                      {schedule.startTime || "-"} •{" "}
+                      {formatDuration(schedule.duration)}
                     </span>
                   </div>
                 </div>
 
-                <span className="shrink-0 text-xs font-medium px-2 py-1 rounded-full bg-green-100 text-green-700 border border-green-200">
+                <span className="shrink-0 rounded-full border border-green-200 bg-green-100 px-2 py-1 text-xs font-medium text-green-700">
                   Tersedia
                 </span>
               </div>
             </div>
           ))
         ) : (
-          <div className="p-4 rounded-lg bg-gray-50 border border-gray-200">
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
             <p className="text-sm text-gray-600">
               Belum ada jadwal tersedia.
             </p>
@@ -97,7 +140,7 @@ export default function AvailabilitySettings({
         )}
       </div>
 
-      <div className="mt-6 p-4 bg-blue-50 border-l-4 border-blue-500 rounded-lg">
+      <div className="mt-6 rounded-lg border-l-4 border-blue-500 bg-blue-50 p-4">
         <p className="text-sm text-blue-900">
           <strong>Info:</strong> Untuk mengubah jadwal ketersediaan, hubungi
           admin.

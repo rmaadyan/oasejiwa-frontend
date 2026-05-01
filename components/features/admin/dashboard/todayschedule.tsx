@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 interface Schedule {
   time: string;
   psychologist: string;
@@ -13,37 +11,53 @@ interface TodayScheduleProps {
 
 export default function TodaySchedule({ schedule }: TodayScheduleProps) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold text-[#2B5379]">Jadwal Hari Ini</h2>
-        <span className="text-xs font-medium text-[#2B5379] bg-[#D1EAFF] px-3 py-1 rounded-full">
-          {schedule.length} sessions
+    <div className="rounded-xl border border-gray-200 bg-white p-6">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-xl font-semibold text-[#2B5379]">
+          Jadwal Hari Ini
+        </h2>
+
+        <span className="rounded-full bg-[#D1EAFF] px-3 py-1 text-xs font-medium text-[#2B5379]">
+          {schedule.length} sesi
         </span>
       </div>
-      <div className="space-y-3">
-        {schedule.map((item, idx) => (
-          <div key={idx} className="p-3 bg-gray-50 rounded-lg">
-            <div className="flex gap-3">
-              <div className="shrink-0 text-center min-w-15">
-                <div className="text-xs font-semibold text-[#2B5379] bg-[#D1EAFF] px-2 py-1 rounded">
-                  {item.time}
+
+      {schedule.length > 0 ? (
+        <div className="space-y-3">
+          {schedule.map((item, idx) => (
+            <div key={idx} className="rounded-lg bg-gray-50 p-3">
+              <div className="flex gap-3">
+                <div className="min-w-15 shrink-0 text-center">
+                  <div className="rounded bg-[#D1EAFF] px-2 py-1 text-xs font-semibold text-[#2B5379]">
+                    {item.time}
+                  </div>
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-gray-900">
+                    {item.patient}
+                  </p>
+
+                  <p className="text-xs text-gray-600">{item.service}</p>
+
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    {item.psychologist}
+                  </p>
                 </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900">{item.patient}</p>
-                <p className="text-xs text-gray-600">{item.service}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{item.psychologist}</p>
-              </div>
             </div>
-          </div>
-        ))}
-      </div>
-      <Link 
-        href="/admin/schedule"
-        className="block text-center text-sm font-medium text-[#2B5379] hover:text-[#1e3d57] mt-4"
-      >
-        Lihat Jadwal Lengkap →
-      </Link>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-center">
+          <p className="text-sm font-medium text-gray-600">
+            Tidak ada jadwal hari ini
+          </p>
+          <p className="mt-1 text-xs text-gray-500">
+            Jadwal sesi hari ini akan muncul di sini.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
