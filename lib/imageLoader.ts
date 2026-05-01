@@ -21,7 +21,7 @@ const KNOWN_HERO_IMAGES = [
  */
 export async function loadBgheroImages(): Promise<string[]> {
   try {
-    return KNOWN_HERO_IMAGES.map(filename => `${BGHERO_PATH}/${filename}`);
+    return KNOWN_HERO_IMAGES.map((filename) => `${BGHERO_PATH}/${filename}`);
   } catch (error) {
     console.error("Error loading bghero images:", error);
     return [`${BGHERO_PATH}/gambar.jpg`];
@@ -32,12 +32,12 @@ export async function loadBgheroImages(): Promise<string[]> {
 // ABOUT IMAGES
 // ============================================
 
-const ABOUT_PATH = "/about";
+const ABOUT_PATH = "/assets/landingpage";
 
 export const aboutImages: string[] = [
-  `${ABOUT_PATH}/1.jpg`,
-  `${ABOUT_PATH}/2.jpg`,
-  `${ABOUT_PATH}/3.jpg`,
+  `${ABOUT_PATH}/IMG_4500.jpg`,
+  `${ABOUT_PATH}/IMG_4501.jpg`,
+  `${ABOUT_PATH}/IMG_4507.jpg`,
 ];
 
 // ============================================
@@ -121,4 +121,3 @@ export async function verifyImage(imagePath: string): Promise<boolean> {
     return false;
   }
 }
-

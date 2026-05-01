@@ -1,19 +1,24 @@
 "use client";
 
-import { testimonials } from "@/lib/data";
+import { testimonials, type TestimonialItem } from "@/lib/testimonials";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Star, User, UserRound } from "lucide-react";
-import { useMemo, useRef } from "react";
+import { useRef } from "react";
 
 function Stars({ rating }: { rating: number }) {
   return (
-    <div className="mt-5 flex items-center justify-center gap-2">
+    <div className="flex items-center justify-center gap-2">
       {Array.from({ length: 5 }).map((_, i) => {
         const filled = i < rating;
+
         return (
           <Star
             key={i}
-            className={filled ? "h-4 w-4 text-[#E7A14A]" : "h-4 w-4 text-[#E7A14A]/30"}
+            className={
+              filled
+                ? "h-4 w-4 text-[#E7A14A]"
+                : "h-4 w-4 text-[#E7A14A]/30"
+            }
             fill={filled ? "#E7A14A" : "transparent"}
           />
         );
@@ -29,15 +34,19 @@ function GenderIcon({ gender }: { gender: "male" | "female" }) {
   return (
     <div
       className={`
-        h-16 w-16 rounded-full flex items-center justify-center
-        ${isMale ? "bg-linear-to-br from-blue-400 to-blue-600" : "bg-linear-to-br from-pink-400 to-pink-600"}
-        ring-4 ring-white shadow-lg
+        flex h-20 w-20 items-center justify-center rounded-full
+        ${
+          isMale
+            ? "bg-linear-to-br from-blue-400 to-blue-600"
+            : "bg-linear-to-br from-pink-400 to-pink-600"
+        }
+        shadow-lg ring-4 ring-white
       `}
     >
       {isMale ? (
-        <User className="h-8 w-8 text-white" strokeWidth={2.5} />
+        <User className="h-9 w-9 text-white" strokeWidth={2.5} />
       ) : (
-        <UserRound className="h-8 w-8 text-white" strokeWidth={2.5} />
+        <UserRound className="h-9 w-9 text-white" strokeWidth={2.5} />
       )}
     </div>
   );
@@ -46,18 +55,17 @@ function GenderIcon({ gender }: { gender: "male" | "female" }) {
 export default function TestimonialsSection() {
   const scrollerRef = useRef<HTMLDivElement | null>(null);
 
-  const items = useMemo(() => {
-    return testimonials.map((t: typeof testimonials[0]) => ({
-      ...t,
-    }));
-  }, []);
-
   const scrollByCard = (dir: "left" | "right") => {
     const el = scrollerRef.current;
     if (!el) return;
+
     const card = el.querySelector<HTMLElement>("[data-card]");
-    const amount = (card?.offsetWidth ?? 360) + 24;
-    el.scrollBy({ left: dir === "left" ? -amount : amount, behavior: "smooth" });
+    const amount = (card?.offsetWidth ?? 390) + 24;
+
+    el.scrollBy({
+      left: dir === "left" ? -amount : amount,
+      behavior: "smooth",
+    });
   };
 
   return (
@@ -69,25 +77,31 @@ export default function TestimonialsSection() {
       transition={{ duration: 0.6 }}
       viewport={{ once: false }}
     >
-      <div className="mx-auto max-w-7xl px-2 sm:px-3 lg:px-4">
-        <div className="mb-10 flex items-center justify-between gap-6">
-          <h2 className="text-center text-4xl font-semibold text-primary-text md:text-5xl w-full">
-            Testimoni
-          </h2>
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mb-12 flex items-center justify-between gap-6">
+          <div className="w-full text-center">
+            <h2 className="text-4xl font-semibold text-primary-text md:text-5xl">
+              Testimoni
+            </h2>
+            <p className="mt-3 text-sm text-slate-500">
+              Beberapa ulasan dari pengguna layanan Oase Jiwa.
+            </p>
+          </div>
 
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden items-center gap-3 md:flex">
             <button
               type="button"
               onClick={() => scrollByCard("left")}
-              className="grid h-11 w-11 place-items-center rounded-full border border-slate-200 bg-white shadow-sm hover:bg-slate-50"
+              className="grid h-11 w-11 place-items-center rounded-full border border-slate-200 bg-white shadow-sm transition hover:bg-slate-50"
               aria-label="Geser kiri"
             >
               <ChevronLeft className="h-5 w-5 text-primary-text" />
             </button>
+
             <button
               type="button"
               onClick={() => scrollByCard("right")}
-              className="grid h-11 w-11 place-items-center rounded-full border border-slate-200 bg-white shadow-sm hover:bg-slate-50"
+              className="grid h-11 w-11 place-items-center rounded-full border border-slate-200 bg-white shadow-sm transition hover:bg-slate-50"
               aria-label="Geser kanan"
             >
               <ChevronRight className="h-5 w-5 text-primary-text" />
@@ -97,35 +111,46 @@ export default function TestimonialsSection() {
 
         <div
           ref={scrollerRef}
-          className="flex gap-6 overflow-x-auto pb-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden scroll-smooth snap-x snap-mandatory"
+          className="flex snap-x snap-mandatory gap-6 overflow-x-auto scroll-smooth pb-8 pt-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
-          {items.map((t: typeof items[0]) => (
+          {testimonials.map((t: TestimonialItem) => (
             <article
               key={t.id}
               data-card
-              className={[
-                "relative shrink-0 snap-start",
-                "w-full sm:max-w-xs lg:max-w-sm",
-                "pt-10", // ruang untuk icon yang nyembul
-              ].join(" ")}
+              className="relative flex w-[330px] shrink-0 snap-start pt-10 sm:w-[370px] lg:w-[390px]"
             >
-              {/* Card */}
-              <div className="relative rounded-3xl bg-[#D1EAFF] px-7 pb-8 pt-14 border border-[#D1EAFF]/30">
-                {/* Gender Icon - posisi di atas card */}
+              <div className="relative flex min-h-[340px] w-full flex-col rounded-3xl border border-[#D1EAFF]/40 bg-[#D1EAFF] px-7 pb-8 pt-16 shadow-sm">
+                {/* Gender Icon */}
                 <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2">
                   {t.gender && <GenderIcon gender={t.gender} />}
                 </div>
 
-                <h3 className="text-center text-xl font-semibold text-primary-text">
-                  {t.name}
-                </h3>
-                <p className="mt-1 text-center text-sm text-slate-500">{t.role}</p>
+                {/* Header */}
+                <div className="text-center">
+                  <h3 className="text-xl font-semibold leading-tight text-primary-text">
+                    {t.name}
+                  </h3>
 
-                <p className="mt-5 text-center text-sm leading-relaxed text-slate-700">
-                  "{t.content}"
-                </p>
+                  <p className="mt-2 text-sm text-slate-500">{t.role}</p>
+                </div>
 
-                <Stars rating={t.rating} />
+                {/* Content */}
+                <div className="mt-6 flex flex-1 items-center">
+                  <p className="w-full text-center text-sm leading-7 text-slate-700">
+                    “{t.content}”
+                  </p>
+                </div>
+
+                {/* Footer */}
+                <div className="mt-6">
+                  <Stars rating={t.rating} />
+
+                  {t.source && (
+                    <p className="mt-4 text-center text-xs text-slate-500">
+                      Sumber: {t.source}
+                    </p>
+                  )}
+                </div>
               </div>
             </article>
           ))}

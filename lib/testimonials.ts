@@ -4,31 +4,68 @@ export type TestimonialItem = {
   role: string;
   content: string;
   rating: number; // 1-5
+  gender?: "male" | "female";
+  source?: string;
 };
 
 export const testimonials: TestimonialItem[] = [
   {
     id: 1,
-    name: "Bang Upin",
-    role: "Pedagang Asongan",
+    name: "ZuLvya R.",
+    role: "Ulasan Google Maps",
     content:
-      "Saya merasa lebih tenang dan lebih paham langkah yang harus saya ambil setelah konsultasi. Pelayanannya ramah dan profesional.",
-    rating: 4,
+      "Konseling di sini nyaman banget. Psikolognya ramah dan komunikatif. Untuk biayanya juga masih tergolong aman, tidak menguras dompet.",
+    rating: 5,
+    gender: "female",
+    source: "Google Maps",
   },
   {
     id: 2,
-    name: "Ibuk Sukijan",
-    role: "Ibu Rumah Tangga",
+    name: "Gilang M. F.",
+    role: "Ulasan Google Maps",
     content:
-      "Sesi konseling membantu saya mengelola emosi dan komunikasi di rumah. Penjelasannya jelas dan tidak menghakimi.",
+      "Tempatnya enak, santai, nyaman, dan bersih. Pendampingannya pun enak dan asik.",
     rating: 5,
+    gender: "male",
+    source: "Google Maps",
   },
   {
     id: 3,
-    name: "Mpok Ina",
-    role: "Karyawan Swasta",
+    name: "Aditya P.",
+    role: "Ulasan Google Maps",
     content:
-      "Pendekatannya personal, saya merasa didengar. Setelah beberapa sesi, kecemasan saya jauh lebih terkontrol.",
-    rating: 4,
+      "Tempatnya nyaman, sangat berkualitas untuk konsultasi terkait diri sendiri, dan ditangani oleh ahlinya.",
+    rating: 5,
+    gender: "male",
+    source: "Google Maps",
+  },
+  {
+    id: 4,
+    name: "Nur Avia A. J.",
+    role: "Ulasan Google Maps",
+    content:
+      "Nyaman dan helpful sekali. Bintang 5 untuk pelayanannya. Psikolognya juga sangat membantu.",
+    rating: 5,
+    gender: "female",
+    source: "Google Maps",
+  },
+  {
+    id: 5,
+    name: "Familla A.",
+    role: "Ulasan Google Maps",
+    content:
+      "Terima kasih Oase Jiwa, tempat konsultasi dan konseling kesehatan jiwa yang nyaman.",
+    rating: 5,
+    gender: "female",
+    source: "Google Maps",
+  },
+  {
+    id: 6,
+    name: "Yesha A.",
+    role: "Ulasan Google Maps",
+    content: "Ramah banget, informatif, dan membantu.",
+    rating: 5,
+    gender: "female",
+    source: "Google Maps",
   },
 ];
