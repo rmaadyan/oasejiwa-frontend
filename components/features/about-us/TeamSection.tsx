@@ -7,6 +7,7 @@ const teamMembers = [
     role: "Founder",
     experience:
       "Psikolog klinis dengan pengalaman lebih dari 5 tahun dalam bidang kesehatan mental dan konseling.",
+      instagramUrl: "https://www.instagram.com/andijaperi?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==",
   },
   {
     imageSrc: "/assets/about-us/bilqisty.png",
@@ -14,6 +15,7 @@ const teamMembers = [
     role: "Head of Internal Affairs & Quality",
     experience:
       "Mengatur standar kualitas internal dengan pendekatan psikologi lingkungan demi menjamin kenyamanan dan ketenangan setiap pengguna jasa.",
+    instagramUrl:"https://www.instagram.com/hbrwp?igsh=MTZtY25laWcwbjRhaA==",  
   },
   {
     imageSrc: "/assets/about-us/Famila.png",
@@ -21,6 +23,7 @@ const teamMembers = [
     role: "Chief Operating Officier",
     experience:
       "Mahir dalam psikologi konsumen untuk memastikan komunikasi yang empatik, solutif, dan bebas stress selama proses booking.",
+      instagramUrl:"https://www.instagram.com/famillaaj?igsh=MW00a2dmNGdxYXlpNA==",
   },
 ];
 
@@ -40,6 +43,7 @@ export default function TeamSection() {
               name={member.name}
               role={member.role}
               experience={member.experience}
+              instagramUrl={member.instagramUrl}
             />
           ))}
         </div>

@@ -5,12 +5,19 @@ const title = "Oase Jiwa - Kenali Dirimu, Pulihkan Jiwamu";
 const description = "Layanan psikologi profesional untuk kesehatan mental optimal";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://oasejiwa.id"),
   title,
   description,
   openGraph: {
     title,
     description,
-    images: ["/logo.png"],
+    images: [
+      {
+        url: "/logo.png",
+        width: 1200,
+        height: 630,
+      },
+    ],
   },
 };
 
