@@ -1,9 +1,17 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+const title = "Oase Jiwa - Kenali Dirimu, Pulihkan Jiwamu";
+const description = "Layanan psikologi profesional untuk kesehatan mental optimal";
+
 export const metadata: Metadata = {
-  title: "Oase Jiwa - Kenali Dirimu, Pulihkan Jiwamu",
-  description: "Layanan psikologi profesional untuk kesehatan mental optimal",
+  title,
+  description,
+  openGraph: {
+    title,
+    description,
+    images: ["/logo.png"],
+  },
 };
 
 export default function RootLayout({
