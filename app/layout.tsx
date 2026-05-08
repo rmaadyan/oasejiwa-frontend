@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     description,
     images: [
       {
-        url: "/logo.png",
+        url: "/logo-og.png",
         width: 1200,
         height: 630,
       },
