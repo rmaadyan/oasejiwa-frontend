@@ -1,15 +1,13 @@
 "use client";
 
-import { Search, SlidersHorizontal, Download } from "lucide-react";
-import type { SortOption, GenderFilter } from "@/lib/types/users";
+import { Search, Download } from "lucide-react";
+import type { SortOption } from "@/lib/types/users";
 
 interface UserFilterBarProps {
   searchQuery: string;
   onSearchChange: (value: string) => void;
   sortBy: SortOption;
   onSortChange: (value: SortOption) => void;
-  genderFilter: GenderFilter;
-  onGenderFilterChange: (value: GenderFilter) => void;
   perPage: number;
   onPerPageChange: (value: number) => void;
   onExport: () => void;
@@ -21,17 +19,14 @@ export default function UserFilterBar({
   onSearchChange,
   sortBy,
   onSortChange,
-  genderFilter,
-  onGenderFilterChange,
   perPage,
   onPerPageChange,
   onExport,
-  totalUsers
+  totalUsers,
 }: UserFilterBarProps) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4">
       <div className="flex flex-col lg:flex-row gap-4">
-        {/* Search */}
         <div className="flex-1">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -45,7 +40,6 @@ export default function UserFilterBar({
           </div>
         </div>
 
-        {/* Sort By */}
         <div className="w-full lg:w-48">
           <select
             value={sortBy}
@@ -60,20 +54,6 @@ export default function UserFilterBar({
           </select>
         </div>
 
-        {/* Gender Filter */}
-        <div className="w-full lg:w-48">
-          <select
-            value={genderFilter}
-            onChange={(e) => onGenderFilterChange(e.target.value as GenderFilter)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#2B5379] focus:border-transparent outline-none"
-          >
-            <option value="all">Semua Gender</option>
-            <option value="male">Laki-laki</option>
-            <option value="female">Perempuan</option>
-          </select>
-        </div>
-
-        {/* Per Page */}
         <div className="w-full lg:w-32">
           <select
             value={perPage}
@@ -87,7 +67,6 @@ export default function UserFilterBar({
           </select>
         </div>
 
-        {/* Export Button */}
         <button
           onClick={onExport}
           className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
@@ -97,7 +76,6 @@ export default function UserFilterBar({
         </button>
       </div>
 
-      {/* Info */}
       <div className="mt-3 text-xs text-gray-600">
         Menampilkan {totalUsers} user
       </div>

@@ -12,7 +12,6 @@ import type {
   User,
   UserFormData,
   SortOption,
-  GenderFilter,
 } from "@/lib/types/users";
 
 export default function UsersPage() {
@@ -37,7 +36,6 @@ export default function UsersPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
-  const [genderFilter, setGenderFilter] = useState<GenderFilter>("all");
 
   const formatDateForCsv = (date?: string | Date | null) => {
     if (!date) return "";
@@ -65,12 +63,6 @@ export default function UsersPage() {
       month: "long",
       year: "numeric",
     });
-  };
-
-  const formatGender = (gender?: string | null) => {
-    if (gender === "male") return "Laki-laki";
-    if (gender === "female") return "Perempuan";
-    return "";
   };
 
   const formatRole = (role?: string | null) => {
@@ -106,7 +98,6 @@ export default function UsersPage() {
         page: currentPage,
         perPage,
         sort: sortBy,
-        gender: genderFilter,
         search: searchQuery,
       });
 
@@ -129,11 +120,11 @@ export default function UsersPage() {
 
   useEffect(() => {
     fetchUsers();
-  }, [currentPage, perPage, sortBy, genderFilter, searchQuery]);
+  }, [currentPage, perPage, sortBy, searchQuery]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [perPage, sortBy, genderFilter, searchQuery]);
+  }, [perPage, sortBy, searchQuery]);
 
   const handleEditUser = async (data: UserFormData) => {
     if (!selectedUser) return;
@@ -150,7 +141,6 @@ export default function UsersPage() {
         page: 1,
         perPage: Math.max(totalUsers, 1),
         sort: sortBy,
-        gender: genderFilter,
         search: searchQuery,
       });
 
@@ -160,7 +150,6 @@ export default function UsersPage() {
         Email: user.email || "",
         Role: formatRole(user.role),
         Status: formatStatus(user.status),
-        "Jenis Kelamin": formatGender(user.gender),
         Telepon: formatPhoneForCsv(user.phone),
         "Tanggal Bergabung": formatDateForCsv(user.registeredAt),
         "Total Booking": user.bookingCount || 0,
@@ -237,8 +226,6 @@ export default function UsersPage() {
         onSearchChange={setSearchQuery}
         sortBy={sortBy}
         onSortChange={setSortBy}
-        genderFilter={genderFilter}
-        onGenderFilterChange={setGenderFilter}
         perPage={perPage}
         onPerPageChange={setPerPage}
         onExport={handleExport}
