@@ -53,7 +53,7 @@ export default function PsikologCard({
                         {displayName}
                     </p>
                     <p className={`text-gray-500 text-xs ${shouldTruncateSIPP ? 'truncate' : ''}`}>
-                        SIPP: <span className="font-medium">{displaySipp}</span>
+                        SIPP/SILP: <span className="font-medium">{displaySipp}</span>
                     </p>
                 </div>
             </div>

@@ -178,7 +178,7 @@ function PsikologDetailContent() {
             <div className="flex gap-2 items-start">
               <BadgeCheck className="w-5 h-5 text-[#234463] mt-0.5 shrink-0" />
               <div>
-                <p className="text-sm font-semibold text-[#234463]">SIPP</p>
+                <p className="text-sm font-semibold text-[#234463]">SIPP/SILP</p>
                 <p className="text-sm text-gray-600 break-all">
                   {psikolog.sipp}
                 </p>

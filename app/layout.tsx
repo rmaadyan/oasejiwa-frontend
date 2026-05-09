@@ -8,6 +8,9 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://oasejiwa.id"),
   title,
   description,
+  icons: {
+    icon: "/favicon.png",
+  },
   openGraph: {
     title,
     description,

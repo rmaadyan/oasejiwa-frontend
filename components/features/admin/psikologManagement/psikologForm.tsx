@@ -30,7 +30,7 @@ interface Schedule {
 export interface PsychologistData {
     name: string;
     email: string;
-    licenseNumber: string; //SIPP
+    licenseNumber: string; //SIPP/SILP
     str: string;
     bio: string;
     educations: Education[];
@@ -789,7 +789,7 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
 
                             <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] items-center gap-2 md:gap-4">
                                 <label className="flex text-sm font-bold text-[#234463]">
-                                    SIPP <span className="text-red-500 ml-1">*</span>
+                                    SIPP/SILP <span className="text-red-500 ml-1">*</span>
                                 </label>
                                 <input
                                 ref={licenseRef}

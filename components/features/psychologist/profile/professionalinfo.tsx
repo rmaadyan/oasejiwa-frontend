@@ -33,7 +33,7 @@ export default function ProfessionalInfo({
             <div className="flex items-center gap-2 mb-2">
               <FileCheck className="w-5 h-5 text-[#2B5379]" />
               <p className="text-sm font-semibold text-[#2B5379]">
-                Nomor SIPP
+                Nomor SIPP/SILP
               </p>
             </div>
 
