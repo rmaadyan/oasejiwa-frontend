@@ -1,201 +1,269 @@
 "use client";
 
-import type { GenderFilter, SortOption, User, UserFormData } from "@/lib/types/users";
-import { useEffect, useMemo, useState } from "react";
-import DeleteConfirmModal from "./deleteconfirmmodal";
-import Pagination from "./pagination";
-import UserDetailsModal from "./userdetailsmodal";
-import UserFilterBar from "./userfilterbar";
-import UserModal from "./usermodal";
-import UserTable from "./usertable";
-
-const DUMMY_USERS: User[] = [
-    { id: 1, name: "Budi Santoso", email: "budi@example.com", gender: "male", role: "patient", phone: "08123456789", status: "active", registeredAt: "2023-11-01", bookingCount: 2 },
-    { id: 2, name: "Siti Aminah", email: "siti@example.com", gender: "female", role: "patient", phone: "08123456780", status: "active", registeredAt: "2023-11-05", bookingCount: 5 },
-    { id: 3, name: "Agus Pratama", email: "agus.p@example.com", gender: "male", role: "psychologist", phone: "08123456781", status: "active", registeredAt: "2023-10-15", bookingCount: 10 },
-    { id: 4, name: "Rina Wijaya", email: "rina.w@example.com", gender: "female", role: "patient", phone: "08123456782", status: "inactive", registeredAt: "2023-12-01", bookingCount: 0 },
-    { id: 5, name: "Dewi Lestari", email: "dewi.l@example.com", gender: "female", role: "patient", phone: "08123456783", status: "active", registeredAt: "2023-12-10", bookingCount: 1 },
-];
+import { useState, useEffect } from "react";
+import UserTable from "@/components/features/admin/users/usertable";
+import UserModal from "@/components/features/admin/users/usermodal";
+import UserDetailsModal from "@/components/features/admin/users/userdetailsmodal";
+import UserFilterBar from "@/components/features/admin/users/userfilterbar";
+import Pagination from "@/components/features/admin/users/pagination";
+import { getUsers, updateUser } from "@/lib/api/usersAdminSide";
+import { downloadToCSV } from "@/lib/utils/csv-export";
+import type {
+  User,
+  UserFormData,
+  SortOption,
+} from "@/lib/types/users";
 
 export default function UserManagementPage() {
-    const [users, setUsers] = useState<User[]>([]);
-    const [searchQuery, setSearchQuery] = useState("");
-    const [sortBy, setSortBy] = useState<SortOption>("newest");
-    const [genderFilter, setGenderFilter] = useState<GenderFilter>("all");
-    const [perPage, setPerPage] = useState(10);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [isLoading, setIsLoading] = useState(true);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
 
-    // Modal States
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
-    useEffect(() => {
-        try {
-            const storedUsers = localStorage.getItem("oasejiwa_users_v2");
-            if (storedUsers) {
-                setUsers(JSON.parse(storedUsers));
-            } else {
-                setUsers(DUMMY_USERS);
-                localStorage.setItem("oasejiwa_users_v2", JSON.stringify(DUMMY_USERS));
-            }
-        } catch {
-            setUsers(DUMMY_USERS);
-        } finally {
-            setIsLoading(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
+
+  const [userStats, setUserStats] = useState({
+    totalUsers: 0,
+    totalPatients: 0,
+    totalPsychologists: 0,
+    totalAdmins: 0,
+  });
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
+
+  const formatDateForCsv = (date?: string | Date | null) => {
+    if (!date) return "";
+
+    const rawDate = String(date);
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+      const [year, month, day] = rawDate.split("-").map(Number);
+
+      return new Intl.DateTimeFormat("id-ID", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      }).format(new Date(year, month - 1, day));
+    }
+
+    const parsedDate = new Date(date);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return "";
+    }
+
+    return parsedDate.toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
+  const formatRole = (role?: string | null) => {
+    if (role === "admin") return "Admin";
+    if (role === "psychologist") return "Psikolog";
+    if (role === "user" || role === "patient") return "Pasien";
+    return role || "";
+  };
+
+  const formatStatus = (status?: string | null) => {
+    if (status === "active") return "Aktif";
+    if (status === "inactive") return "Nonaktif";
+    return status || "";
+  };
+
+  const formatPhoneForCsv = (phone?: string | null) => {
+    if (!phone) return "";
+
+    const cleanedPhone = String(phone).trim();
+
+    /**
+     * Format ini sengaja supaya Excel membaca nomor HP sebagai teks,
+     * bukan angka scientific notation seperti 8,21E+10.
+     */
+    return `="${cleanedPhone}"`;
+  };
+
+  const fetchUsers = async () => {
+    setLoading(true);
+
+    try {
+      const response = await getUsers({
+        page: currentPage,
+        perPage,
+        sort: sortBy,
+        search: searchQuery,
+      });
+
+      setUsers(response.users);
+      setTotalPages(response.totalPages);
+      setTotalUsers(response.total);
+
+      setUserStats({
+        totalUsers: response.meta?.totalUsers ?? response.total ?? 0,
+        totalPatients: response.meta?.totalPatients ?? 0,
+        totalPsychologists: response.meta?.totalPsychologists ?? 0,
+        totalAdmins: response.meta?.totalAdmins ?? 0,
+      });
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, [currentPage, perPage, sortBy, searchQuery]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [perPage, sortBy, searchQuery]);
+
+  const handleEditUser = async (data: UserFormData) => {
+    if (!selectedUser) return;
+
+    await updateUser(selectedUser.id, data);
+    await fetchUsers();
+
+    setSelectedUser(null);
+  };
+
+  const handleExport = async () => {
+    try {
+      const response = await getUsers({
+        page: 1,
+        perPage: Math.max(totalUsers, 1),
+        sort: sortBy,
+        search: searchQuery,
+      });
+
+      const exportData = response.users.map((user, index) => ({
+        No: index + 1,
+        Nama: user.name || "",
+        Email: user.email || "",
+        Role: formatRole(user.role),
+        Status: formatStatus(user.status),
+        Telepon: formatPhoneForCsv(user.phone),
+        "Tanggal Bergabung": formatDateForCsv(user.registeredAt),
+        "Total Booking": user.bookingCount || 0,
+      }));
+
+      downloadToCSV(
+        exportData,
+        `user-oase-jiwa-${new Date().toISOString().split("T")[0]}.csv`,
+        {
+          delimiter: ";",
+          includeBom: true,
+          includeExcelSeparatorHint: true,
         }
-    }, []);
+      );
+    } catch (error) {
+      console.error("Failed to export users:", error);
+      alert("Gagal export data user.");
+    }
+  };
 
-    const saveUsers = (updatedUsers: User[]) => {
-        setUsers(updatedUsers);
-        localStorage.setItem("oasejiwa_users_v2", JSON.stringify(updatedUsers));
-    };
+  const openEditModal = (user: User) => {
+    setSelectedUser(user);
+    setIsModalOpen(true);
+  };
 
-    const handleEdit = (user: User) => {
-        setSelectedUser(user);
-        setIsEditModalOpen(true);
-    };
+  const openDetailsModal = (user: User) => {
+    setSelectedUser(user);
+    setIsDetailsModalOpen(true);
+  };
 
-    const handleViewDetails = (user: User) => {
-        setSelectedUser(user);
-        setIsViewModalOpen(true);
-    };
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-[#2B5379]">
+          Manajemen User
+        </h1>
+        <p className="mt-1 text-gray-600">
+          Lihat rincian user dan ubah role pengguna
+        </p>
+      </div>
 
-    const handleDeleteClick = () => {
-        setIsEditModalOpen(false); // Close edit modal first
-        setIsDeleteModalOpen(true);
-    };
-
-    const handleEditSubmit = async (data: UserFormData) => {
-        if (!selectedUser) return;
-        const updatedUsers = users.map((u) => {
-            if (u.id === selectedUser.id) {
-                return { ...u, role: data.role }; // Only role updates based on modal design
-            }
-            return u;
-        });
-        saveUsers(updatedUsers);
-    };
-
-    const confirmDelete = async () => {
-        if (!selectedUser) return;
-        const updatedUsers = users.filter((u) => u.id !== selectedUser.id);
-        saveUsers(updatedUsers);
-        setIsDeleteModalOpen(false);
-        setSelectedUser(null);
-    };
-
-    const handleExport = () => {
-        // Dummy export logic
-        console.log("Exporting to CSV...");
-    };
-
-    // Filter and Sort Logic
-    const filteredAndSortedUsers = useMemo(() => {
-        const result = users.filter((user) => {
-            const matchSearch =
-                user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                user.email.toLowerCase().includes(searchQuery.toLowerCase());
-            const matchGender = genderFilter === "all" || user.gender === genderFilter;
-            return matchSearch && matchGender;
-        });
-
-        result.sort((a, b) => {
-            if (sortBy === "name-asc") return a.name.localeCompare(b.name);
-            if (sortBy === "name-desc") return b.name.localeCompare(a.name);
-            if (sortBy === "most-bookings") return (b.bookingCount || 0) - (a.bookingCount || 0);
-
-            // Since it's string, we can compare string directly for newest/oldest
-            if (sortBy === "newest" && a.registeredAt && b.registeredAt) {
-                return new Date(b.registeredAt).getTime() - new Date(a.registeredAt).getTime();
-            }
-            if (sortBy === "oldest" && a.registeredAt && b.registeredAt) {
-                return new Date(a.registeredAt).getTime() - new Date(b.registeredAt).getTime();
-            }
-            return 0;
-        });
-
-        return result;
-    }, [users, searchQuery, genderFilter, sortBy]);
-
-    const totalPages = Math.ceil(filteredAndSortedUsers.length / perPage);
-    const currentItems = useMemo(() => {
-        const startIdx = (currentPage - 1) * perPage;
-        return filteredAndSortedUsers.slice(startIdx, startIdx + perPage);
-    }, [filteredAndSortedUsers, currentPage, perPage]);
-
-    // Handle page reset on filter changes
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [searchQuery, genderFilter, sortBy, perPage]);
-
-    return (
-        <div className="flex-1 overflow-y-auto w-full h-full bg-gray-50/50">
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-
-                {/* Header Section */}
-                <div>
-                    <h1 className="text-2xl md:text-[28px] font-bold text-secondary-heading mb-2">Manajemen User</h1>
-                    <p className="text-sm text-gray-500">
-                        Kelola data semua pengguna di Oase Jiwa.
-                    </p>
-                </div>
-
-                {/* Filter Bar */}
-                <UserFilterBar
-                    searchQuery={searchQuery}
-                    onSearchChange={setSearchQuery}
-                    sortBy={sortBy}
-                    onSortChange={setSortBy}
-                    genderFilter={genderFilter}
-                    onGenderFilterChange={setGenderFilter}
-                    perPage={perPage}
-                    onPerPageChange={setPerPage}
-                    onExport={handleExport}
-                    totalUsers={filteredAndSortedUsers.length}
-                />
-
-                {/* User Table Component */}
-                <UserTable
-                    users={currentItems}
-                    onEdit={handleEdit}
-                    onViewDetails={handleViewDetails}
-                    loading={isLoading}
-                />
-
-                {/* Pagination */}
-                <Pagination
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    onPageChange={setCurrentPage}
-                />
-
-            </div>
-
-            {/* Modals */}
-            <UserModal
-                isOpen={isEditModalOpen}
-                onClose={() => setIsEditModalOpen(false)}
-                onSubmit={handleEditSubmit}
-                onDelete={handleDeleteClick}
-                user={selectedUser}
-                mode="edit"
-            />
-
-            <UserDetailsModal
-                isOpen={isViewModalOpen}
-                onClose={() => setIsViewModalOpen(false)}
-                userId={selectedUser?.id || null}
-            />
-
-            <DeleteConfirmModal
-                isOpen={isDeleteModalOpen}
-                onClose={() => setIsDeleteModalOpen(false)}
-                onConfirm={confirmDelete}
-                user={selectedUser}
-            />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+        <div className="rounded-xl border border-gray-200 bg-white p-6">
+          <p className="text-sm font-medium text-gray-600">Total User</p>
+          <p className="mt-2 text-3xl font-bold text-[#2B5379]">
+            {userStats.totalUsers}
+          </p>
         </div>
-    );
+
+        <div className="rounded-xl border border-gray-200 bg-white p-6">
+          <p className="text-sm font-medium text-gray-600">Pasien</p>
+          <p className="mt-2 text-3xl font-bold text-green-600">
+            {userStats.totalPatients}
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-gray-200 bg-white p-6">
+          <p className="text-sm font-medium text-gray-600">Psikolog</p>
+          <p className="mt-2 text-3xl font-bold text-purple-600">
+            {userStats.totalPsychologists}
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-gray-200 bg-white p-6">
+          <p className="text-sm font-medium text-gray-600">Halaman Ini</p>
+          <p className="mt-2 text-3xl font-bold text-blue-600">
+            {users.length}
+          </p>
+        </div>
+      </div>
+
+      <UserFilterBar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+        perPage={perPage}
+        onPerPageChange={setPerPage}
+        onExport={handleExport}
+        totalUsers={totalUsers}
+      />
+
+      <UserTable
+        users={users}
+        onEdit={openEditModal}
+        onViewDetails={openDetailsModal}
+        loading={loading}
+      />
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
+
+      <UserModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedUser(null);
+        }}
+        onSubmit={handleEditUser}
+        user={selectedUser}
+        mode="edit"
+      />
+
+      <UserDetailsModal
+        isOpen={isDetailsModalOpen}
+        onClose={() => {
+          setIsDetailsModalOpen(false);
+          setSelectedUser(null);
+        }}
+        userId={selectedUser?.id || null}
+      />
+    </div>
+  );
 }
