@@ -55,6 +55,7 @@ export default function ScheduleSection({
                 src={psychologist.avatar}
                 alt={psychologist.name}
                 fill
+                unoptimized
                 className="object-cover"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;

@@ -6,7 +6,7 @@ interface PsychologistCardProps {
   id: string;
   name: string;
   role: string;
-  specializations: string[]; // Add this line
+  specializations: string[];
   experience: string;
   rating: number;
   reviews: number;
@@ -22,12 +22,8 @@ export default function PsychologistCard({
   name,
   role,
   specializations,
-  experience,
-  rating,
-  reviews,
-  price,
   avatar,
-  available,
+  price,
   isSelected = false,
   onSelect,
 }: PsychologistCardProps) {
@@ -45,12 +41,17 @@ export default function PsychologistCard({
       `}
     >
       {/* Avatar */}
-      <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden flex-shrink-0">
+      <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden flex-shrink-0 bg-slate-100">
         <Image
           src={avatar}
           alt={name}
           fill
+          unoptimized
           className="object-cover"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=2B5379&color=fff&size=128`;
+          }}
         />
       </div>
 
@@ -62,18 +63,20 @@ export default function PsychologistCard({
         <p className="text-sm text-[#4B4B4B] truncate">
           {role}
         </p>
-      </div>
 
-      {/* Specializations */}
-      <div className="flex flex-wrap gap-2 mt-2">
-        {specializations.map((specialization) => (
-          <span
-            key={specialization}
-            className="text-xs md:text-sm font-semibold text-[#2B5379] bg-[#F5F5F5] px-2 py-1 rounded-full"
-          >
-            {specialization}
-          </span>
-        ))}
+        {/* Specializations */}
+        {specializations && specializations.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {specializations.map((specialization) => (
+              <span
+                key={specialization}
+                className="text-xs font-medium text-[#2B5379] bg-[#E8F6FF] px-2.5 py-0.5 rounded-full"
+              >
+                {specialization}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Price & Button */}

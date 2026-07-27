@@ -7,6 +7,7 @@ import { getUserBookingDetail } from "@/lib/api/booking";
 
 const BANK_ACCOUNTS: Record<string, string> = {
   "mandiri": "144-00-2860616-5",
+  "qris": "NMID: ID2026480037624",
 };
 
 function Content() {

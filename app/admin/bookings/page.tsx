@@ -92,6 +92,9 @@ function AdminBookingsContent() {
             ? b.scheduledDate.split("T")[0]
             : "";
 
+          const latestPayment = b.payments?.[0];
+          const paymentMethod = latestPayment?.method ?? "-";
+
           return {
             id: `BKG-${b.bookingCode ?? b.id}`,
             originalId: b.id,
@@ -106,6 +109,7 @@ function AdminBookingsContent() {
             paymentStatus,
             sessionStatus,
             rawStatus: b.status,
+            paymentMethod,
             scheduleUpdated: false,
             totalPrice: b.totalPrice,
             dpAmount: b.dpAmount,
@@ -282,6 +286,22 @@ function AdminBookingsContent() {
       render: (item: any) => (
         <span className="text-[#4B4B4B]">{item.service}</span>
       ),
+    },
+    {
+      key: "paymentMethod",
+      header: "Metode",
+      render: (item: any) => {
+        const isQris = item.paymentMethod?.toLowerCase().includes("qris");
+        return (
+          <span className={`font-semibold text-xs px-2.5 py-1 rounded-full uppercase ${
+            isQris
+              ? "bg-purple-100 text-purple-700 border border-purple-200"
+              : "bg-blue-100 text-blue-700 border border-blue-200"
+          }`}>
+            {item.paymentMethod ?? "-"}
+          </span>
+        );
+      },
     },
     {
       key: "status",

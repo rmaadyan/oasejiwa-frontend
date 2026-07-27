@@ -25,7 +25,8 @@ function Content() {
           price: data.totalPrice ?? 0, 
         });
         setPaymentMethods(data.paymentMethods ?? [
-          { id: "mandiri", name: "Mandiri",  category: "bank" },
+          { id: "qris", name: "QRIS", category: "qris", description: "Scan QRIS via GoPay, OVO, ShopeePay, Dana, BCA, Livin', dll" },
+          { id: "mandiri", name: "Mandiri Transfer", category: "bank", description: "Transfer via ATM / Mandiri Livin'" },
         ]);
       })
       .catch(console.error)
