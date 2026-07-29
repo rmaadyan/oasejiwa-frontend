@@ -25,9 +25,7 @@ export default function SchedulePage() {
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<
     string | undefined
   >(undefined);
-  const [scheduleData, setScheduleData] = useState<ScheduleResponse | null>(
-    null
-  );
+  const [scheduleData, setScheduleData] = useState<any>(null);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -121,47 +119,79 @@ export default function SchedulePage() {
     );
   }
 
-  const sessions = scheduleData?.sessions || [];
+  const sessions: Session[] = Array.isArray(scheduleData?.sessions)
+    ? scheduleData.sessions
+    : Array.isArray(scheduleData?.data)
+    ? scheduleData.data
+    : Array.isArray(scheduleData)
+    ? scheduleData
+    : [];
+
+  const totalCount = scheduleData?.total ?? scheduleData?.summary?.total ?? sessions.length;
+
+  const upcomingCount =
+    scheduleData?.upcomingCount ??
+    scheduleData?.summary?.upcoming ??
+    sessions.filter((s) => {
+      const st = String(s.status || "").toLowerCase();
+      return st === "upcoming" || st === "approved" || st === "paid" || st === "waiting_approval";
+    }).length;
+
+  const completedCount =
+    scheduleData?.completedCount ??
+    scheduleData?.summary?.completed ??
+    sessions.filter((s) => {
+      const st = String(s.status || "").toLowerCase();
+      return st === "completed" || st === "selesai";
+    }).length;
+
+  const cancelledCount =
+    scheduleData?.cancelledCount ??
+    scheduleData?.summary?.cancelled ??
+    sessions.filter((s) => {
+      const st = String(s.status || "").toLowerCase();
+      return st === "cancelled" || st === "rejected" || st === "batal";
+    }).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-poppins text-xs">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-[#2B5379]">
+        <h1 className="text-2xl font-bold text-[#2B5379]">
           Jadwal Konseling
         </h1>
-        <p className="mt-1 text-gray-600">
+        <p className="mt-1 text-slate-500">
           Kelola jadwal sesi konseling Anda
         </p>
       </div>
 
-      {/* Stats Cards */}
+      {/* 🟢 STATS CARDS - GARIS TEPI BORDER-SLATE-300 KELIHATAN JELAS */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-        <div className="rounded-xl border border-gray-200 bg-white p-6">
-          <p className="text-sm font-medium text-gray-600">Total Sesi</p>
-          <p className="mt-2 text-3xl font-bold text-[#2B5379]">
-            {scheduleData?.total || 0}
+        <div className="rounded-2xl border-2 border-slate-500 bg-white p-5 shadow-xs">
+          <p className="text-xs font-semibold text-slate-800">Total Sesi</p>
+          <p className="mt-2 text-2xl font-bold text-[#2B5379]">
+            {totalCount}
           </p>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-6">
-          <p className="text-sm font-medium text-gray-600">Akan Datang</p>
-          <p className="mt-2 text-3xl font-bold text-blue-600">
-            {scheduleData?.upcomingCount || 0}
+        <div className="rounded-2xl border-2 border-slate-500 bg-white p-5 shadow-xs">
+          <p className="text-xs font-semibold text-slate-800">Akan Datang</p>
+          <p className="mt-2 text-2xl font-bold text-blue-600">
+            {upcomingCount}
           </p>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-6">
-          <p className="text-sm font-medium text-gray-600">Selesai</p>
-          <p className="mt-2 text-3xl font-bold text-green-600">
-            {scheduleData?.completedCount || 0}
+        <div className="rounded-2xl border-2 border-slate-500 bg-white p-5 shadow-xs">
+          <p className="text-xs font-semibold text-slate-800">Selesai</p>
+          <p className="mt-2 text-2xl font-bold text-emerald-600">
+            {completedCount}
           </p>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-6">
-          <p className="text-sm font-medium text-gray-600">Dibatalkan</p>
-          <p className="mt-2 text-3xl font-bold text-red-600">
-            {scheduleData?.cancelledCount || 0}
+        <div className="rounded-2xl border-2 border-slate-500 bg-white p-5 shadow-xs">
+          <p className="text-xs font-semibold text-slate-800">Dibatalkan</p>
+          <p className="mt-2 text-2xl font-bold text-rose-600">
+            {cancelledCount}
           </p>
         </div>
       </div>
@@ -188,7 +218,7 @@ export default function SchedulePage() {
           <div className="lg:col-span-2">
             {selectedCalendarDate ? (
               <div>
-                <h2 className="mb-4 text-lg font-semibold text-[#2B5379]">
+                <h2 className="mb-4 text-sm font-semibold text-[#2B5379]">
                   Sesi pada {selectedCalendarDate}
                 </h2>
 
@@ -200,9 +230,9 @@ export default function SchedulePage() {
                 />
               </div>
             ) : (
-              <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
-                <p className="font-medium text-gray-600">Pilih tanggal</p>
-                <p className="mt-1 text-sm text-gray-500">
+              <div className="rounded-2xl border-2 border-slate-500 bg-white p-12 text-center shadow-xs">
+                <p className="font-medium text-slate-600">Pilih tanggal</p>
+                <p className="mt-1 text-xs text-slate-400">
                   Klik tanggal di kalender untuk melihat sesi
                 </p>
               </div>

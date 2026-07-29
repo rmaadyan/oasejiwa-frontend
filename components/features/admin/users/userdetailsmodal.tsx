@@ -1,291 +1,231 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Calendar, CreditCard, User, Phone, Mail, Clock, CheckCircle, XCircle } from "lucide-react";
-import { getUserDetails } from "@/lib/api/usersAdminSide";
-import type { UserDetails } from "@/lib/types/users";
+import { X, Award, FileText, Mail, Phone } from "lucide-react";
 
 interface UserDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  userId: number | null;
+  userId: string | number |null;
+  initialUser?: any; // Fallback data dari baris tabel
 }
 
-export default function UserDetailsModal({ isOpen, onClose, userId }: UserDetailsModalProps) {
-  const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
+export default function UserDetailsModal({
+  isOpen,
+  onClose,
+  userId,
+  initialUser,
+}: UserDetailsModalProps) {
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"info" | "bookings" | "transactions">("info");
 
   useEffect(() => {
-    if (isOpen && userId) {
-      fetchUserDetails();
+    if (isOpen) {
+      // Gunakan initialUser dari tabel sebagai default awal agar langsung muncul
+      if (initialUser) {
+        setUser(initialUser);
+      }
+
+      if (userId) {
+        const fetchUserDetail = async () => {
+          setLoading(true);
+          try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(`http://localhost:3000/admin/users/${userId}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.ok) {
+              const data = await res.json();
+              setUser(data);
+            }
+          } catch (err) {
+            console.warn("API Detail User error, menggunakan data fallback dari tabel.");
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        fetchUserDetail();
+      }
+    } else {
+      setUser(null);
     }
-  }, [isOpen, userId]);
-
-  const fetchUserDetails = async () => {
-    if (!userId) return;
-    
-    setLoading(true);
-    try {
-      const details = await getUserDetails(userId);
-      setUserDetails(details);
-    } catch (error) {
-      console.error("Failed to fetch user details:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0
-    }).format(amount);
-  };
-
-  const getStatusBadge = (status: string) => {
-    const styles = {
-      completed: "bg-green-100 text-green-700",
-      upcoming: "bg-blue-100 text-blue-700",
-      cancelled: "bg-red-100 text-red-700",
-      paid: "bg-green-100 text-green-700",
-      pending: "bg-orange-100 text-orange-700",
-    };
-
-    const labels = {
-      completed: "Selesai",
-      upcoming: "Akan Datang",
-      cancelled: "Dibatalkan",
-      paid: "Lunas",
-      pending: "Pending",
-    };
-
-    return (
-      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${styles[status as keyof typeof styles]}`}>
-        {labels[status as keyof typeof labels]}
-      </span>
-    );
-  };
+  }, [isOpen, userId, initialUser]);
 
   if (!isOpen) return null;
 
+  const roleStr = String(user?.role || "").toUpperCase();
+  const isPsychologist = roleStr === "PSYCHOLOGIST" || roleStr === "PSIKOLOG";
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Detail User</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs font-poppins">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-fadeIn">
+        
+        {/* Header Modal */}
+        <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-gray-50/50">
+          <div>
+            <h2 className="text-lg font-bold text-[#234463]">Detail User</h2>
+            <p className="text-xs text-gray-500">Rincian informasi pengguna platform</p>
+          </div>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition cursor-pointer"
           >
-            <X className="w-5 h-5 text-gray-500" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center p-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
-        ) : userDetails ? (
-          <>
-            {/* Summary Cards */}
-            <div className="p-6 border-b border-gray-200 bg-gray-50">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white rounded-lg p-4 border border-gray-200">
-                  <p className="text-xs text-gray-600 mb-1">Total Booking</p>
-                  <p className="text-2xl font-bold text-gray-900">{userDetails.totalBookings || 0}</p>
+        {/* Content */}
+        <div className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
+          {!user ? (
+            <div className="py-12 text-center text-gray-400 text-sm">Data tidak ditemukan.</div>
+          ) : isPsychologist ? (
+
+            /* ================= TAMPILAN PSIKOLOG ================= */
+            <div className="space-y-4">
+              <div className="flex items-center gap-4 bg-blue-50/60 p-4 rounded-xl border border-blue-100">
+                <div className="w-12 h-12 bg-[#234463] text-white font-bold rounded-full flex items-center justify-center text-lg shrink-0">
+                  {(user.fullName || user.name || "P").charAt(0)}
                 </div>
-                <div className="bg-white rounded-lg p-4 border border-gray-200">
-                  <p className="text-xs text-gray-600 mb-1">Selesai</p>
-                  <p className="text-2xl font-bold text-green-600">{userDetails.completedBookings || 0}</p>
-                </div>
-                <div className="bg-white rounded-lg p-4 border border-gray-200">
-                  <p className="text-xs text-gray-600 mb-1">Total Transaksi</p>
-                  <p className="text-lg font-bold text-gray-900">{formatCurrency(userDetails.totalSpent || 0)}</p>
-                </div>
-                <div className="bg-white rounded-lg p-4 border border-gray-200">
-                  <p className="text-xs text-gray-600 mb-1">Booking Terakhir</p>
-                  <p className="text-sm font-semibold text-gray-900">{userDetails.lastBooking || "-"}</p>
+                <div>
+                  <h3 className="text-base font-bold text-[#234463]">{user.fullName || user.name || "—"}</h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="px-2.5 py-0.5 text-xs font-semibold bg-purple-100 text-purple-700 rounded-full">
+                      Psikolog
+                    </span>
+                    <span className="px-2.5 py-0.5 text-xs font-semibold bg-emerald-100 text-emerald-700 rounded-full">
+                      {user.status || "Aktif"}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Tabs */}
-            <div className="flex border-b border-gray-200 px-6">
-              <button
-                onClick={() => setActiveTab("info")}
-                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === "info"
-                    ? "border-[#2B5379] text-[#2B5379]"
-                    : "border-transparent text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                Informasi
-              </button>
-              <button
-                onClick={() => setActiveTab("bookings")}
-                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === "bookings"
-                    ? "border-[#2B5379] text-[#2B5379]"
-                    : "border-transparent text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                Riwayat Booking
-              </button>
-              <button
-                onClick={() => setActiveTab("transactions")}
-                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === "transactions"
-                    ? "border-[#2B5379] text-[#2B5379]"
-                    : "border-transparent text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                Riwayat Transaksi
-              </button>
-            </div>
-
-            {/* Tab Content */}
-            <div className="flex-1 overflow-y-auto p-6">
-              {/* Tab: Info */}
-              {activeTab === "info" && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-                      <User className="w-5 h-5 text-gray-600" />
-                      <div>
-                        <p className="text-xs text-gray-600">Nama Lengkap</p>
-                        <p className="text-sm font-medium text-gray-900">{userDetails.name}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-                      <Mail className="w-5 h-5 text-gray-600" />
-                      <div>
-                        <p className="text-xs text-gray-600">Email</p>
-                        <p className="text-sm font-medium text-gray-900">{userDetails.email}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-                      <Phone className="w-5 h-5 text-gray-600" />
-                      <div>
-                        <p className="text-xs text-gray-600">Nomor Telepon</p>
-                        <p className="text-sm font-medium text-gray-900">{userDetails.phone || "-"}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-                      <Clock className="w-5 h-5 text-gray-600" />
-                      <div>
-                        <p className="text-xs text-gray-600">Bergabung</p>
-                        <p className="text-sm font-medium text-gray-900">{userDetails.registeredAt}</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 pt-4">
-                    <span className="text-sm text-gray-600">Status:</span>
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                      userDetails.status === "active" 
-                        ? "bg-green-100 text-green-700"
-                        : "bg-gray-100 text-gray-700"
-                    }`}>
-                      {userDetails.status === "active" ? "Aktif" : "Nonaktif"}
-                    </span>
-                    <span className="ml-4 text-sm text-gray-600">Role:</span>
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                      userDetails.role === "psychologist"
-                        ? "bg-purple-100 text-purple-700"
-                        : "bg-green-100 text-green-700"
-                    }`}>
-                      {userDetails.role === "psychologist" ? "Psikolog" : "Pasien"}
-                    </span>
-                  </div>
+              {/* Data SIPP & STR */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="bg-gray-50 p-3.5 rounded-xl border border-gray-100">
+                  <p className="text-xs font-medium text-gray-400 flex items-center gap-1.5 mb-1">
+                    <Award className="w-3.5 h-3.5 text-[#234463]" /> Nomor SIPP / SILP
+                  </p>
+                  <p className="text-sm font-bold text-gray-800">{user.sipp || user.psychologistDetail?.sipp || "—"}</p>
                 </div>
-              )}
+                <div className="bg-gray-50 p-3.5 rounded-xl border border-gray-100">
+                  <p className="text-xs font-medium text-gray-400 flex items-center gap-1.5 mb-1">
+                    <FileText className="w-3.5 h-3.5 text-[#234463]" /> Nomor STR
+                  </p>
+                  <p className="text-sm font-bold text-gray-800">{user.str || user.psychologistDetail?.str || "—"}</p>
+                </div>
+              </div>
 
-              {/* Tab: Bookings */}
-              {activeTab === "bookings" && (
-                <div className="space-y-3">
-                  {userDetails.bookingHistory && userDetails.bookingHistory.length > 0 ? (
-                    userDetails.bookingHistory.map((booking) => (
-                      <div key={booking.id} className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <p className="font-semibold text-gray-900">{booking.service}</p>
-                            <p className="text-sm text-gray-600">{booking.psychologist}</p>
-                          </div>
-                          {getStatusBadge(booking.status)}
-                        </div>
-                        <div className="flex items-center gap-4 text-sm text-gray-600">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
-                            {booking.date}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            {booking.time}
-                          </span>
-                          <span className="flex items-center gap-1 ml-auto font-semibold text-gray-900">
-                            {formatCurrency(booking.price)}
-                          </span>
-                        </div>
-                      </div>
+              {/* Kontak */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="bg-gray-50 p-3.5 rounded-xl border border-gray-100">
+                  <p className="text-xs font-medium text-gray-400 flex items-center gap-1.5 mb-1">
+                    <Mail className="w-3.5 h-3.5 text-[#234463]" /> Email
+                  </p>
+                  <p className="text-xs sm:text-sm font-semibold text-gray-800 truncate">{user.email}</p>
+                </div>
+                <div className="bg-gray-50 p-3.5 rounded-xl border border-gray-100">
+                  <p className="text-xs font-medium text-gray-400 flex items-center gap-1.5 mb-1">
+                    <Phone className="w-3.5 h-3.5 text-[#234463]" /> Nomor Telepon / WA
+                  </p>
+                  <p className="text-xs sm:text-sm font-semibold text-gray-800">{user.phone || "—"}</p>
+                </div>
+              </div>
+
+              {/* Spesialisasi */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 mb-2">Bidang Spesialisasi</p>
+                <div className="flex flex-wrap gap-2">
+                  {(user.specializations || user.psychologistDetail?.specializations)?.length > 0 ? (
+                    (user.specializations || user.psychologistDetail?.specializations).map((spec: any, idx: number) => (
+                      <span key={idx} className="px-3 py-1 bg-blue-50 border border-blue-200 text-[#234463] text-xs font-medium rounded-lg">
+                        {typeof spec === "string" ? spec : spec.name || spec.title}
+                      </span>
                     ))
                   ) : (
-                    <div className="text-center py-12 text-gray-500">
-                      <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                      <p>Belum ada riwayat booking</p>
-                    </div>
+                    <p className="text-xs text-gray-400 italic">Belum ada spesialisasi ditambahkan.</p>
                   )}
                 </div>
-              )}
+              </div>
 
-              {/* Tab: Transactions */}
-              {activeTab === "transactions" && (
-                <div className="space-y-3">
-                  {userDetails.transactionHistory && userDetails.transactionHistory.length > 0 ? (
-                    userDetails.transactionHistory.map((transaction) => (
-                      <div key={transaction.id} className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
-                            <p className="font-semibold text-gray-900">{transaction.description}</p>
-                            <p className="text-sm text-gray-600">{transaction.date}</p>
-                            {transaction.paymentMethod && (
-                              <p className="text-xs text-gray-500 mt-1">via {transaction.paymentMethod}</p>
-                            )}
-                          </div>
-                          <div className="text-right">
-                            <p className="font-bold text-gray-900">{formatCurrency(transaction.amount)}</p>
-                            {getStatusBadge(transaction.status)}
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-12 text-gray-500">
-                      <CreditCard className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                      <p>Belum ada riwayat transaksi</p>
-                    </div>
-                  )}
-                </div>
-              )}
+              {/* Bio */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 mb-1">Tentang / Bio</p>
+                <p className="text-xs text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-100 leading-relaxed">
+                  {user.about || user.psychologistDetail?.about || "Belum ada deskripsi bio."}
+                </p>
+              </div>
             </div>
-          </>
-        ) : (
-          <div className="flex items-center justify-center p-12 text-gray-500">
-            <p>Data user tidak ditemukan</p>
-          </div>
-        )}
+          ) : (
+
+            /* ================= TAMPILAN PASIEN ================= */
+            <div className="space-y-5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 text-center">
+                  <p className="text-[11px] font-medium text-gray-400">Total Booking</p>
+                  <p className="text-lg font-bold text-gray-800 mt-0.5">{user.stats?.totalBooking || user.bookingCount || 0}</p>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 text-center">
+                  <p className="text-[11px] font-medium text-gray-400">Selesai</p>
+                  <p className="text-lg font-bold text-emerald-600 mt-0.5">{user.stats?.completedBooking || 0}</p>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 text-center">
+                  <p className="text-[11px] font-medium text-gray-400">Total Transaksi</p>
+                  <p className="text-sm font-bold text-[#234463] mt-1">
+                    Rp {(user.stats?.totalTransaction || 0).toLocaleString("id-ID")}
+                  </p>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 text-center">
+                  <p className="text-[11px] font-medium text-gray-400">Booking Terakhir</p>
+                  <p className="text-xs font-semibold text-gray-700 mt-1">{user.stats?.lastBookingDate || "-"}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <div className="bg-gray-50 p-3.5 rounded-xl border border-gray-100">
+                  <p className="text-xs font-medium text-gray-400 mb-1">Nama Lengkap</p>
+                  <p className="text-sm font-bold text-gray-800">{user.fullName || user.name || "—"}</p>
+                </div>
+                <div className="bg-gray-50 p-3.5 rounded-xl border border-gray-100">
+                  <p className="text-xs font-medium text-gray-400 mb-1">Email</p>
+                  <p className="text-xs sm:text-sm font-semibold text-gray-800 truncate">{user.email}</p>
+                </div>
+                <div className="bg-gray-50 p-3.5 rounded-xl border border-gray-100">
+                  <p className="text-xs font-medium text-gray-400 mb-1">Nomor Telepon</p>
+                  <p className="text-sm font-semibold text-gray-800">{user.phone || "—"}</p>
+                </div>
+                <div className="bg-gray-50 p-3.5 rounded-xl border border-gray-100">
+                  <p className="text-xs font-medium text-gray-400 mb-1">Tanggal Bergabung</p>
+                  <p className="text-sm font-semibold text-gray-800">
+                    {user.joinedDate || user.createdAt || user.registeredAt ? new Date(user.joinedDate || user.createdAt || user.registeredAt).toLocaleDateString("id-ID") : "—"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 pt-1">
+                <span className="text-xs text-gray-400 font-medium">Status:</span>
+                <span className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-semibold">
+                  Aktif
+                </span>
+                <span className="text-xs text-gray-400 font-medium ml-2">Role:</span>
+                <span className="px-3 py-1 bg-blue-50 text-[#234463] border border-blue-200 rounded-full text-xs font-semibold">
+                  Pasien
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 p-6 border-t border-gray-200">
+        <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="px-5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-semibold rounded-xl transition cursor-pointer"
           >
             Tutup
           </button>
         </div>
+
       </div>
     </div>
   );

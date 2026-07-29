@@ -43,10 +43,11 @@ function mapBackendToTesItem(raw: any) {
 
 // GET: Semua Tes
 export async function getAllTes() {
+  const token = getAuthToken();
   const res = await fetch(`${API_BASE_URL}/tes`, {
     cache: "no-store",
     headers: {
-      Authorization: `Bearer ${getAuthToken()}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       "Content-Type": "application/json",
     },
   });
@@ -57,10 +58,11 @@ export async function getAllTes() {
 
 // GET: Tes by ID
 export async function getTesById(id: string) {
+  const token = getAuthToken();
   const res = await fetch(`${API_BASE_URL}/tes/${id}`, {
     cache: "no-store",
     headers: {
-      Authorization: `Bearer ${getAuthToken()}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       "Content-Type": "application/json",
     },
   });
@@ -71,11 +73,12 @@ export async function getTesById(id: string) {
 
 // POST: Buat Tes Baru
 export async function createTes(data: any) {
+  const token = getAuthToken();
   const { jumlah, ...payload } = data; 
   const res = await fetch(`${API_BASE_URL}/tes`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${getAuthToken()}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       "Content-Type": "application/json",
     },
     body: JSON.stringify(payload),
@@ -86,10 +89,11 @@ export async function createTes(data: any) {
 
 // PATCH: Update Tes
 export async function updateTes(id: string, data: any) {
+  const token = getAuthToken();
   const res = await fetch(`${API_BASE_URL}/tes/${id}`, {
     method: "PATCH",
     headers: {
-      Authorization: `Bearer ${getAuthToken()}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       "Content-Type": "application/json",
     },
     body: JSON.stringify(data),
@@ -100,10 +104,11 @@ export async function updateTes(id: string, data: any) {
 
 // DELETE: Hapus Tes
 export async function deleteTes(id: string) {
+  const token = getAuthToken();
   const res = await fetch(`${API_BASE_URL}/tes/${id}`, {
     method: "DELETE",
     headers: {
-      Authorization: `Bearer ${getAuthToken()}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       "Content-Type": "application/json",
     },
   });
@@ -113,13 +118,14 @@ export async function deleteTes(id: string) {
 
 
 export async function uploadGambar(file: File): Promise<string> {
+  const token = getAuthToken();
   const formData = new FormData();
   formData.append("file", file);
 
   const res = await fetch(`${API_BASE_URL}/upload/image`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${getAuthToken()}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
 
     },
     body: formData,

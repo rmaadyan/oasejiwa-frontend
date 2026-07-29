@@ -546,29 +546,37 @@ const PsychologistForm: React.FC<PsychologistFormProps> = ({
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
             setShowErrorToast(true);
-            
             const firstErrorField = Object.keys(newErrors)[0];
             scrollToError(firstErrorField);
-            
             setTimeout(() => setShowErrorToast(false), 3000);
-            
             return;
         }
 
-        const formData: PsychologistData = {
-            name,
-            email,
-            licenseNumber,
-            str,
-            bio,
+        // 🟢 Konversi array of object [{ title }] menjadi array string simple ["..."] agar pas dengan NestJS
+        const formattedSpecializations = finalSpecializations.map((s) => s.title);
+        const formattedExpertise = finalExpertise.map((e) => e.title);
+        const formattedExperiences = finalExperiences.map((ex) => ex.title);
+
+        const formData: any = {
+            fullName: name,
+            email: email,
+            sipp: licenseNumber, // 👈 SIPP untuk NestJS
+            str: str,
+            about: bio,         // 👈 NestJS membaca bio sebagai 'about'
             educations: finalEducations,
-            specializations: finalSpecializations,
-            expertise: finalExpertise,
-            experiences: finalExperiences,
-            schedules: finalSchedules,
+            specializations: formattedSpecializations, // 👈 Array string
+            expertises: formattedExpertise,            // 👈 Array string
+            experiences: formattedExperiences,          // 👈 Array string
+            schedules: finalSchedules.map((sch) => ({
+                date: sch.date,
+                startTime: sch.startTime,
+                duration: sch.duration,
+                isAvailable: true,
+            })),
             photo,
         };
         
+        // Kirim formData dan file foto ke handler parent
         onSubmit(formData, photoFile ?? undefined);
         onDirtyChange?.(false);
         setErrors({});

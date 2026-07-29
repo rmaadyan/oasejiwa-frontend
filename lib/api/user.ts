@@ -43,4 +43,32 @@ export async function updateUserProfile(data: any) {
     }
 
     return json;
+
+   }   // Tambahkan fungsi ini di bawah file user API milikmu
+
+export async function changeUserPassword(data: { currentPassword: string; newPassword: string }) {
+    const res = await fetch(`${API_BASE_URL}/user/change-password`, {
+        method: "POST", // atau PATCH tergantung route backend NestJS kamu
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data),
+    });
+
+    const text = await res.text();
+    let json: any;
+    try {
+        json = JSON.parse(text);
+    } catch {
+        throw new Error("Server error: " + text.slice(0, 100));
+    }
+
+    if (!res.ok) {
+        const messages = json?.message;
+        const errorMessage = Array.isArray(messages)
+            ? messages.join(", ")
+            : messages ?? "Gagal mengubah kata sandi";
+        throw new Error(errorMessage);
+    }
+
+    return json;
 }

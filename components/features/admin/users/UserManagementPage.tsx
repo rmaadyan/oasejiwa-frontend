@@ -144,7 +144,7 @@ export default function UserManagementPage() {
         search: searchQuery,
       });
 
-      const exportData = response.users.map((user, index) => ({
+      const exportData = response.users.map((user: User, index: number) => ({
         No: index + 1,
         Nama: user.name || "",
         Email: user.email || "",

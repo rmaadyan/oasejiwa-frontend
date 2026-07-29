@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, Suspense, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useEffect, useCallback, Suspense, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   BookingHero,
   PaymentTimer,
@@ -32,12 +32,13 @@ interface PaymentConfirmationContentProps {
 function PaymentConfirmationInner({
   paymentData,
 }: PaymentConfirmationContentProps) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const paymentMethod = searchParams.get("payment");
   const bookingId = searchParams.get("bookingId");
   const paymentType = searchParams.get("type"); // "full" or null/DP
 
-  const calculateTimeLeft = () => {
+  const calculateTimeLeft = useCallback(() => {
     const now = new Date().getTime();
     const expiry = new Date(paymentData.expiredAt).getTime();
     const difference = expiry - now;
@@ -49,7 +50,7 @@ function PaymentConfirmationInner({
       return { hours, minutes, seconds };
     }
     return { hours: 0, minutes: 0, seconds: 0 };
-  };
+  }, [paymentData.expiredAt]);
 
   const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -70,7 +71,7 @@ function PaymentConfirmationInner({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [paymentData.expiredAt]);
+  }, [calculateTimeLeft]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -103,9 +104,11 @@ function PaymentConfirmationInner({
         await uploadPaymentDP(bookingId, uploadedFile, paymentMethod ?? ""); 
       }
       setIsSuccess(true);
-    } catch (error: any) {
+    } catch (error) {
       console.error(error);
-      alert(error.message || "Gagal mengupload bukti pembayaran");
+      const message =
+        error instanceof Error ? error.message : "Gagal mengupload bukti pembayaran";
+      alert(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -122,8 +125,39 @@ function PaymentConfirmationInner({
     );
   }
 
+  const handleGoBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/booking");
+    }
+  };
+
   return (
     <main className="min-h-screen bg-[#f5f7fb]">
+      <div className="max-w-3xl mx-auto px-4 py-4">
+        <button
+          type="button"
+          onClick={handleGoBack}
+          className="inline-flex items-center gap-2 text-[#2B5379] hover:text-[#1f405e] font-medium mb-4"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+          Kembali
+        </button>
+      </div>
+
       <BookingHero
         title={
           <>

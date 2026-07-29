@@ -327,14 +327,15 @@ function ConsultationFormContent() {
           const payload = {
             serviceId: Number(serviceId),
             psychologistId: psychologistId,
+            scheduleId: scheduleId,
             scheduledDate: date,
             scheduledTime: time,
             consultationForm: mappedConsultation,
             consentForm: {
               consentDate: consentData.consentDate,
               clientNameConfirmation: consentData.clientNameConfirmation,
-              signatureData: consentData.signature,        
-              signatureType: useTextSignature ? 'TEXT' : 'DRAWING',  
+              signatureData: consentData.signature,
+              signatureType: useTextSignature ? 'TEXT' : 'DRAWING',
               agreedToTerms: consentData.agreedToTerms ?? false,
             },
           };
@@ -349,9 +350,11 @@ function ConsultationFormContent() {
           router.push(
             `/booking/payment-method?bookingId=${booking.data.id}` 
           );
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error(error);
-          alert(error.message || "Gagal membuat booking");
+          alert(
+            error instanceof Error ? error.message : "Gagal membuat booking"
+          );
         } finally {
           setIsSubmitting(false);
         }

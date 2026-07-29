@@ -78,7 +78,7 @@ export default function SignIn() {
             } else if (role === "ADMIN") {
                 router.push("/admin");
             } else {
-                router.push("/userprofile");
+                router.push("/");
             }
         } catch (err: any) {
             if (err.message?.includes("EMAIL_NOT_VERIFIED")) {

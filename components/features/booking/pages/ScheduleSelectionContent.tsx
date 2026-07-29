@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import BookingStepper from "@/components/booking/BookingStepper";
 import {
@@ -32,7 +32,17 @@ function ScheduleSelectionInner({
     dates[0]?.value || null
   );
   const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
-  const selectedSlot = rawSchedules.find(s => s.id === selectedScheduleId);
+
+  // 🟢 KUNCI UTAMA: Pilih hari pertama otomatis jika data dates baru selesai dimuat
+  useEffect(() => {
+    if (dates && dates.length > 0) {
+      if (!selectedDate || !dates.some((d) => d.value === selectedDate)) {
+        setSelectedDate(dates[0].value);
+      }
+    }
+  }, [dates, selectedDate]);
+
+  const selectedSlot = rawSchedules.find((s) => s.id === selectedScheduleId);
 
   const handleDateSelect = (date: string) => {
     setSelectedDate(date);
@@ -74,7 +84,7 @@ function ScheduleSelectionInner({
           onScheduleSelect={setSelectedScheduleId}
         />
 
-        {selectedDate && selectedScheduleId && selectedSlot &&(
+        {selectedDate && selectedScheduleId && selectedSlot && (
           <ScheduleSummary
             selectedDate={selectedDate}
             selectedScheduleId={selectedScheduleId}
