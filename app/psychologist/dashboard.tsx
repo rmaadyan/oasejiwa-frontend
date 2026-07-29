@@ -1,112 +1,147 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import WelcomeCard from "@/components/features/psychologist/dashboard/welcomecard";
-import TodayStats from "@/components/features/psychologist/dashboard/todaystats";
-import TodaySchedule from "@/components/features/psychologist/dashboard/todayschedule";
-import UpcomingAppointments from "@/components/features/psychologist/dashboard/upcomingappointments";
-import {
-  getPsychologistDashboard,
-  getPsychologistProfile,
-  markSessionCompleted,
-} from "@/lib/api/psychologist";
-import type {
-  Psychologist,
-  PsychologistDashboardStats,
-  Session,
-} from "@/lib/types/psychologist";
+import { useEffect, useState } from "react";
+import { getPsychologistDashboard } from "@/lib/api/psychologist";
 
-export default function PsychologistDashboard() {
+// 🟢 Helper Fungsi Sapaan Dinamis Berdasarkan Waktu
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour >= 3 && hour < 11) return "Selamat Pagi";
+  if (hour >= 11 && hour < 15) return "Selamat Siang";
+  if (hour >= 15 && hour < 18) return "Selamat Sore";
+  return "Selamat Malam";
+}
+
+export default function PsychologistDashboardPage() {
+  const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<Psychologist | null>(null);
-  const [stats, setStats] = useState<PsychologistDashboardStats | null>(null);
-  const [todaySchedule, setTodaySchedule] = useState<Session[]>([]);
-  const [upcomingSessions, setUpcomingSessions] = useState<Session[]>([]);
-
-  const fetchDashboardData = async () => {
-    setLoading(true);
-
-    try {
-      const [profileData, dashboardData] = await Promise.all([
-        getPsychologistProfile(),
-        getPsychologistDashboard(),
-      ]);
-
-      setProfile(profileData);
-      setStats(dashboardData.stats);
-      setTodaySchedule(dashboardData.todaySchedule);
-      setUpcomingSessions(dashboardData.upcomingSessions);
-    } catch (error) {
-      console.error("Failed to fetch dashboard data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
-    fetchDashboardData();
+    async function loadData() {
+      try {
+        const res = await getPsychologistDashboard();
+        setData(res);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
   }, []);
 
-  const handleMarkCompleted = async (sessionId: number | string) => {
-    try {
-      await markSessionCompleted(sessionId);
-      await fetchDashboardData();
-    } catch (error) {
-      console.error("Failed to mark session as completed:", error);
-      alert("Gagal menandai sesi selesai");
-    }
-  };
-
   if (loading) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-[#2B5379] border-t-transparent" />
-          <p className="text-gray-600">Memuat dashboard...</p>
-        </div>
-      </div>
-    );
+    return <div className="p-8 text-slate-500 font-poppins">Memuat dashboard...</div>;
   }
 
-  if (!profile || !stats) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600">Gagal memuat data dashboard</p>
-          <button
-            onClick={fetchDashboardData}
-            className="mt-4 rounded-lg bg-[#2B5379] px-4 py-2 text-white hover:bg-[#2B5379]/90"
-            type="button"
-          >
-            Coba Lagi
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const greetingText = getGreeting();
+
+  const todayDateFormatted = new Date().toLocaleDateString("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  const todaySessions = data?.todaySessions || [];
+  const upcomingSessions = data?.upcomingSessions || [];
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6 font-poppins text-xs max-w-6xl">
+      {/* Header Title */}
       <div>
-        <h1 className="text-3xl font-bold text-[#2B5379]">Dashboard</h1>
-        <p className="mt-1 text-gray-600">
-          Overview aktivitas dan jadwal Anda
-        </p>
+        <h1 className="text-lg font-bold text-slate-800">Dashboard</h1>
+        <p className="text-slate-500">Overview aktivitas dan jadwal Anda</p>
       </div>
 
-      <WelcomeCard
-        psychologist={profile}
-        nextSessionTime={stats.nextSessionTime}
-      />
+      {/* 🟢 BANNER SAPAAN BIRU MUDA */}
+      <div className="bg-[#D9EBFC] p-6 rounded-2xl border-2 border-slate-500 space-y-1">
+        <h2 className="text-sm font-bold text-[#1F415F]">
+          {greetingText}, {data?.psychologistName || "Okta"}
+        </h2>
+        <p className="text-slate-600">Semangat untuk membantu pasien hari ini</p>
+        <p className="text-slate-400 text-[11px] pt-1">{todayDateFormatted}</p>
+      </div>
 
-      <TodayStats stats={stats} />
+      {/* 🟢 3 CARD STATISTIK (DENGAN BORDER-2 BORDER-SLATE-500 RATA KIRI) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Card 1: Sesi Hari Ini */}
+        <div className="bg-white p-5 rounded-2xl border-2 border-slate-500 shadow-xs space-y-2">
+          <p className="text-slate-500 font-medium">Sesi hari ini</p>
+          <p className="text-2xl font-bold text-slate-800">{data?.todaySessionsCount || 0}</p>
+          <p className="text-slate-400 text-[11px]">{data?.todaySessionsCount || 0} Sesi</p>
+        </div>
 
-      <TodaySchedule
-        sessions={todaySchedule}
-        onMarkCompleted={handleMarkCompleted}
-      />
+        {/* Card 2: Sesi Minggu Ini */}
+        <div className="bg-white p-5 rounded-2xl border-2 border-slate-500 shadow-xs space-y-2">
+          <p className="text-slate-500 font-medium">Sesi Minggu ini</p>
+          <p className="text-2xl font-bold text-slate-800">{data?.weeklySessionsCount || 0}</p>
+          <p className="text-slate-400 text-[11px]">Total minggu ini</p>
+        </div>
 
-      <UpcomingAppointments sessions={upcomingSessions} />
+        {/* Card 3: Total Pasien */}
+        <div className="bg-white p-5 rounded-2xl border-2 border-slate-500 shadow-xs space-y-2">
+          <p className="text-slate-500 font-medium">Total Pasien</p>
+          <p className="text-2xl font-bold text-slate-800">{data?.totalPatients || 0}</p>
+          <p className="text-slate-400 text-[11px]">Di bulan ini</p>
+        </div>
+      </div>
+
+      {/* 🟢 CARD JADWAL HARI INI */}
+      <div className="bg-white p-5 rounded-2xl border-2 border-slate-500 shadow-xs space-y-2">
+        <h3 className="font-bold text-slate-800 text-sm">Jadwal Sesi Hari Ini</h3>
+        {todaySessions.length === 0 ? (
+          <div className="text-center py-6 space-y-1">
+            <p className="text-slate-700 font-semibold">Tidak ada jadwal hari ini</p>
+            <p className="text-slate-400 text-[11px]">Selamat beristirahat!</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {todaySessions.map((session: any) => (
+              <div key={session.id} className="flex justify-between items-center p-3 bg-slate-50/50 rounded-xl border border-slate-300">
+                <div>
+                  <p className="font-bold text-slate-800">{session.patientName}</p>
+                  <p className="text-slate-500 text-[11px]">{session.serviceName}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold text-[#234463]">{session.time} WIB</p>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-medium uppercase">
+                    {session.status}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 🟢 CARD JADWAL MENDATANG */}
+      <div className="bg-white p-6 rounded-2xl border-2 border-slate-500 shadow-xs space-y-3">
+        <h3 className="font-bold text-slate-800 text-sm">Jadwal Sesi Mendatang</h3>
+        {upcomingSessions.length === 0 ? (
+          <div className="text-center py-6 space-y-1">
+            <p className="text-slate-700 font-semibold">Tidak ada jadwal mendatang</p>
+            <p className="text-slate-400 text-[11px]">7 hari ke depan kosong</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {upcomingSessions.map((session: any) => (
+              <div key={session.id} className="flex justify-between items-center p-3 bg-slate-50/50 rounded-xl border border-slate-300">
+                <div>
+                  <p className="font-bold text-slate-800">{session.patientName}</p>
+                  <p className="text-slate-500 text-[11px]">{session.serviceName} • {session.date}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold text-[#234463]">{session.time} WIB</p>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-medium uppercase">
+                    {session.status}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

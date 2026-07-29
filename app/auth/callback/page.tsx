@@ -25,7 +25,7 @@ function GoogleCallbackContent() {
       } else if (user.role === "ADMIN") {
         router.push("/admin");
       } else {
-        router.push("/userprofile");
+        router.push("/");
       }
     })
       .catch(() => router.push("/auth/signin"));

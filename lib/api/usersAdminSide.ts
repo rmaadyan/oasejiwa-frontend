@@ -1,184 +1,134 @@
 import type {
   User,
   UserFormData,
-  UsersResponse,
   UserDetails,
-  UserQueryParams,
 } from "@/lib/types/users";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id";
-
-function normalizeSort(sort?: string) {
-  if (sort === "name-asc") return "name_asc";
-  if (sort === "name-desc") return "name_desc";
-  return sort || "newest";
-}
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 function normalizeRoleToBackend(role?: string) {
   if (!role) return undefined;
-
   const upper = role.toUpperCase();
-
-  if (upper === "PATIENT") return "USER";
-  if (upper === "USER") return "USER";
+  if (upper === "PATIENT" || upper === "USER") return "PATIENT";
   if (upper === "ADMIN") return "ADMIN";
-  if (upper === "PSYCHOLOGIST") return "PSYCHOLOGIST";
-
+  if (upper === "PSYCHOLOGIST" || upper === "PSIKOLOG") return "PSYCHOLOGIST";
   return upper;
 }
 
 function normalizeUserFromApi(user: any): User {
+  const roleUpper = String(user.role || "").toUpperCase();
+  const isPsychologist = roleUpper === "PSYCHOLOGIST" || roleUpper === "PSIKOLOG";
+
   return {
     id: user.id,
-    name: user.name ?? "-",
+    name: user.name || user.fullName || "-",
     email: user.email,
     gender: user.gender ?? null,
-    role:
-      user.role === "USER"
-        ? "patient"
-        : user.role?.toLowerCase?.() ?? user.role,
-    phone: user.phone ?? null,
-    registeredAt: user.registeredAt,
+    role: isPsychologist ? "psychologist" : "patient",
+    phone: user.phone ?? "-",
+    registeredAt: user.registeredAt || user.joinedDate || user.createdAt,
     status: user.status ?? "active",
-    bookingCount: user.bookingCount ?? 0,
+    bookingCount: user.bookingCount || user.stats?.totalBooking || 0,
   };
 }
 
-function formatDateForDisplay(date?: string | Date | null) {
-  if (!date) return "-";
+export async function getUsers(params?: any) {
+  try {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : "";
+    const res = await fetch(`${BACKEND_URL}/admin/users`, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+    });
 
-  const rawDate = String(date);
+    if (!res.ok) {
+      console.warn(`[getUsers] Status API: ${res.status}`);
+      return {
+        users: [],
+        total: 0,
+        totalPages: 1,
+        meta: { totalUsers: 0, totalPatients: 0, totalPsychologists: 0, totalAdmins: 0 },
+      };
+    }
 
-  if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
-    const [year, month, day] = rawDate.split("-").map(Number);
+    const data = await res.json();
+    const usersList = Array.isArray(data) ? data : data.users || [];
 
-    return new Intl.DateTimeFormat("id-ID", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    }).format(new Date(year, month - 1, day));
+    const totalPatients = usersList.filter((u: any) => {
+      const r = String(u.role).toUpperCase();
+      return r === "PATIENT" || r === "PASIEN" || r === "USER";
+    }).length;
+
+    const totalPsychologists = usersList.filter((u: any) => {
+      const r = String(u.role).toUpperCase();
+      return r === "PSYCHOLOGIST" || r === "PSIKOLOG";
+    }).length;
+
+    return {
+      users: usersList.map(normalizeUserFromApi),
+      total: usersList.length,
+      totalPages: 1,
+      meta: {
+        totalUsers: usersList.length,
+        totalPatients,
+        totalPsychologists,
+        totalAdmins: 0,
+      },
+    };
+  } catch (error) {
+    console.error("Error getUsers:", error);
+    return {
+      users: [],
+      total: 0,
+      totalPages: 1,
+      meta: { totalUsers: 0, totalPatients: 0, totalPsychologists: 0, totalAdmins: 0 },
+    };
   }
-
-  const parsedDate = new Date(date);
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return "-";
-  }
-
-  return parsedDate.toLocaleDateString("id-ID", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
-}
-
-export async function getUsers(
-  params: UserQueryParams = {}
-): Promise<UsersResponse> {
-  const {
-    page = 1,
-    perPage = 10,
-    sort = "newest",
-    gender = "all",
-    search = "",
-  } = params;
-
-  const queryParams = new URLSearchParams({
-    page: page.toString(),
-    perPage: perPage.toString(),
-    sort: normalizeSort(sort),
-    gender,
-    search,
-  });
-
-  const res = await fetch(`${API_BASE_URL}/admin-users?${queryParams}`, {
-    cache: "no-store",
-    credentials: "include",
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Failed to fetch users: ${res.status} ${text}`);
-  }
-
-  const data = await res.json();
-
-  return {
-    users: (data.users || []).map(normalizeUserFromApi),
-    total: data.total ?? 0,
-    page: data.page ?? page,
-    perPage: data.perPage ?? perPage,
-    totalPages: data.totalPages ?? 1,
-    meta: data.meta,
-  } as UsersResponse;
 }
 
 export async function getUserById(id: string | number): Promise<User | null> {
-  const res = await fetch(`${API_BASE_URL}/admin-users/${id}`, {
+  try {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : "";
+    const res = await fetch(`${BACKEND_URL}/admin/users/${id}`, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+    });
+
+    if (!res.ok) return null;
+    const data = await res.json();
+    return normalizeUserFromApi(data);
+  } catch {
+    return null;
+  }
+}
+
+export async function getUserDetails(id: string | number): Promise<any> {
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : "";
+  const res = await fetch(`${BACKEND_URL}/admin/users/${id}`, {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      "Content-Type": "application/json",
+    },
     cache: "no-store",
-    credentials: "include",
   });
 
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Failed to fetch user: ${res.status} ${text}`);
+    throw new Error(`Gagal fetch detail user: status ${res.status}`);
   }
 
-  const data = await res.json();
-  return normalizeUserFromApi(data);
-}
-
-export async function getUserDetails(
-  id: string | number
-): Promise<UserDetails | null> {
-  const res = await fetch(`${API_BASE_URL}/admin-users/${id}`, {
-    cache: "no-store",
-    credentials: "include",
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Failed to fetch user details: ${res.status} ${text}`);
-  }
-
-  const data = await res.json();
-  const user = normalizeUserFromApi(data);
-
-  return {
-    ...user,
-    registeredAt: formatDateForDisplay(data.registeredAt ?? user.registeredAt),
-
-    totalBookings: data.totalBookings ?? 0,
-    completedBookings: data.completedBookings ?? 0,
-    totalTransactions: data.totalTransactions ?? 0,
-    totalSpent: data.totalSpent ?? 0,
-    lastBooking: data.lastBooking
-      ? formatDateForDisplay(data.lastBooking)
-      : undefined,
-
-    bookingHistory: (data.bookingHistory || []).map((booking: any) => ({
-      ...booking,
-      date: formatDateForDisplay(booking.date),
-    })),
-
-    transactionHistory: (data.transactionHistory || []).map(
-      (transaction: any) => ({
-        ...transaction,
-        date: formatDateForDisplay(transaction.date),
-      })
-    ),
-  } as UserDetails;
-}
-
-export async function createUser(_userData: UserFormData): Promise<User> {
-  throw new Error("Create user belum tersedia di backend admin-users");
+  return await res.json();
 }
 
 export async function updateUser(
   id: string | number,
   userData: Partial<UserFormData> & { status?: "active" | "inactive" }
 ): Promise<User> {
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : "";
   const body: any = {};
 
   if (userData.role) {
@@ -189,10 +139,10 @@ export async function updateUser(
     body.status = userData.status;
   }
 
-  const res = await fetch(`${API_BASE_URL}/admin-users/${id}`, {
+  const res = await fetch(`${BACKEND_URL}/admin/users/${id}`, {
     method: "PATCH",
-    credentials: "include",
     headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
@@ -208,9 +158,12 @@ export async function updateUser(
 }
 
 export async function deleteUser(id: string | number): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}/admin-users/${id}`, {
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : "";
+  const res = await fetch(`${BACKEND_URL}/admin/users/${id}`, {
     method: "DELETE",
-    credentials: "include",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
 
   if (!res.ok) {
