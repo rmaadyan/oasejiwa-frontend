@@ -1,12 +1,13 @@
 "use client";
 
-import { X, AlertCircle } from "lucide-react";
+import { X, AlertCircle, AlertTriangle, CheckCircle2, ShieldAlert, Info } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   getAllPatients,
   getPatientDetail,
   createNote,
   updateNote,
+  updatePatientMedicalInfo,
 } from "@/lib/api/psychologist";
 import type {
   PsychologistPatient,
@@ -14,6 +15,7 @@ import type {
   SessionNotePayload,
   SessionSummary,
 } from "@/lib/types/psychologist";
+import { getRiskConfig, RISK_LEVEL_CONFIGS, type RiskLevelKey } from "@/lib/types/psychologist";
 
 interface CreateNoteModalProps {
   isOpen: boolean;
@@ -41,11 +43,22 @@ export default function CreateNoteModal({
     patientId: "",
     patientName: "",
     scheduleId: "",
+    diagnosis: "Gangguan Kecemasan Umum",
+    medication: "Sertraline 50 mg (1x sehari setelah makan pagi)",
+    allergies: "Tidak ada alergi yang diketahui",
     subjective: "",
     objective: "",
     assessment: "",
     plan: "",
-    riskLevel: "low" as "low" | "medium" | "high",
+    riskLevel: "medium" as string,
+    riskReason: "Pasien menunjukkan kecemasan berlebih selama lebih dari dua minggu, mengalami gangguan tidur, dan kesulitan berkonsentrasi sehingga dikategorikan sebagai Risiko Sedang.",
+    assessingPsychologistName: "Dr. Maya Putri, M.Psi., Psikolog",
+    assessmentDate: "2026-07-29",
+    diagnosisSummary: "",
+    treatmentApproach: "",
+    recommendation: "",
+    followUpPlan: "CONTINUE_SESSION" as "CONTINUE_SESSION" | "REFER_TO_OTHER" | "COMPLETED",
+    additionalNotes: "",
     followUpDate: "",
     nextSessionRecommendation: "",
     tags: [] as string[],
@@ -65,14 +78,22 @@ export default function CreateNoteModal({
         patientId: editNote.patientId,
         patientName: editNote.patientName,
         scheduleId: editNote.scheduleId || "",
+        diagnosis: "Gangguan Kecemasan Umum",
+        medication: "Sertraline 50 mg (1x sehari setelah makan pagi)",
+        allergies: "Tidak ada alergi yang diketahui",
         subjective: editNote.subjective || "",
         objective: editNote.objective || "",
         assessment: editNote.assessment || "",
         plan: editNote.plan || "",
-        riskLevel: (editNote.riskLevel?.toLowerCase() || "low") as
-          | "low"
-          | "medium"
-          | "high",
+        riskLevel: editNote.riskLevel || "medium",
+        riskReason: editNote.riskReason || "Pasien menunjukkan kecemasan berlebih selama lebih dari dua minggu, mengalami gangguan tidur, dan kesulitan berkonsentrasi sehingga dikategorikan sebagai Risiko Sedang.",
+        assessingPsychologistName: editNote.assessingPsychologistName || "Dr. Maya Putri, M.Psi., Psikolog",
+        assessmentDate: editNote.assessmentDate || "2026-07-29",
+        diagnosisSummary: editNote.diagnosisSummary || editNote.subjective || "",
+        treatmentApproach: editNote.treatmentApproach || editNote.plan || "",
+        recommendation: editNote.recommendation || editNote.nextSessionRecommendation || "",
+        followUpPlan: editNote.followUpPlan || "CONTINUE_SESSION",
+        additionalNotes: editNote.additionalNotes || "",
         followUpDate: editNote.followUpDate || "",
         nextSessionRecommendation: editNote.nextSessionRecommendation || "",
         tags: editNote.tags || [],
@@ -82,11 +103,22 @@ export default function CreateNoteModal({
         patientId: "",
         patientName: "",
         scheduleId: "",
+        diagnosis: "Gangguan Kecemasan Umum",
+        medication: "Sertraline 50 mg (1x sehari setelah makan pagi)",
+        allergies: "Tidak ada alergi yang diketahui",
         subjective: "",
         objective: "",
         assessment: "",
         plan: "",
-        riskLevel: "low",
+        riskLevel: "medium",
+        riskReason: "Pasien menunjukkan kecemasan berlebih selama lebih dari dua minggu, mengalami gangguan tidur, dan kesulitan berkonsentrasi sehingga dikategorikan sebagai Risiko Sedang.",
+        assessingPsychologistName: "Dr. Maya Putri, M.Psi., Psikolog",
+        assessmentDate: "2026-07-29",
+        diagnosisSummary: "",
+        treatmentApproach: "",
+        recommendation: "",
+        followUpPlan: "CONTINUE_SESSION",
+        additionalNotes: "",
         followUpDate: "",
         nextSessionRecommendation: "",
         tags: [],
@@ -223,7 +255,11 @@ export default function CreateNoteModal({
       !formData.assessment.trim() ||
       !formData.plan.trim()
     ) {
-      return "Semua field SOAP wajib diisi";
+      return "Semua field SOAP (Keluhan, Observasi, Assessment, Intervensi) wajib diisi";
+    }
+
+    if (!formData.riskReason || !formData.riskReason.trim()) {
+      return "Alasan Penilaian Risiko wajib diisi terlebih dahulu";
     }
 
     return null;
@@ -242,7 +278,21 @@ export default function CreateNoteModal({
     setSubmitting(true);
     setError(null);
 
+    const activeConfig = getRiskConfig(formData.riskLevel);
+
     try {
+      if (formData.patientId) {
+        try {
+          await updatePatientMedicalInfo(formData.patientId, {
+            diagnosis: formData.diagnosis ? [formData.diagnosis] : undefined,
+            currentMedication: formData.medication ? [formData.medication] : undefined,
+            allergies: formData.allergies ? [formData.allergies] : undefined,
+          });
+        } catch (mErr) {
+          console.warn("Could not update medical info via API, continuing:", mErr);
+        }
+      }
+
       if (editNote) {
         await updateNote(editNote.id, {
           subjective: formData.subjective,
@@ -250,6 +300,15 @@ export default function CreateNoteModal({
           assessment: formData.assessment,
           plan: formData.plan,
           riskLevel: formData.riskLevel,
+          riskReason: formData.riskReason,
+          riskRecommendations: activeConfig.recommendations,
+          assessingPsychologistName: formData.assessingPsychologistName,
+          assessmentDate: formData.assessmentDate,
+          diagnosisSummary: formData.diagnosisSummary || formData.subjective,
+          treatmentApproach: formData.treatmentApproach || formData.plan,
+          recommendation: formData.recommendation || formData.nextSessionRecommendation,
+          followUpPlan: formData.followUpPlan,
+          additionalNotes: formData.additionalNotes,
           followUpDate: formData.followUpDate || undefined,
           nextSessionRecommendation:
             formData.nextSessionRecommendation || undefined,
@@ -264,6 +323,15 @@ export default function CreateNoteModal({
           assessment: formData.assessment,
           plan: formData.plan,
           riskLevel: formData.riskLevel,
+          riskReason: formData.riskReason,
+          riskRecommendations: activeConfig.recommendations,
+          assessingPsychologistName: formData.assessingPsychologistName,
+          assessmentDate: formData.assessmentDate,
+          diagnosisSummary: formData.diagnosisSummary || formData.subjective,
+          treatmentApproach: formData.treatmentApproach || formData.plan,
+          recommendation: formData.recommendation || formData.nextSessionRecommendation,
+          followUpPlan: formData.followUpPlan,
+          additionalNotes: formData.additionalNotes,
           followUpDate: formData.followUpDate || undefined,
           nextSessionRecommendation:
             formData.nextSessionRecommendation || undefined,
@@ -407,14 +475,62 @@ export default function CreateNoteModal({
             </div>
           )}
 
+          {/* Informasi Medis & Diagnosis */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 rounded-xl border border-gray-200 bg-gray-50/70 p-4">
+            <div>
+              <label className="mb-1 block text-xs font-bold text-gray-700">
+                Diagnosis Pasien
+              </label>
+              <input
+                type="text"
+                value={formData.diagnosis}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, diagnosis: e.target.value }))
+                }
+                placeholder="Contoh: Gangguan Kecemasan Umum"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2B5379]"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-bold text-gray-700">
+                Obat Saat Ini
+              </label>
+              <input
+                type="text"
+                value={formData.medication}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, medication: e.target.value }))
+                }
+                placeholder="Contoh: Sertraline 50 mg (1x sehari)"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2B5379]"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-bold text-gray-700">
+                Alergi
+              </label>
+              <input
+                type="text"
+                value={formData.allergies}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, allergies: e.target.value }))
+                }
+                placeholder="Contoh: Tidak ada alergi yang diketahui"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2B5379]"
+              />
+            </div>
+          </div>
+
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-[#2B5379]">
-              Catatan SOAP
+              Catatan SOAP & Detail Rekam Medis
             </h3>
 
             <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
               <label className="mb-2 block text-sm font-bold text-[#2B5379]">
-                S - SUBJECTIVE <span className="text-red-500">*</span>
+                Keluhan Utama (Subjective) <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={formData.subjective}
@@ -433,7 +549,7 @@ export default function CreateNoteModal({
 
             <div className="rounded-lg border border-green-200 bg-green-50 p-4">
               <label className="mb-2 block text-sm font-bold text-[#2B5379]">
-                O - OBJECTIVE <span className="text-red-500">*</span>
+                Observasi Psikolog (Objective) <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={formData.objective}
@@ -452,7 +568,7 @@ export default function CreateNoteModal({
 
             <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
               <label className="mb-2 block text-sm font-bold text-[#2B5379]">
-                A - ASSESSMENT <span className="text-red-500">*</span>
+                Assessment <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={formData.assessment}
@@ -464,14 +580,14 @@ export default function CreateNoteModal({
                 }
                 rows={4}
                 required
-                placeholder="Analisis psikolog, progress, clinical impression, atau kesimpulan sementara..."
+                placeholder="Gejala, diagnosis, dan analisis psikologis..."
                 className="w-full rounded-lg border border-yellow-300 bg-white px-4 py-2 outline-none focus:border-transparent focus:ring-2 focus:ring-[#2B5379]"
               />
             </div>
 
             <div className="rounded-lg border border-purple-200 bg-purple-50 p-4">
               <label className="mb-2 block text-sm font-bold text-[#2B5379]">
-                P - PLAN <span className="text-red-500">*</span>
+                Intervensi (Plan) <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={formData.plan}
@@ -483,35 +599,203 @@ export default function CreateNoteModal({
                 }
                 rows={4}
                 required
-                placeholder="Rencana treatment, latihan rumah, follow-up, atau rekomendasi..."
+                placeholder="Rencana treatment, psychoeducation, teknik pernapasan, latihan relaksasi..."
                 className="w-full rounded-lg border border-purple-300 bg-white px-4 py-2 outline-none focus:border-transparent focus:ring-2 focus:ring-[#2B5379]"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {/* Section Rekam Medis (Formulir Psikolog Oase Jiwa) */}
+          <div className="space-y-4 rounded-xl border border-[#2B5379]/30 bg-slate-50 p-5">
+            <h3 className="text-md font-bold text-[#2B5379] uppercase tracking-wide border-b border-slate-200 pb-2">
+              📋 Rekam Medis (Format Formulir Psikolog Oase Jiwa)
+            </h3>
+
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">
-                Risk Level <span className="text-red-500">*</span>
+                Rencana Tindak Lanjut <span className="text-red-500">*</span>
               </label>
+              <div className="flex flex-wrap gap-4 pt-1">
+                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="followUpPlan"
+                    value="CONTINUE_SESSION"
+                    checked={formData.followUpPlan === "CONTINUE_SESSION"}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        followUpPlan: e.target.value as "CONTINUE_SESSION",
+                      }))
+                    }
+                    className="h-4 w-4 text-[#2B5379]"
+                  />
+                  <span>Lanjutan Sesi</span>
+                </label>
+                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="followUpPlan"
+                    value="REFER_TO_OTHER"
+                    checked={formData.followUpPlan === "REFER_TO_OTHER"}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        followUpPlan: e.target.value as "REFER_TO_OTHER",
+                      }))
+                    }
+                    className="h-4 w-4 text-[#2B5379]"
+                  />
+                  <span>Rujukan ke Profesional Lain</span>
+                </label>
+                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="followUpPlan"
+                    value="COMPLETED"
+                    checked={formData.followUpPlan === "COMPLETED"}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        followUpPlan: e.target.value as "COMPLETED",
+                      }))
+                    }
+                    className="h-4 w-4 text-[#2B5379]"
+                  />
+                  <span>Selesai</span>
+                </label>
+              </div>
+            </div>
 
-              <select
-                value={formData.riskLevel}
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700">
+                Catatan Tambahan (jika ada)
+              </label>
+              <textarea
+                value={formData.additionalNotes}
                 onChange={(e) =>
                   setFormData((prev) => ({
                     ...prev,
-                    riskLevel: e.target.value as "low" | "medium" | "high",
+                    additionalNotes: e.target.value,
                   }))
                 }
+                rows={2}
+                placeholder="Catatan tambahan untuk dokumen rekam medis PDF..."
+                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 outline-none focus:border-transparent focus:ring-2 focus:ring-[#2B5379]"
+              />
+            </div>
+          </div>
+
+          {/* 🛡️ Assessment Tingkat Risiko Pasien */}
+          <div className="space-y-4 rounded-xl border border-amber-300/80 bg-amber-50/40 p-5 shadow-xs">
+            <div className="flex items-center justify-between border-b border-amber-200/80 pb-2.5">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-amber-600" />
+                <h3 className="text-md font-bold text-[#2B5379] uppercase tracking-wide">
+                  Assessment Tingkat Risiko Pasien
+                </h3>
+              </div>
+              <span className="text-xs text-amber-800 bg-amber-100 font-semibold px-2.5 py-0.5 rounded-full border border-amber-300 flex items-center gap-1">
+                <ShieldAlert className="w-3.5 h-3.5" /> Klasifikasi Risiko Klinis
+              </span>
+            </div>
+
+            {/* Dropdown 5 pilihan */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-bold text-gray-800 flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4 text-amber-600" />
+                  Tingkat Risiko <span className="text-red-500">*</span>
+                </label>
+                <span className="text-xs text-gray-500 italic">
+                  Pilih 1 dari 5 kategori risiko
+                </span>
+              </div>
+
+              <select
+                value={formData.riskLevel}
+                onChange={(e) => {
+                  const level = e.target.value;
+                  const config = getRiskConfig(level);
+                  setFormData((prev) => ({
+                    ...prev,
+                    riskLevel: level,
+                    nextSessionRecommendation: config.recommendations.map((r) => `• ${r}`).join("\n"),
+                  }));
+                }}
                 required
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 outline-none focus:border-transparent focus:ring-2 focus:ring-[#2B5379]"
+                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold outline-none focus:border-transparent focus:ring-2 focus:ring-[#2B5379]"
               >
-                <option value="low">Risiko Rendah</option>
-                <option value="medium">Risiko Sedang</option>
-                <option value="high">Risiko Tinggi</option>
+                <option value="very_low">🟢 Sangat Rendah</option>
+                <option value="low">🟢 Rendah</option>
+                <option value="medium">🟡 Sedang</option>
+                <option value="high">🟠 Tinggi</option>
+                <option value="very_high">🔴 Sangat Tinggi</option>
               </select>
             </div>
 
+            {/* Dynamic Badge, Deskripsi Risiko Otomatis & Rekomendasi Otomatis */}
+            {(() => {
+              const activeConfig = getRiskConfig(formData.riskLevel);
+              return (
+                <div className="space-y-3">
+                  <div className="rounded-lg border border-amber-200 bg-white p-3.5 shadow-2xs">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border ${activeConfig.badgeClass}`}>
+                        {activeConfig.emoji} {activeConfig.label}
+                      </span>
+                      <span className="text-xs font-semibold text-gray-600">Deskripsi Risiko Otomatis:</span>
+                    </div>
+                    <p className="text-xs text-gray-700 leading-relaxed font-normal">
+                      {activeConfig.description}
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg border border-blue-200 bg-blue-50/70 p-3.5">
+                    <p className="text-xs font-bold text-[#2B5379] mb-1.5 flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Rekomendasi Penanganan Otomatis:
+                    </p>
+                    <ul className="space-y-1">
+                      {activeConfig.recommendations.map((rec, rIdx) => (
+                        <li key={rIdx} className="text-xs text-gray-700 font-medium flex items-start gap-1.5">
+                          <span className="text-blue-600 font-bold">•</span>
+                          <span>{rec}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Alasan Penilaian Risiko (Textarea - Mandatory) */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-sm font-bold text-gray-800 flex items-center gap-1">
+                  Alasan Penilaian Risiko <span className="text-red-500">*</span>
+                </label>
+                <span className="text-xs text-red-600 font-medium">Wajib diisi</span>
+              </div>
+              <textarea
+                value={formData.riskReason}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    riskReason: e.target.value,
+                  }))
+                }
+                rows={3}
+                required
+                placeholder="Jelaskan alasan mengapa pasien dikategorikan pada tingkat risiko tersebut..."
+                className="w-full rounded-lg border border-amber-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-transparent focus:ring-2 focus:ring-[#2B5379]"
+              />
+              <p className="mt-1 text-[11px] text-gray-500 italic">
+                Contoh: Pasien menunjukkan kecemasan berlebih selama lebih dari dua minggu, mengalami gangguan tidur, dan kesulitan berkonsentrasi sehingga dikategorikan sebagai Risiko Sedang.
+              </p>
+            </div>
+          </div>
+
+            {/* Tanggal Follow-up */}
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">
                 Tanggal Follow-up
@@ -529,7 +813,6 @@ export default function CreateNoteModal({
                 className="w-full rounded-lg border border-gray-300 px-4 py-2 outline-none focus:border-transparent focus:ring-2 focus:ring-[#2B5379]"
               />
             </div>
-          </div>
 
           <div>
             <label className="mb-2 block text-sm font-medium text-gray-700">

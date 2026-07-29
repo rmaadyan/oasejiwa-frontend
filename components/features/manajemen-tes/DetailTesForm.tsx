@@ -23,6 +23,7 @@ export type TesDetail = {
   nama: string;
   deskripsi: string;
   penjelasanHasil: string;
+  jenis?: string;
   status: TesStatus;
   coverUrl?: string;
   likert: LikertOption[];

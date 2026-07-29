@@ -11,6 +11,7 @@ import {
   Calendar,
   Users,
   FileText,
+  ClipboardList,
   User,
 } from "lucide-react";
 
@@ -37,6 +38,11 @@ const menuItems = [
     icon: FileText,
     label: "Catatan Konseling",
     href: "/psychologist/notes",
+  },
+  {
+    icon: ClipboardList,
+    label: "Rekam Medis Digital",
+    href: "/psychologist/rekam-medis",
   },
   {
     icon: User,
