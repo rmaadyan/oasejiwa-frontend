@@ -94,14 +94,16 @@ function PaymentConfirmationInner({
   };
 
   const handleSubmit = async () => {
-    if (!uploadedFile || !bookingId) return;
+    if (!bookingId) return;
 
     try {
       setIsSubmitting(true);
-      if (paymentType === "full") {
-        await uploadPaymentFull(bookingId, uploadedFile, paymentMethod ?? "");
-      } else {
-        await uploadPaymentDP(bookingId, uploadedFile, paymentMethod ?? ""); 
+      if (uploadedFile) {
+        if (paymentType === "full") {
+          await uploadPaymentFull(bookingId, uploadedFile, paymentMethod ?? "");
+        } else {
+          await uploadPaymentDP(bookingId, uploadedFile, paymentMethod ?? ""); 
+        }
       }
       setIsSuccess(true);
     } catch (error) {

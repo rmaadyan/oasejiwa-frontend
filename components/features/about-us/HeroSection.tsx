@@ -1,8 +1,9 @@
-'use client'; // 👈 Tambahkan directive client component
+"use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import StatCard from "@/components/ui/StatCard";
+import { getPublicStatistics, type PublicStatisticsData } from "@/lib/api/statistics";
 
 // Icons for Stats
 const UserIcon = () => (
@@ -12,7 +13,7 @@ const UserIcon = () => (
     viewBox="0 0 24 24"
     strokeWidth={1.5}
     stroke="currentColor"
-    className="w-10 h-10"
+    className="w-10 h-10 text-[#234463]"
   >
     <path
       strokeLinecap="round"
@@ -27,7 +28,7 @@ const StarIcon = () => (
     xmlns="http://www.w3.org/2000/svg"
     fill="currentColor"
     viewBox="0 0 24 24"
-    className="w-10 h-10"
+    className="w-10 h-10 text-[#E7A14A]"
   >
     <path
       fillRule="evenodd"
@@ -44,7 +45,7 @@ const UsersIcon = () => (
     viewBox="0 0 24 24"
     strokeWidth={1.5}
     stroke="currentColor"
-    className="w-10 h-10"
+    className="w-10 h-10 text-[#234463]"
   >
     <path
       strokeLinecap="round"
@@ -55,90 +56,76 @@ const UsersIcon = () => (
 );
 
 export default function HeroSection() {
-  // State untuk menyimpan data statistik dinamis
-  const [stats, setStats] = useState({
-    patientsCount: "0",
-    ratingCount: "0",
-    psychologistsCount: "0",
+  const [stats, setStats] = useState<PublicStatisticsData>({
+    totalClients: 0,
+    totalPsychologists: 1,
+    averageRating: 4.9,
+    totalReviews: 157,
+    lastUpdated: new Date().toISOString(),
   });
 
   useEffect(() => {
-    // Ambil data statistik dari backend
-    const fetchStats = async () => {
-      try {
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-        
-        // Fetch psikolog count
-        const psychRes = await fetch(`${baseUrl}/admin/psychologist`, { credentials: "include" });
-        const psychData = await psychRes.json();
-        
-        const psychCount = Array.isArray(psychData) ? psychData.length : 0;
-
-        setStats({
-          patientsCount: "50+", // Bisa dihubungkan ke endpoint Rekam Medis nantinya
-          ratingCount: "30+",   // Bisa dihubungkan ke endpoint Google Maps Review
-          psychologistsCount: `${psychCount}`,
-        });
-      } catch (err) {
-        console.error("Gagal mengambil data statistik:", err);
+    async function loadStats() {
+      const data = await getPublicStatistics();
+      if (data) {
+        setStats(data);
       }
-    };
-
-    fetchStats();
+    }
+    loadStats();
   }, []);
 
- return (
-  <section className="relative w-full">
-    {/* Hero Title */}
-    <div className="pt-28 pb-6 px-4 text-center max-w-4xl mx-auto">
-      <h1 className="text-3xl md:text-4xl font-bold animate-fade-in-up">
-        <span className="text-slate-900">About </span>
-        <span className="text-[#234463]">Us</span>
-      </h1>
-    </div>
-
-    {/* Hero Image - DIBERI MAX-WIDTH AGAR TIDAK KELEBARAN */}
-    <div className="max-w-6xl mx-auto px-4 sm:px-6">
-      <div className="relative w-full h-[280px] md:h-[380px] rounded-3xl overflow-hidden shadow-lg">
-        <Image
-          src="/assets/about-us/aboutus1.JPG"
-          alt="About Us Hero"
-          fill
-          className="object-cover"
-          priority
-        />
-        <div className="absolute inset-0 bg-black/20" />
+  return (
+    <section className="relative w-full">
+      {/* Hero Title */}
+      <div className="pt-28 pb-6 px-4 text-center max-w-4xl mx-auto">
+        <h1 className="text-3xl md:text-4xl font-bold animate-fade-in-up">
+          <span className="text-slate-900">About </span>
+          <span className="text-[#234463]">Us</span>
+        </h1>
       </div>
-    </div>
 
-    {/* Stats Floating Card */}
-    <div className="relative z-10 -mt-12 md:-mt-16 px-4">
-      <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-xl border border-slate-100 p-6 animate-fade-in-up">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="flex justify-center">
-            <StatCard
-              icon={<UserIcon />}
-              value={stats.patientsCount}
-              label="Jumlah orang terbantu"
-            />
-          </div>
-          <div className="flex justify-center md:border-x md:border-slate-200 md:px-6">
-            <StatCard 
-              icon={<StarIcon />} 
-              value={stats.ratingCount} 
-              label="Jumlah rating" 
-            />
-          </div>
-          <div className="flex justify-center">
-            <StatCard
-              icon={<UsersIcon />}
-              value={stats.psychologistsCount}
-              label="Jumlah psikolog"
-            />
+      {/* Hero Image */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <div className="relative w-full h-[280px] md:h-[380px] rounded-3xl overflow-hidden shadow-lg">
+          <Image
+            src="/assets/about-us/aboutus1.JPG"
+            alt="About Us Hero"
+            fill
+            className="object-cover"
+            priority
+          />
+          <div className="absolute inset-0 bg-black/20" />
+        </div>
+      </div>
+
+      {/* Stats Floating Card */}
+      <div className="relative z-10 -mt-12 md:-mt-16 px-4 md:px-6 lg:px-16">
+        <div className="max-w-[829px] mx-auto bg-white rounded-[23px] shadow-[0_4px_20px_rgba(0,0,0,0.25)] p-6 md:p-8 animate-fade-in-up hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)] transition-shadow duration-300">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+            <div className="flex justify-center">
+              <StatCard
+                icon={<UserIcon />}
+                value={`${stats.totalClients}+`}
+                label="Klien Terlayani"
+              />
+            </div>
+            <div className="flex justify-center md:border-x md:border-gray-200 md:px-8">
+              <StatCard
+                icon={<StarIcon />}
+                value={`${stats.averageRating.toFixed(1)} / 5`}
+                label={`Berdasarkan ${stats.totalReviews}+ Review Google`}
+              />
+            </div>
+            <div className="flex justify-center">
+              <StatCard
+                icon={<UsersIcon />}
+                value={`${stats.totalPsychologists}+`}
+                label="Psikolog Profesional"
+              />
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </section>
-);
+    </section>
+  );
 }

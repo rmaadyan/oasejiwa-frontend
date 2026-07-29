@@ -86,11 +86,11 @@ function calculateAge(birthday: string): number {
 function ConsultationFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const serviceId = searchParams.get("service");
-  const psychologistId = searchParams.get("psychologist");
-  const date = searchParams.get("date");
+  const serviceId = searchParams.get("service") || "1";
+  const psychologistId = searchParams.get("psychologist") || "6";
+  const date = searchParams.get("date") || "2026-10-01";
   const scheduleId = searchParams.get("scheduleId");
-  const time = searchParams.get("time");
+  const time = searchParams.get("time") || "09.00";
   const { user, isLoading: isLoadingUser, isGuest } = useRequireCompleteProfile();
 
   const [formStep, setFormStep] = useState(1);

@@ -4,11 +4,16 @@ import { Button } from "@/components/ui/button";
 import { loadBgheroImages } from "@/lib/imageLoader";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { getGoogleReviews } from "@/lib/api/google-reviews";
 
 export default function HeroSection() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [images, setImages] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [googleRating, setGoogleRating] = useState<{ rating: number; total: number }>({
+    rating: 4.9,
+    total: 157,
+  });
 
   useEffect(() => {
     const loadImages = async () => {
@@ -24,6 +29,19 @@ export default function HeroSection() {
     };
 
     loadImages();
+  }, []);
+
+  useEffect(() => {
+    async function loadGoogleStats() {
+      const data = await getGoogleReviews();
+      if (data) {
+        setGoogleRating({
+          rating: data.rating,
+          total: data.totalReviews,
+        });
+      }
+    }
+    loadGoogleStats();
   }, []);
 
   useEffect(() => {

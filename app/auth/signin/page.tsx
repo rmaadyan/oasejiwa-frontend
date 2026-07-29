@@ -68,6 +68,9 @@ export default function SignIn() {
                 return;
             }
             localStorage.setItem("user", JSON.stringify(user));
+            localStorage.setItem("token", token);
+            localStorage.setItem("auth_token", token);
+            localStorage.setItem("accessToken", token);
 
             console.log("Role:", role);
 

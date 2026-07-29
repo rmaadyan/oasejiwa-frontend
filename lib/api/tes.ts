@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 function getAuthToken(): string {
   if (typeof window !== "undefined") {
@@ -116,7 +116,6 @@ export async function deleteTes(id: string) {
   return res.json();
 }
 
-
 export async function uploadGambar(file: File): Promise<string> {
   const token = getAuthToken();
   const formData = new FormData();
@@ -126,7 +125,6 @@ export async function uploadGambar(file: File): Promise<string> {
     method: "POST",
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-
     },
     body: formData,
   });
@@ -134,4 +132,109 @@ export async function uploadGambar(file: File): Promise<string> {
   if (!res.ok) throw new Error("Gagal upload gambar");
   const data = await res.json();
   return data.url;
+}
+
+export async function submitTesResult(tesId: string | number, payload: any) {
+  const token = getAuthToken();
+  if (!token) return null;
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/tes/${tesId}/submit`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      console.error("Gagal submit tes result ke backend status:", res.status);
+      return null;
+    }
+    return await res.json();
+  } catch (err) {
+    console.error("Error submit tes result:", err);
+    return null;
+  }
+}
+
+export async function getUserTesResults(userId: string) {
+  const token = getAuthToken();
+  if (!token) return [];
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/tes/results/user/${userId}`, {
+      cache: "no-store",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+    if (!res.ok) return [];
+    return await res.json();
+  } catch (err) {
+    console.error("Error fetching user tes results:", err);
+    return [];
+  }
+}
+
+export async function getMyTesResults() {
+  const token = getAuthToken();
+  if (!token) return [];
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/tes/results/my-results`, {
+      cache: "no-store",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+    if (!res.ok) return [];
+    return await res.json();
+  } catch (err) {
+    console.error("Error fetching my tes results:", err);
+    return [];
+  }
+}
+
+export async function getAllTesResults() {
+  const token = getAuthToken();
+  if (!token) return [];
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/tes/results/all`, {
+      cache: "no-store",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+    if (!res.ok) return [];
+    return await res.json();
+  } catch (err) {
+    console.error("Error fetching all tes results:", err);
+    return [];
+  }
+}
+
+export async function getTesResultDetail(id: string) {
+  const token = getAuthToken();
+  if (!token) return null;
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/tes/results/detail/${id}`, {
+      cache: "no-store",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (err) {
+    console.error("Error fetching tes result detail:", err);
+    return null;
+  }
 }
