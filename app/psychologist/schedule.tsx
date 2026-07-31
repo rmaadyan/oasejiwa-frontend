@@ -10,34 +10,21 @@ import {
   getAllSessions,
   markSessionCompleted,
 } from "@/lib/api/psychologist";
-import type {
-  ScheduleResponse,
-  Session,
-  SessionStatus,
-} from "@/lib/types/psychologist";
+import type { Session } from "@/lib/types/psychologist";
 
 export default function SchedulePage() {
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"calendar" | "list">("list");
-  const [statusFilter, setStatusFilter] = useState<SessionStatus | "all">(
-    "all"
-  );
-  const [selectedCalendarDate, setSelectedCalendarDate] = useState<
-    string | undefined
-  >(undefined);
+  const [activeTab, setActiveTab] = useState<"ALL" | "UPCOMING" | "COMPLETED" | "CANCELLED">("ALL");
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<string | undefined>(undefined);
   const [scheduleData, setScheduleData] = useState<any>(null);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchSchedule = async (dateFilter?: string) => {
     setLoading(true);
-
     try {
-      const data = await getAllSessions({
-        status: statusFilter !== "all" ? statusFilter : undefined,
-        date: dateFilter,
-      });
-
+      const data = await getAllSessions({ date: dateFilter });
       setScheduleData(data);
     } catch (error) {
       console.error("Failed to fetch schedule:", error);
@@ -47,77 +34,8 @@ export default function SchedulePage() {
   };
 
   useEffect(() => {
-    if (view === "list") {
-      fetchSchedule();
-    } else {
-      fetchSchedule(selectedCalendarDate);
-    }
-  }, [statusFilter, view]);
-
-  useEffect(() => {
-    if (view === "calendar") {
-      fetchSchedule(selectedCalendarDate);
-    }
-  }, [selectedCalendarDate]);
-
-  const handleViewChange = (newView: "calendar" | "list") => {
-    setView(newView);
-
-    if (newView === "list") {
-      setSelectedCalendarDate(undefined);
-    }
-  };
-
-  const handleViewDetails = (session: Session) => {
-    setSelectedSession(session);
-    setIsModalOpen(true);
-  };
-
-  const handleMarkCompleted = async (sessionId: number | string) => {
-    try {
-      await markSessionCompleted(sessionId);
-      await fetchSchedule(view === "calendar" ? selectedCalendarDate : undefined);
-      setIsModalOpen(false);
-      setSelectedSession(null);
-    } catch (error) {
-      console.error("Failed to mark session as completed:", error);
-      throw error;
-    }
-  };
-
-  const handleCancelSession = async (
-    sessionId: number | string,
-    reason: string
-  ) => {
-    try {
-      await cancelSession(sessionId, { reason });
-      await fetchSchedule(view === "calendar" ? selectedCalendarDate : undefined);
-      setIsModalOpen(false);
-      setSelectedSession(null);
-    } catch (error) {
-      console.error("Failed to cancel session:", error);
-      throw error;
-    }
-  };
-
-  const handleCalendarDateSelect = (date: string) => {
-    if (selectedCalendarDate === date) {
-      setSelectedCalendarDate(undefined);
-    } else {
-      setSelectedCalendarDate(date);
-    }
-  };
-
-  if (loading && !scheduleData) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-[#2B5379] border-t-transparent" />
-          <p className="text-gray-600">Memuat jadwal...</p>
-        </div>
-      </div>
-    );
-  }
+    fetchSchedule(view === "calendar" ? selectedCalendarDate : undefined);
+  }, [view, selectedCalendarDate]);
 
   const sessions: Session[] = Array.isArray(scheduleData?.sessions)
     ? scheduleData.sessions
@@ -127,121 +45,98 @@ export default function SchedulePage() {
     ? scheduleData
     : [];
 
-  const totalCount = scheduleData?.total ?? scheduleData?.summary?.total ?? sessions.length;
+  const upcomingSessions = sessions.filter((s) => {
+    const st = String(s.status || "").toLowerCase();
+    return ["upcoming", "approved", "paid", "waiting_approval", "fully_paid"].includes(st);
+  });
 
-  const upcomingCount =
-    scheduleData?.upcomingCount ??
-    scheduleData?.summary?.upcoming ??
-    sessions.filter((s) => {
-      const st = String(s.status || "").toLowerCase();
-      return st === "upcoming" || st === "approved" || st === "paid" || st === "waiting_approval";
-    }).length;
+  const completedSessions = sessions.filter((s) => {
+    const st = String(s.status || "").toLowerCase();
+    return st === "completed" || st === "selesai";
+  });
 
-  const completedCount =
-    scheduleData?.completedCount ??
-    scheduleData?.summary?.completed ??
-    sessions.filter((s) => {
-      const st = String(s.status || "").toLowerCase();
-      return st === "completed" || st === "selesai";
-    }).length;
+  const cancelledSessions = sessions.filter((s) => {
+    const st = String(s.status || "").toLowerCase();
+    return ["cancelled", "rejected", "batal"].includes(st);
+  });
 
-  const cancelledCount =
-    scheduleData?.cancelledCount ??
-    scheduleData?.summary?.cancelled ??
-    sessions.filter((s) => {
-      const st = String(s.status || "").toLowerCase();
-      return st === "cancelled" || st === "rejected" || st === "batal";
-    }).length;
+  const displayedSessions = sessions.filter((s) => {
+    const st = String(s.status || "").toLowerCase();
+    if (activeTab === "UPCOMING") return ["upcoming", "approved", "paid", "waiting_approval", "fully_paid"].includes(st);
+    if (activeTab === "COMPLETED") return st === "completed" || st === "selesai";
+    if (activeTab === "CANCELLED") return ["cancelled", "rejected", "batal"].includes(st);
+    return true;
+  });
 
   return (
     <div className="space-y-6 font-poppins text-xs">
-      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-[#2B5379]">
-          Jadwal Konseling
-        </h1>
-        <p className="mt-1 text-slate-500">
-          Kelola jadwal sesi konseling Anda
-        </p>
+        <h1 className="text-2xl font-bold text-[#2B5379]">Jadwal Konseling</h1>
+        <p className="mt-1 text-slate-500">Kelola jadwal sesi konseling Anda</p>
       </div>
 
-      {/* 🟢 STATS CARDS - GARIS TEPI BORDER-SLATE-300 KELIHATAN JELAS */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-        <div className="rounded-2xl border-2 border-slate-500 bg-white p-5 shadow-xs">
+        <div className="rounded-2xl border-2 border-slate-500 bg-white p-5">
           <p className="text-xs font-semibold text-slate-800">Total Sesi</p>
-          <p className="mt-2 text-2xl font-bold text-[#2B5379]">
-            {totalCount}
-          </p>
+          <p className="mt-2 text-2xl font-bold text-[#2B5379]">{sessions.length}</p>
         </div>
-
-        <div className="rounded-2xl border-2 border-slate-500 bg-white p-5 shadow-xs">
+        <div className="rounded-2xl border-2 border-slate-500 bg-white p-5">
           <p className="text-xs font-semibold text-slate-800">Akan Datang</p>
-          <p className="mt-2 text-2xl font-bold text-blue-600">
-            {upcomingCount}
-          </p>
+          <p className="mt-2 text-2xl font-bold text-blue-600">{upcomingSessions.length}</p>
         </div>
-
-        <div className="rounded-2xl border-2 border-slate-500 bg-white p-5 shadow-xs">
+        <div className="rounded-2xl border-2 border-slate-500 bg-white p-5">
           <p className="text-xs font-semibold text-slate-800">Selesai</p>
-          <p className="mt-2 text-2xl font-bold text-emerald-600">
-            {completedCount}
-          </p>
+          <p className="mt-2 text-2xl font-bold text-emerald-600">{completedSessions.length}</p>
         </div>
-
-        <div className="rounded-2xl border-2 border-slate-500 bg-white p-5 shadow-xs">
+        <div className="rounded-2xl border-2 border-slate-500 bg-white p-5">
           <p className="text-xs font-semibold text-slate-800">Dibatalkan</p>
-          <p className="mt-2 text-2xl font-bold text-rose-600">
-            {cancelledCount}
-          </p>
+          <p className="mt-2 text-2xl font-bold text-rose-600">{cancelledSessions.length}</p>
         </div>
       </div>
 
-      {/* Filter Bar */}
-      <FilterBar
-        view={view}
-        onViewChange={handleViewChange}
-        statusFilter={statusFilter}
-        onStatusFilterChange={setStatusFilter}
+      {/* TAB NAVIGASI AGAR TIDAK BOROS TEMPAT */}
+      <div className="flex gap-2 border-b border-gray-200 pb-2">
+        <button
+          onClick={() => setActiveTab("ALL")}
+          className={`px-4 py-2 rounded-lg font-medium text-xs transition-all ${
+            activeTab === "ALL" ? "bg-[#2B5379] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
+        >
+          Semua ({sessions.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("UPCOMING")}
+          className={`px-4 py-2 rounded-lg font-medium text-xs transition-all ${
+            activeTab === "UPCOMING" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
+        >
+          Akan Datang ({upcomingSessions.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("COMPLETED")}
+          className={`px-4 py-2 rounded-lg font-medium text-xs transition-all ${
+            activeTab === "COMPLETED" ? "bg-emerald-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
+        >
+          Selesai ({completedSessions.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("CANCELLED")}
+          className={`px-4 py-2 rounded-lg font-medium text-xs transition-all ${
+            activeTab === "CANCELLED" ? "bg-rose-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
+        >
+          Dibatalkan ({cancelledSessions.length})
+        </button>
+      </div>
+
+      <ScheduleList
+        sessions={displayedSessions}
+        onViewDetails={(s) => {
+          setSelectedSession(s);
+          setIsModalOpen(true);
+        }}
       />
-
-      {/* Calendar/List View */}
-      {view === "calendar" ? (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-1">
-            <ScheduleCalendar
-              sessions={sessions}
-              onDateSelect={handleCalendarDateSelect}
-              selectedDate={selectedCalendarDate}
-            />
-          </div>
-
-          <div className="lg:col-span-2">
-            {selectedCalendarDate ? (
-              <div>
-                <h2 className="mb-4 text-sm font-semibold text-[#2B5379]">
-                  Sesi pada {selectedCalendarDate}
-                </h2>
-
-                <ScheduleList
-                  sessions={sessions.filter(
-                    (session) => session.date === selectedCalendarDate
-                  )}
-                  onViewDetails={handleViewDetails}
-                />
-              </div>
-            ) : (
-              <div className="rounded-2xl border-2 border-slate-500 bg-white p-12 text-center shadow-xs">
-                <p className="font-medium text-slate-600">Pilih tanggal</p>
-                <p className="mt-1 text-xs text-slate-400">
-                  Klik tanggal di kalender untuk melihat sesi
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      ) : (
-        <ScheduleList sessions={sessions} onViewDetails={handleViewDetails} />
-      )}
 
       <SessionDetailModal
         isOpen={isModalOpen}
@@ -250,8 +145,16 @@ export default function SchedulePage() {
           setSelectedSession(null);
         }}
         session={selectedSession}
-        onMarkCompleted={handleMarkCompleted}
-        onCancel={handleCancelSession}
+        onMarkCompleted={async (id) => {
+          await markSessionCompleted(id);
+          fetchSchedule();
+          setIsModalOpen(false);
+        }}
+        onCancel={async (id, reason) => {
+          await cancelSession(id, { reason });
+          fetchSchedule();
+          setIsModalOpen(false);
+        }}
       />
     </div>
   );

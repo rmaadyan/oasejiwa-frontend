@@ -61,10 +61,6 @@ export default function PatientDetailModal({
 
     const rawDate = String(date);
 
-    /**
-     * Kalau backend kirim date-only seperti "2026-05-01",
-     * jangan diparse langsung pakai new Date(date), karena rawan geser hari.
-     */
     if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
       const [year, month, day] = rawDate.split("-").map(Number);
 
@@ -330,23 +326,25 @@ export default function PatientDetailModal({
                 </div>
               )}
 
-              {/* Riwayat Sesi */}
+              {/* Riwayat Sesi - 🟢 PERBAIKAN TAMPILAN STATUS DI SINI */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="font-semibold text-[#2B5379]">
                     Riwayat Sesi
                   </h4>
 
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 font-medium">
                     {sessionHistory.length} sesi tercatat
                   </p>
                 </div>
 
                 {sessionHistory.length > 0 ? (
-                  <div className="max-h-64 space-y-2 overflow-y-auto">
+                  <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
                     {sessionHistory.map((session) => {
                       const canOpenNote =
                         Boolean(session.hasNotes) && Boolean(session.noteId);
+
+                      const statusUpper = String(session.status || "").toUpperCase();
 
                       return (
                         <button
@@ -357,57 +355,61 @@ export default function PatientDetailModal({
                             }
                           }}
                           disabled={!canOpenNote || loadingNote}
-                          className={`flex w-full items-center justify-between rounded-lg border p-3 transition-all ${
+                          className={`flex w-full items-center justify-between rounded-xl border p-3.5 transition-all shadow-xs ${
                             canOpenNote
-                              ? "cursor-pointer border-gray-200 bg-gray-50 hover:border-blue-300 hover:bg-blue-50"
-                              : "cursor-not-allowed border-gray-200 bg-gray-50 opacity-60"
+                              ? "cursor-pointer border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/50"
+                              : "cursor-not-allowed border-gray-200 bg-gray-50/80"
                           } ${loadingNote ? "cursor-wait opacity-50" : ""}`}
                           type="button"
                         >
                           <div className="flex items-center gap-3">
-                            <div
-                              className={`h-2 w-2 shrink-0 rounded-full ${
-                                session.status === "completed"
-                                  ? "bg-green-500"
-                                  : session.status === "cancelled"
-                                    ? "bg-red-500"
-                                    : "bg-gray-400"
-                              }`}
-                            />
-
-                            <div className="text-left">
-                              <p className="text-sm font-medium text-gray-900">
+                            <div className="text-left space-y-1">
+                              <p className="text-sm font-bold text-gray-900">
                                 {session.service}
                               </p>
 
-                              <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-gray-600">
-                                <Calendar className="h-3 w-3" />
-                                <span>{formatDate(session.date)}</span>
-                                <span>•</span>
-                                <Clock className="h-3 w-3" />
-                                <span>{session.time || "-"}</span>
-                                <span>•</span>
-                                <span>
-                                  {session.status === "completed"
+                              <div className="flex flex-wrap items-center gap-2 text-xs">
+                                <span className="flex items-center gap-1 font-semibold text-slate-700">
+                                  <Calendar className="h-3.5 w-3.5 text-[#2B5379]" />
+                                  {formatDate(session.date)}
+                                </span>
+                                <span className="text-slate-300">•</span>
+                                <span className="flex items-center gap-1 font-semibold text-[#2B5379]">
+                                  <Clock className="h-3.5 w-3.5" />
+                                  {session.time || "-"}
+                                </span>
+                                <span className="text-slate-300">•</span>
+
+                                {/* 🟢 BADGE STATUS JELAS DAN TEBAL */}
+                                <span
+                                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                                    statusUpper === "COMPLETED" || statusUpper === "SELESAI"
+                                      ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                                      : statusUpper === "CANCELLED" || statusUpper === "REJECTED" || statusUpper === "DIBATALKAN"
+                                      ? "bg-rose-100 text-rose-800 border border-rose-200"
+                                      : "bg-blue-100 text-blue-800 border border-blue-200"
+                                  }`}
+                                >
+                                  {statusUpper === "COMPLETED" || statusUpper === "SELESAI"
                                     ? "Selesai"
-                                    : session.status === "cancelled"
-                                      ? "Dibatalkan"
-                                      : "Terjadwal"}
+                                    : statusUpper === "CANCELLED" || statusUpper === "REJECTED" || statusUpper === "DIBATALKAN"
+                                    ? "Dibatalkan"
+                                    : "Terjadwal"}
                                 </span>
                               </div>
                             </div>
                           </div>
 
-                          <div className="flex shrink-0 items-center gap-2">
+                          <div className="flex shrink-0 items-center gap-1.5 pl-2">
                             {canOpenNote ? (
-                              <>
-                                <FileText className="h-4 w-4 text-[#2B5379]" />
-                                <span className="text-xs font-medium text-[#2B5379]">
+                              <div className="flex items-center gap-1.5 rounded-lg bg-blue-50 px-2.5 py-1 text-[#2B5379]">
+                                <FileText className="h-4 w-4" />
+                                <span className="text-xs font-semibold">
                                   Lihat Catatan
                                 </span>
-                              </>
+                              </div>
                             ) : (
-                              <span className="text-xs text-gray-500">
+                              <span className="text-xs font-medium text-gray-400">
                                 Tidak ada catatan
                               </span>
                             )}

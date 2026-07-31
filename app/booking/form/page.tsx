@@ -13,8 +13,6 @@ import {
   MapPin,
   Phone,
   Mail,
-  Briefcase,
-  Heart,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -23,19 +21,18 @@ import {
   Shield,
   PenTool,
   Download,
+  Clock,
 } from "lucide-react";
-import { useRequireCompleteProfile } from "@/hooks/use-require-complete-profile"
+import { useRequireCompleteProfile } from "@/hooks/use-require-complete-profile";
 
 // Zod validation schema for Step 2
 const consultationFormSchema = z.object({
-  // B. Alasan Konsultasi
   mainReason: z.string().min(10, "Alasan konsultasi minimal 10 karakter"),
-  takingPsychiatricMeds: z.enum(["yes", "no"], "Pilih salah satu opsi"),
-  problemDuration: z.enum(["<1month", "1-3months", "3-6months", ">6months"], "Pilih durasi masalah"),
-  symptomFrequency: z.enum(["daily", "weekly", "monthly", "rarely"], "Pilih frekuensi gejala"),
-  dailyImpact: z.enum(["none", "mild", "moderate", "severe"], "Pilih tingkat dampak"),
+  takingPsychiatricMeds: z.enum(["yes", "no"]),
+  problemDuration: z.enum(["<1month", "1-3months", "3-6months", ">6months"]),
+  symptomFrequency: z.enum(["daily", "weekly", "monthly", "rarely"]),
+  dailyImpact: z.enum(["none", "mild", "moderate", "severe"]),
 
-  // C. Riwayat Psikologis & Kesehatan
   hasSimilarHistory: z.enum(["yes", "no"]),
   similarHistoryDetail: z.string().optional(),
   hasFamilyHistory: z.enum(["yes", "no"]),
@@ -44,24 +41,21 @@ const consultationFormSchema = z.object({
   medicalTreatmentDetail: z.string().optional(),
   hasTraumaticEvent: z.enum(["yes", "no"]),
   traumaticEventDetail: z.string().optional(),
-  sleepQuality: z.enum(["good", "fair", "poor", "disturbed"], "Pilih kualitas tidur"),
-  selfHarmThoughts: z.enum(["never", "sometimes", "frequent"], "Pilih salah satu opsi"),
+  sleepQuality: z.enum(["good", "fair", "poor", "disturbed"]),
+  selfHarmThoughts: z.enum(["never", "sometimes", "frequent"]),
 
-  // D. Kebiasaan & Gaya Hidup
   usesAddictiveSubstances: z.enum(["yes", "no"]),
   addictiveSubstancesDetail: z.string().optional(),
-  eatingPattern: z.enum(["regular", "irregular", "overeating", "undereating"], "Pilih pola makan"),
-  exerciseFrequency: z.enum(["never", "rarely", "sometimes", "regularly"], "Pilih frekuensi olahraga"),
-  stressLevel: z.enum(["low", "moderate", "high", "veryHigh"], "Pilih tingkat stres"),
+  eatingPattern: z.enum(["regular", "irregular", "overeating", "undereating"]),
+  exerciseFrequency: z.enum(["never", "rarely", "sometimes", "regularly"]),
+  stressLevel: z.enum(["low", "moderate", "high", "veryHigh"]),
 
-  // E. Tujuan Konsultasi
   consultationGoals: z.array(z.string()).min(1, "Pilih minimal satu tujuan"),
-  therapyPreference: z.enum(["directive", "collaborative", "noPreference"], "Pilih preferensi pendekatan terapi"),
+  therapyPreference: z.enum(["directive", "collaborative", "noPreference"]),
 });
 
 type ConsultationFormData = z.infer<typeof consultationFormSchema>;
 
-// Consent form schema for Step 3
 const consentFormSchema = z.object({
   consentDate: z.string(),
   clientNameConfirmation: z.string().min(3, "Masukkan nama lengkap Anda"),
@@ -83,21 +77,75 @@ function calculateAge(birthday: string): number {
   return age;
 }
 
+// 🟢 Helper Generator 4 Tanggal Mendatang Sesuai Hari Praktik
+function getAvailableDatesForDay(dayName: string, count = 4) {
+  const daysMap: Record<string, number> = {
+    Minggu: 0, MINGGU: 0, SUNDAY: 0,
+    Senin: 1, SENIN: 1, MONDAY: 1,
+    Selasa: 2, SELASA: 2, TUESDAY: 2,
+    Rabu: 3, RABU: 3, WEDNESDAY: 3,
+    Kamis: 4, KAMIS: 4, THURSDAY: 4,
+    Jumat: 5, JUMAT: 5, FRIDAY: 5,
+    Sabtu: 6, SABTU: 6, SATURDAY: 6,
+  };
+
+  const targetDay = daysMap[dayName] ?? 6;
+  const resultDates: { isoDate: string; label: string }[] = [];
+
+  const today = new Date();
+  const currentDay = today.getDay();
+
+  let distance = targetDay - currentDay;
+  if (distance <= 0) distance += 7;
+
+  const baseDate = new Date(today);
+  baseDate.setDate(today.getDate() + distance);
+
+  for (let i = 0; i < count; i++) {
+    const nextDate = new Date(baseDate);
+    nextDate.setDate(baseDate.getDate() + i * 7);
+
+    const isoDate = nextDate.toISOString().split("T")[0];
+    const label = nextDate.toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+
+    resultDates.push({ isoDate, label });
+  }
+
+  return resultDates;
+}
+
 function ConsultationFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const serviceId = searchParams.get("service");
   const psychologistId = searchParams.get("psychologist");
-  const date = searchParams.get("date");
+  const dateParam = searchParams.get("date");
   const scheduleId = searchParams.get("scheduleId");
-  const time = searchParams.get("time");
+  const timeParam = searchParams.get("time") || "16:10";
+  const dayParam = searchParams.get("day") || "SABTU";
+
   const { user, isLoading: isLoadingUser, isGuest } = useRequireCompleteProfile();
 
   const [formStep, setFormStep] = useState(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Form data for Step 2
+  // 🟢 STATE HARI, JAM, & TANGGAL SESI KONSULTASI
+  const [selectedDay, setSelectedDay] = useState<string>(dayParam);
+  const [selectedTime, setSelectedTime] = useState<string>(timeParam);
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    if (dateParam && dateParam.length >= 10) return dateParam.split("T")[0];
+    const available = getAvailableDatesForDay(dayParam);
+    return available[0]?.isoDate || new Date().toISOString().split("T")[0];
+  });
+
+  // Contoh array tanggal yang sudah dibooking orang lain dari database (misal tanggal 2026-08-08)
+  const [bookedDates, setBookedDates] = useState<string[]>([]);
+
   const [consultationData, setConsultationData] = useState<Partial<ConsultationFormData>>({
     mainReason: "",
     takingPsychiatricMeds: undefined,
@@ -123,7 +171,6 @@ function ConsultationFormContent() {
     therapyPreference: undefined,
   });
 
-  // Form data for Step 3
   const [consentData, setConsentData] = useState<Partial<ConsentFormData>>({
     consentDate: new Date().toISOString().split("T")[0],
     clientNameConfirmation: "",
@@ -131,17 +178,13 @@ function ConsultationFormContent() {
     agreedToTerms: false,
   });
 
-  // PDF download state
   const [isDownloading, setIsDownloading] = useState(false);
-  // Signature canvas ref
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [useTextSignature, setUseTextSignature] = useState(true);
 
-  // Generate booking ID
   const bookingId = `OJ-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
-  // Initialize canvas
   useEffect(() => {
     if (!useTextSignature && canvasRef.current) {
       const canvas = canvasRef.current;
@@ -180,13 +223,13 @@ function ConsultationFormContent() {
           <div className="flex flex-col gap-3">
             <button
               onClick={() => router.push(`/auth/signin?redirect=${encodeURIComponent(window.location.href)}`)}
-              className="w-full py-2 rounded-xl bg-[#2B5379] text-white font-semibold hover:bg-[#234463] transition-colors"
+              className="w-full py-2 rounded-xl bg-[#2B5379] text-white font-semibold hover:bg-[#234463] transition-colors cursor-pointer"
             >
               Login Sekarang
             </button>
             <button
               onClick={() => router.back()}
-              className="w-full py-2 rounded-xl border border-gray-200 text-gray-600 font-medium hover:bg-gray-50 transition-colors"
+              className="w-full py-2 rounded-xl border border-gray-200 text-gray-600 font-medium hover:bg-gray-50 transition-colors cursor-pointer"
             >
               Kembali
             </button>
@@ -287,7 +330,19 @@ function ConsultationFormContent() {
     return true;
   };
 
+  const toValidIsoDateString = (inputDateStr: string): string => {
+    if (!inputDateStr) return new Date().toISOString();
+    const cleanDate = inputDateStr.split("T")[0];
+    const d = new Date(`${cleanDate}T00:00:00.000Z`);
+    return !isNaN(d.getTime()) ? d.toISOString() : new Date().toISOString();
+  };
+
   const handleNextFormStep = async () => {
+    if (!selectedDate) {
+      alert("Mohon pilih tanggal sesi konsultasi terlebih dahulu.");
+      return;
+    }
+
     if (formStep === 1) {
       setFormStep(2);
     } else if (formStep === 2) {
@@ -324,27 +379,26 @@ function ConsultationFormContent() {
             therapyPreference: therapyMap[consultationData.therapyPreference!] ?? consultationData.therapyPreference?.toUpperCase(),
           };
 
+          const validScheduledDate = toValidIsoDateString(selectedDate);
+          const validConsentDate = toValidIsoDateString(consentData.consentDate!);
+
           const payload = {
             serviceId: Number(serviceId),
-            psychologistId: psychologistId,
-            scheduleId: scheduleId,
-            scheduledDate: date,
-            scheduledTime: time,
+            psychologistId: psychologistId || "",
+            scheduleId: scheduleId || undefined,
+            scheduledDate: validScheduledDate,
+            scheduledTime: selectedTime,
             consultationForm: mappedConsultation,
             consentForm: {
-              consentDate: consentData.consentDate,
-              clientNameConfirmation: consentData.clientNameConfirmation,
-              signatureData: consentData.signature,
+              consentDate: validConsentDate,
+              clientNameConfirmation: consentData.clientNameConfirmation || "",
+              signatureData: consentData.signature || "",
               signatureType: useTextSignature ? 'TEXT' : 'DRAWING',
               agreedToTerms: consentData.agreedToTerms ?? false,
             },
           };
           
-          console.log("scheduledDate:", date);
-          console.log("scheduledTime:", time);
-          console.log("psychologistId:", psychologistId);
-          console.log("serviceId:", serviceId);
-          console.log("PAYLOAD:", payload); 
+          console.log("PAYLOAD RESULT:", payload); 
           const booking = await createBooking(payload);
           
           router.push(
@@ -392,7 +446,6 @@ function ConsultationFormContent() {
     }
   };
 
-  // PDF download handler (matching HasilTesPage style)
   const generatePDF = async () => {
     setIsDownloading(true);
     try {
@@ -462,10 +515,8 @@ function ConsultationFormContent() {
       const contentWidth = pageWidth - margin * 2;
       const contentHeight = pageHeight - margin * 2;
 
-      // Calculate how tall the image would be in mm when scaled to fit content width
       const scaledImgHeightMm = (canvas.height * contentWidth) / canvas.width;
 
-      // Calculate the canvas pixel height that corresponds to one PDF page
       const pageCanvasHeight = Math.floor(
         (contentHeight / scaledImgHeightMm) * canvas.height
       );
@@ -477,18 +528,15 @@ function ConsultationFormContent() {
           pdf.addPage();
         }
 
-        // Calculate the slice of the source canvas for this page
         const sourceY = page * pageCanvasHeight;
         const sourceH = Math.min(pageCanvasHeight, canvas.height - sourceY);
 
-        // Create a temporary canvas for this page slice
         const pageCanvas = document.createElement("canvas");
         pageCanvas.width = canvas.width;
         pageCanvas.height = sourceH;
         const pageCtx = pageCanvas.getContext("2d");
         if (!pageCtx) continue;
 
-        // Fill with white background, then draw the slice
         pageCtx.fillStyle = "#ffffff";
         pageCtx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
         pageCtx.drawImage(
@@ -521,7 +569,6 @@ function ConsultationFormContent() {
     }
   };
 
-  // Helper functions for print labels
   const getLabelForValue = (field: string, value: string | undefined): string => {
     const labels: Record<string, Record<string, string>> = {
       gender: { male: "Laki-laki", female: "Perempuan" },
@@ -545,19 +592,49 @@ function ConsultationFormContent() {
     return labels[field]?.[value || ""] || value || "-";
   };
 
-  // Printable Form Component (matching HasilTesPage style)
+  const renderFormStepIndicator = () => (
+    <div className="flex items-center justify-center mb-8">
+      {[1, 2, 3].map((step) => (
+        <div key={step} className="flex items-center">
+          <div
+            className={`
+              w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all duration-300
+              ${step === formStep
+                ? "bg-[#2B5379] text-white"
+                : step < formStep
+                  ? "bg-green-500 text-white"
+                  : "bg-gray-200 text-gray-500"
+              }
+            `}
+          >
+            {step < formStep ? (
+              <CheckCircle2 className="w-5 h-5" />
+            ) : (
+              step
+            )}
+          </div>
+          {step < 3 && (
+            <div
+              className={`w-16 md:w-24 h-1 mx-2 rounded-full transition-colors duration-300 ${step < formStep ? "bg-green-500" : "bg-gray-200"
+                }`}
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+
   const renderPrintableForm = () => (
     <div
       id="booking-form-pdf-content"
       className="rounded-xl bg-white p-8 shadow-sm"
       style={{ fontFamily: "Arial, sans-serif", position: "absolute", left: "-9999px", top: "-9999px", width: "900px" }}
     >
-      {/* HEADER DENGAN LOGO - matching HasilTesPage */}
       <div className="mb-5 flex items-start justify-between border-b border-gray-200 pb-3">
         <div className="flex items-center gap-4">
           <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-white">
             <img
-              src="\assets\oasejiwalogo.png"
+              src="/assets/oasejiwalogo.png"
               alt="Logo Oase Jiwa"
               crossOrigin="anonymous"
               className="h-12 w-12 object-contain"
@@ -582,7 +659,6 @@ function ConsultationFormContent() {
         </div>
       </div>
 
-      {/* DATA KLIEN - matching HasilTesPage style */}
       <div className="mb-4 border-b border-gray-200 pb-3">
         <p className="mb-2 text-xs font-semibold text-[#1964ae]">
           Data Klien
@@ -656,7 +732,6 @@ function ConsultationFormContent() {
         </div>
       </div>
 
-      {/* RINGKASAN JUDUL - matching HasilTesPage summary box */}
       <div className="mb-5 rounded-lg bg-green-50 px-4 py-3 border border-purple-100">
         <p className="text-center text-sm font-semibold text-gray-800">
           Formulir Konsultasi Psikologi
@@ -666,7 +741,6 @@ function ConsultationFormContent() {
         </p>
       </div>
 
-      {/* B. Alasan Konsultasi - table style matching HasilTesPage */}
       <div className="mb-7 overflow-hidden rounded-lg border border-gray-300">
         <div className="bg-[#1f3b5b] px-5 py-3 text-sm font-bold text-white">
           B. Alasan Konsultasi
@@ -699,7 +773,6 @@ function ConsultationFormContent() {
         </div>
       </div>
 
-      {/* C. Riwayat Psikologis & Kesehatan */}
       <div className="mb-7 overflow-hidden rounded-lg border border-gray-300">
         <div className="bg-[#1f3b5b] px-5 py-3 text-sm font-bold text-white">
           C. Riwayat Psikologis &amp; Kesehatan
@@ -750,7 +823,6 @@ function ConsultationFormContent() {
         </div>
       </div>
 
-      {/* D. Kebiasaan & Gaya Hidup */}
       <div className="mb-7 overflow-hidden rounded-lg border border-gray-300">
         <div className="bg-[#1f3b5b] px-5 py-3 text-sm font-bold text-white">
           D. Kebiasaan &amp; Gaya Hidup
@@ -782,7 +854,6 @@ function ConsultationFormContent() {
         </div>
       </div>
 
-      {/* E. Tujuan Konsultasi */}
       <div className="mb-7 overflow-hidden rounded-lg border border-gray-300">
         <div className="bg-[#1f3b5b] px-5 py-3 text-sm font-bold text-white">
           E. Tujuan Konsultasi
@@ -815,7 +886,6 @@ function ConsultationFormContent() {
         </div>
       </div>
 
-      {/* CATATAN PENTING - matching HasilTesPage */}
       <div className="mt-6 rounded-lg border border-[#f8b4b4] bg-[#fff5f5] px-5 py-4 text-xs leading-relaxed text-[#7f1d1d]">
         <div className="mb-2 flex items-center gap-2">
           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#f97373] text-[11px] font-bold text-white">
@@ -832,7 +902,6 @@ function ConsultationFormContent() {
         </ul>
       </div>
 
-      {/* FOOTER - matching HasilTesPage */}
       <div className="mt-6 flex items-end justify-between border-t border-gray-300 pt-4 text-xs text-gray-600">
         <div>
           <p>Dokumen ini digenerate secara otomatis.</p>
@@ -863,38 +932,6 @@ function ConsultationFormContent() {
     </div>
   );
 
-  const renderFormStepIndicator = () => (
-    <div className="flex items-center justify-center mb-8">
-      {[1, 2, 3].map((step) => (
-        <div key={step} className="flex items-center">
-          <div
-            className={`
-              w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all duration-300
-              ${step === formStep
-                ? "bg-[#2B5379] text-white"
-                : step < formStep
-                  ? "bg-green-500 text-white"
-                  : "bg-gray-200 text-gray-500"
-              }
-            `}
-          >
-            {step < formStep ? (
-              <CheckCircle2 className="w-5 h-5" />
-            ) : (
-              step
-            )}
-          </div>
-          {step < 3 && (
-            <div
-              className={`w-16 md:w-24 h-1 mx-2 rounded-full transition-colors duration-300 ${step < formStep ? "bg-green-500" : "bg-gray-200"
-                }`}
-            />
-          )}
-        </div>
-      ))}
-    </div>
-  );
-
   const renderStep1 = () => (
     <div className="space-y-6">
       <div className="flex items-center gap-3 mb-6">
@@ -919,8 +956,98 @@ function ConsultationFormContent() {
         </div>
       </div>
 
+      {/* 🟢 KOMPONEN PILIHAN HARI, JAM & DAFTAR TANGGAL (4 MINGGU KE DEPAN) */}
+      <div className="bg-[#E8F6FF]/60 border border-[#2B5379]/30 p-5 rounded-2xl mb-6 space-y-4">
+        
+        {/* 1. TAB HARI PRAKTIK */}
+        <div>
+          <label className="block text-xs font-bold text-[#234463] mb-2 flex items-center gap-1.5">
+            <Calendar className="w-4 h-4 text-[#2B5379]" />
+            Hari Praktik Tersedia:
+          </label>
+          <div className="flex gap-2">
+            {["SENIN", "SABTU"].map((day) => (
+              <button
+                key={day}
+                type="button"
+                onClick={() => {
+                  setSelectedDay(day);
+                  const newDates = getAvailableDatesForDay(day);
+                  setSelectedDate(newDates[0]?.isoDate || "");
+                }}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  selectedDay === day
+                    ? "bg-[#234463] text-white shadow-xs"
+                    : "bg-white text-slate-600 border border-gray-200 hover:bg-slate-50"
+                }`}
+              >
+                {day}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 2. TAB JAM / WAKTU */}
+        <div>
+          <label className="block text-xs font-bold text-[#234463] mb-2 flex items-center gap-1.5">
+            <Clock className="w-4 h-4 text-[#2B5379]" />
+            Jam Sesi Konsultasi:
+          </label>
+          <div className="flex gap-2">
+            {["16:10"].map((timeStr) => (
+              <button
+                key={timeStr}
+                type="button"
+                onClick={() => setSelectedTime(timeStr)}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition cursor-pointer ${
+                  selectedTime === timeStr
+                    ? "bg-[#234463] text-white border-[#234463] font-bold shadow-xs"
+                    : "bg-white text-slate-700 border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                {timeStr} (60 mnt)
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 3. DAFTAR TANGGAL (4 MINGGU MENDATANG) */}
+        <div className="pt-3 border-t border-[#2B5379]/20">
+          <label className="block text-xs font-bold text-[#234463] mb-2">
+            Pilih Tanggal Hari {selectedDay} ({selectedTime} WIB):
+          </label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            {getAvailableDatesForDay(selectedDay).map((item) => {
+              const isBooked = bookedDates.includes(item.isoDate);
+
+              return (
+                <button
+                  key={item.isoDate}
+                  type="button"
+                  disabled={isBooked}
+                  onClick={() => setSelectedDate(item.isoDate)}
+                  className={`p-3 rounded-xl border text-xs font-semibold text-center transition cursor-pointer ${
+                    isBooked
+                      ? "bg-red-50 border-red-200 text-red-400 cursor-not-allowed line-through"
+                      : selectedDate === item.isoDate
+                      ? "bg-[#234463] text-white border-[#234463] shadow-xs font-bold"
+                      : "bg-white text-slate-700 border-gray-300 hover:bg-slate-50"
+                  }`}
+                >
+                  <div>{item.label}</div>
+                  <div className="text-[10px] mt-0.5 opacity-80 font-normal">
+                    {isBooked ? "Telah Dibooking" : "Tersedia"}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Nama Lengkap */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
             <User className="w-4 h-4 inline mr-2" />
@@ -934,7 +1061,6 @@ function ConsultationFormContent() {
           />
         </div>
 
-        {/* Jenis Kelamin */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">Jenis Kelamin</label>
           <div className="flex gap-4">
@@ -961,7 +1087,6 @@ function ConsultationFormContent() {
           </div>
         </div>
 
-        {/* Tanggal Lahir */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
             <Calendar className="w-4 h-4 inline mr-2" />
@@ -977,7 +1102,6 @@ function ConsultationFormContent() {
           />
         </div>
 
-        {/* Usia */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">Usia</label>
           <input
@@ -988,7 +1112,6 @@ function ConsultationFormContent() {
           />
         </div>
 
-        {/* Alamat */}
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-slate-700 mb-2">
             <MapPin className="w-4 h-4 inline mr-2" />
@@ -1002,7 +1125,6 @@ function ConsultationFormContent() {
           />
         </div>
 
-        {/* Nomor Telepon */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
             <Phone className="w-4 h-4 inline mr-2" />
@@ -1016,7 +1138,6 @@ function ConsultationFormContent() {
           />
         </div>
 
-        {/* Email */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
             <Mail className="w-4 h-4 inline mr-2" />
@@ -1030,7 +1151,6 @@ function ConsultationFormContent() {
           />
         </div>
 
-        {/* Kunjungan Pertama */}
         <div className="md:col-span-2">
           <label className="flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200 bg-gray-100 cursor-not-allowed">
             <input
@@ -1058,13 +1178,11 @@ function ConsultationFormContent() {
         </div>
       </div>
 
-      {/* B. Alasan Konsultasi */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-6">
         <h3 className="text-lg font-semibold text-[#234463] border-b border-gray-100 pb-3">
           B. Alasan Konsultasi
         </h3>
 
-        {/* Alasan Utama */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Alasan utama Anda mencari layanan konseling <span className="text-red-500">*</span>
@@ -1082,7 +1200,6 @@ function ConsultationFormContent() {
           )}
         </div>
 
-        {/* Obat Psikiatri */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Apakah Anda sedang mengonsumsi obat psikiatri? <span className="text-red-500">*</span>
@@ -1118,7 +1235,6 @@ function ConsultationFormContent() {
           )}
         </div>
 
-        {/* Durasi Masalah */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Berapa lama Anda mengalami masalah ini? <span className="text-red-500">*</span>
@@ -1154,7 +1270,6 @@ function ConsultationFormContent() {
           )}
         </div>
 
-        {/* Frekuensi Gejala */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Seberapa sering Anda mengalami gejala ini? <span className="text-red-500">*</span>
@@ -1190,7 +1305,6 @@ function ConsultationFormContent() {
           )}
         </div>
 
-        {/* Dampak Harian */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Seberapa besar masalah ini mengganggu aktivitas harian Anda? <span className="text-red-500">*</span>
@@ -1227,13 +1341,11 @@ function ConsultationFormContent() {
         </div>
       </div>
 
-      {/* C. Riwayat Psikologis & Kesehatan */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-6">
         <h3 className="text-lg font-semibold text-[#234463] border-b border-gray-100 pb-3">
-          C. Riwayat Psikologis & Kesehatan
+          C. Riwayat Psikologis &amp; Kesehatan
         </h3>
 
-        {/* Riwayat Serupa */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Apakah Anda pernah mengalami masalah serupa sebelumnya?
@@ -1275,7 +1387,6 @@ function ConsultationFormContent() {
           )}
         </div>
 
-        {/* Riwayat Keluarga */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Apakah ada anggota keluarga yang memiliki riwayat masalah kesehatan mental?
@@ -1317,7 +1428,6 @@ function ConsultationFormContent() {
           )}
         </div>
 
-        {/* Pengobatan Medis */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Apakah Anda sedang dalam pengobatan medis tertentu?
@@ -1359,7 +1469,6 @@ function ConsultationFormContent() {
           )}
         </div>
 
-        {/* Kejadian Traumatis */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Apakah Anda pernah mengalami kejadian traumatis?
@@ -1401,7 +1510,6 @@ function ConsultationFormContent() {
           )}
         </div>
 
-        {/* Kualitas Tidur */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Bagaimana kualitas tidur Anda? <span className="text-red-500">*</span>
@@ -1437,7 +1545,6 @@ function ConsultationFormContent() {
           )}
         </div>
 
-        {/* Pemikiran Menyakiti Diri */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Apakah Anda pernah memiliki pemikiran untuk menyakiti diri sendiri? <span className="text-red-500">*</span>
@@ -1486,13 +1593,11 @@ function ConsultationFormContent() {
         </div>
       </div>
 
-      {/* D. Kebiasaan & Gaya Hidup */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-6">
         <h3 className="text-lg font-semibold text-[#234463] border-b border-gray-100 pb-3">
-          D. Kebiasaan & Gaya Hidup
+          D. Kebiasaan &amp; Gaya Hidup
         </h3>
 
-        {/* Zat Adiktif */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Apakah Anda mengonsumsi zat adiktif (alkohol, rokok, narkoba, dll)?
@@ -1534,7 +1639,6 @@ function ConsultationFormContent() {
           )}
         </div>
 
-        {/* Pola Makan */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Bagaimana pola makan Anda? <span className="text-red-500">*</span>
@@ -1570,7 +1674,6 @@ function ConsultationFormContent() {
           )}
         </div>
 
-        {/* Frekuensi Olahraga */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Seberapa sering Anda berolahraga? <span className="text-red-500">*</span>
@@ -1606,7 +1709,6 @@ function ConsultationFormContent() {
           )}
         </div>
 
-        {/* Tingkat Stres */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Bagaimana tingkat stres Anda saat ini? <span className="text-red-500">*</span>
@@ -1643,13 +1745,11 @@ function ConsultationFormContent() {
         </div>
       </div>
 
-      {/* E. Tujuan Konsultasi */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-6">
         <h3 className="text-lg font-semibold text-[#234463] border-b border-gray-100 pb-3">
           E. Tujuan Konsultasi
         </h3>
 
-        {/* Tujuan (Multi-select) */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Apa yang ingin Anda capai dari konsultasi ini? <span className="text-red-500">*</span>
@@ -1690,7 +1790,6 @@ function ConsultationFormContent() {
           )}
         </div>
 
-        {/* Preferensi Pendekatan Terapi */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Preferensi pendekatan terapi <span className="text-red-500">*</span>
@@ -1735,12 +1834,11 @@ function ConsultationFormContent() {
           <Shield className="w-6 h-6 text-[#2B5379]" />
         </div>
         <div>
-          <h2 className="text-xl font-semibold text-slate-800">Informasi Kebijakan & Persetujuan</h2>
+          <h2 className="text-xl font-semibold text-slate-800">Informasi Kebijakan &amp; Persetujuan</h2>
           <p className="text-sm text-slate-500">Baca dan setujui kebijakan layanan kami</p>
         </div>
       </div>
 
-      {/* F. Informasi Kebijakan */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6">
         <h3 className="text-lg font-semibold text-[#234463] border-b border-gray-100 pb-3 mb-4">
           F. Informasi Kebijakan Layanan
@@ -1808,13 +1906,11 @@ function ConsultationFormContent() {
         </div>
       </div>
 
-      {/* G. Pernyataan Persetujuan */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-6">
         <h3 className="text-lg font-semibold text-[#234463] border-b border-gray-100 pb-3">
           G. Pernyataan Persetujuan
         </h3>
 
-        {/* Tanggal */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Tanggal Persetujuan
@@ -1827,7 +1923,6 @@ function ConsultationFormContent() {
           />
         </div>
 
-        {/* Nama Klien */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Nama Lengkap Klien <span className="text-red-500">*</span>
@@ -1847,13 +1942,11 @@ function ConsultationFormContent() {
           )}
         </div>
 
-        {/* Tanda Tangan */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Tanda Tangan <span className="text-red-500">*</span>
           </label>
 
-          {/* Toggle between text and canvas signature */}
           <div className="flex gap-4 mb-4">
             <button
               type="button"
@@ -1907,7 +2000,7 @@ function ConsultationFormContent() {
               <button
                 type="button"
                 onClick={clearCanvas}
-                className="text-sm text-[#2B5379] hover:underline"
+                className="text-sm text-[#2B5379] hover:underline cursor-pointer"
               >
                 Hapus dan Ulangi
               </button>
@@ -1918,7 +2011,6 @@ function ConsultationFormContent() {
           )}
         </div>
 
-        {/* Agreement Checkbox */}
         <div>
           <label
             className={`flex items-start gap-3 px-4 py-4 rounded-xl border cursor-pointer transition-all ${consentData.agreedToTerms
@@ -1948,7 +2040,6 @@ function ConsultationFormContent() {
           )}
         </div>
 
-        {/* Download PDF Button */}
         <div className="mt-6 pt-4 border-t border-gray-100">
           <p className="text-sm text-gray-600 mb-3">Simpan formulir untuk arsip Anda:</p>
           <div className="flex gap-3">
@@ -1956,7 +2047,7 @@ function ConsultationFormContent() {
               type="button"
               onClick={generatePDF}
               disabled={isDownloading}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#2B5379] text-[#2B5379] hover:bg-[#E8F6FF] transition-colors text-sm font-medium no-print disabled:opacity-60"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#2B5379] text-[#2B5379] hover:bg-[#E8F6FF] transition-colors text-sm font-medium no-print disabled:opacity-60 cursor-pointer"
             >
               <Download className="w-4 h-4" />
               {isDownloading ? "Mengunduh..." : "Download PDF"}
@@ -1969,10 +2060,8 @@ function ConsultationFormContent() {
 
   return (
     <main className="min-h-screen bg-[#f5f7fb] font-[var(--font-poppins)] no-print-main">
-      {/* Hidden PDF content for html2canvas capture */}
       {renderPrintableForm()}
 
-      {/* Hero Section */}
       <section className="relative pt-24 pb-12 px-6 lg:px-16 bg-gradient-to-b from-[#E8F6FF] to-[#f5f7fb] no-print">
         <div className="max-w-5xl mx-auto text-center">
           <h1 className="text-[40px] md:text-[48px] font-semibold mb-4 animate-fade-in-up">
@@ -1985,19 +2074,14 @@ function ConsultationFormContent() {
         </div>
       </section>
 
-      {/* Main Content */}
       <section className="max-w-4xl mx-auto px-4 py-8 no-print">
-        {/* Main Booking Stepper */}
         <div className="mb-8 animate-fadeIn stagger-2">
           <BookingStepper currentStep={3} />
         </div>
 
-        {/* Form Container */}
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8 animate-fadeIn stagger-3">
-          {/* Form Step Indicator */}
           {renderFormStepIndicator()}
 
-          {/* Step Labels */}
           <div className="flex justify-between mb-8 text-sm">
             <span
               className={`transition-colors ${formStep === 1 ? "text-[#2B5379] font-medium" : "text-gray-400"
@@ -2019,16 +2103,14 @@ function ConsultationFormContent() {
             </span>
           </div>
 
-          {/* Form Steps Content */}
           {formStep === 1 && renderStep1()}
           {formStep === 2 && renderStep2()}
           {formStep === 3 && renderStep3()}
 
-          {/* Navigation Buttons */}
           <div className="flex justify-between items-center pt-8 mt-8 border-t border-[#D6E6F2] no-print">
             <button
               onClick={formStep === 1 ? () => router.back() : handlePrevFormStep}
-              className="flex items-center gap-2 px-6 py-3 text-[#2B5379] font-medium hover:bg-[#E8F6FF] rounded-xl transition-colors"
+              className="flex items-center gap-2 px-6 py-3 text-[#2B5379] font-medium hover:bg-[#E8F6FF] rounded-xl transition-colors cursor-pointer"
             >
               <ChevronLeft className="w-5 h-5" />
               Kembali
@@ -2036,7 +2118,7 @@ function ConsultationFormContent() {
             <button
               onClick={handleNextFormStep}
               disabled={isSubmitting}
-              className="flex items-center gap-2 px-8 py-3 rounded-xl font-semibold bg-[#2B5379] text-white hover:bg-[#234463] shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-70"
+              className="flex items-center gap-2 px-8 py-3 rounded-xl font-semibold bg-[#2B5379] text-white hover:bg-[#234463] shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-70 cursor-pointer"
             >
               {isSubmitting ? "Memproses..." : formStep === 3 ? "Lanjutkan ke Pembayaran" : "Lanjut"}
               <ChevronRight className="w-5 h-5" />
