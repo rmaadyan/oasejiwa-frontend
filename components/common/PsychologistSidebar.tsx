@@ -8,6 +8,7 @@ import {
   Calendar,
   Users,
   FileText,
+  ClipboardList,
   User,
   LogOut,
 } from "lucide-react";
@@ -22,6 +23,7 @@ const menuItems = [
   { icon: Calendar, label: "Jadwal Saya", href: "/psychologist/schedule" },
   { icon: Users, label: "Pasien Saya", href: "/psychologist/patients" },
   { icon: FileText, label: "Catatan Konseling", href: "/psychologist/notes" },
+  { icon: ClipboardList, label: "Rekam Medis Digital", href: "/psychologist/rekam-medis" },
   { icon: User, label: "Profil Saya", href: "/psychologist/profile" },
 ];
 

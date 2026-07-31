@@ -16,6 +16,7 @@ import type {
 
 import type { TesDetail } from "./DetailTesForm";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/Alert";
+import { submitTesResult } from "@/lib/api/tes";
 
 const RESULT_KEY = "tes-last-result";
 
@@ -63,7 +64,7 @@ export default function TestRunner1({ tes, onBack }: Props) {
     setErrorMsg(null);
   };
 
-  const hitungHasil = () => {
+  const hitungHasil = async () => {
     setErrorMsg(null);
 
     if (pertanyaan.length === 0) {
@@ -151,7 +152,34 @@ export default function TestRunner1({ tes, onBack }: Props) {
       localStorage.setItem(RESULT_KEY, JSON.stringify(result));
     }
 
-    // Redirect ke halaman USER (bukan admin)
+    // Submit ke backend untuk disimpan di rekam medis digital pasien
+    if (tes.id) {
+      try {
+        await submitTesResult(tes.id, {
+          namaTes: tes.nama,
+          jenisTes: tes.jenis || "Psikologi",
+          totalScore: total,
+          maxScore: maks,
+          percentage: persen,
+          kategoriNama: kat?.nama ?? "-",
+          diagnosis: kat?.nama ?? "-",
+          detailDiagnosis: kat?.deskripsi ?? kat?.result ?? `Berdasarkan hasil ${tes.nama}, pasien berada dalam kategori ${kat?.nama ?? "-"}. Gejala yang muncul cukup memengaruhi aktivitas sehari-hari.`,
+          interpretasi: tes.penjelasanHasil ?? "Hasil mengukur tingkat keparahan gejala.",
+          rekomendasi: [
+            "Melanjutkan sesi konseling secara berkala.",
+            "Latihan relaksasi diafragma.",
+            "Evaluasi perkembangan pada sesi berikutnya.",
+            "Monitoring perkembangan secara teratur."
+          ],
+          sectionScores: sections,
+          answers: jawaban,
+        });
+      } catch (err) {
+        console.error("Gagal menyimpan hasil tes ke rekam medis:", err);
+      }
+    }
+
+    // Redirect ke halaman USER
     router.push(`/tes/pre-result/${tes.id ?? 0}`);
   };
 

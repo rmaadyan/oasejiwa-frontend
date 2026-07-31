@@ -1223,34 +1223,64 @@ export const mockSessionNotes: SessionNote[] = [
     updatedAt: "15 Jan 2026 15:15"
   },
 
-  // SITI RAHAYU - Session 1
+  // SITI RAHMAWATI - Session 2 (Latest)
+  {
+    id: "siti-note-2",
+    scheduleId: "26",
+    psychologistId: "6",
+    patientId: "2",
+    patientName: "Siti Rahmawati",
+    sessionDate: "20 Jul 2026",
+    sessionTime: "14:00",
+    duration: 60,
+    sessionNumber: 2,
+    service: "Konseling Individu",
+
+    subjective: "Pasien melaporkan adanya peningkatan energi dan perbaikan mood setelah rutin mengonsumsi Fluoxetine 20mg dan mempraktikkan Behavioral Activation Journal. Masih merasa sedikit lelah saat menghadapi deadline kerja.",
+
+    objective: "Affect lebih fleksibel, kontak mata membaik. Pasien tampak lebih segar dan komunikatif. Skor DASS-21 Depresi: 12 (kategori Depresi Sedang, turun dari skor awal 16).",
+
+    assessment: "Gangguan Depresi Ringan - Sedang (Mild to Moderate Depression) — Menunjukkan respon positif yang signifikan terhadap Behavioral Activation Therapy dan medikasi psikiatri.",
+
+    plan: "1. Evaluasi Behavioral Activation Journal\n2. Terapkan Cognitive Restructuring untuk mengelola pikiran otomatis negatif\n3. Rutinkan latihan relaksasi diafragma sebelum tidur\n4. Lanjutkan sesi konseling 2 minggu sekali",
+
+    riskLevel: "medium",
+    followUpDate: "3 Ags 2026",
+    nextSessionRecommendation: "Evaluasi penerapan CBT dan pemantauan mood harian.",
+    tags: ["Depresi", "Behavioral Activation", "CBT", "Progres Baik"],
+
+    createdAt: "20 Jul 2026 15:00",
+    updatedAt: "20 Jul 2026 15:00"
+  },
+
+  // SITI RAHMAWATI - Session 1
   {
     id: "4",
     scheduleId: "25",
     psychologistId: "6",
     patientId: "2",
-    patientName: "Siti Rahayu",
-    sessionDate: "9 Feb 2026",
-    sessionTime: "11:00",
+    patientName: "Siti Rahmawati",
+    sessionDate: "5 Jul 2026",
+    sessionTime: "14:00",
     duration: 60,
     sessionNumber: 1,
     service: "Konseling Individu",
 
-    subjective: "Pasien pertama kali datang dengan keluhan mood rendah selama 3 bulan terakhir. Kehilangan minat pada aktivitas yang sebelumnya disukai (memasak, berkebun). Sulit konsentrasi di kantor, merasa 'tidak berguna'. Sering menangis tanpa sebab jelas. Nafsu makan menurun drastis, berat badan turun 4kg dalam 2 bulan. Merasa 'hampa' dan lelah terus-menerus.",
+    subjective: "Pasien pertama kali datang dengan keluhan mood rendah selama 1 bulan terakhir, sering menangis tanpa alasan yang jelas, serta merasa kehilangan minat pada hobi dan aktivitas harian.",
 
-    objective: "Affect tumpul, kontak mata minimal. Berbicara pelan dengan jeda panjang. Postur membungkuk. PHQ-9 score: 16 (moderate depression). Tidak ada ideasi suicidal saat ini, namun ada riwayat pikiran 'ingin menghilang' 1 bulan lalu (passive SI). Grooming adequate.",
+    objective: "Afek hipotimik, emosi labil dengan kecenderungan menangis saat menceritakan tekanan pekerjaan. Kontak mata sedang. Skor DASS-21 Depresi: 16 (Depresi Sedang).",
 
-    assessment: "Major Depressive Disorder - episode moderate. Onset 3 bulan, triggered by work stress dan konflik keluarga (marital problems). Tidak ada psychotic features. Riwayat keluarga positif (ibu dengan depresi, dirawat 10 tahun lalu). Pasien kooperatif, insight baik. Risk: medium (perlu monitoring ketat karena riwayat passive SI).",
+    assessment: "Gangguan Depresi Ringan - Sedang (Mild to Moderate Depression) — Dipicu oleh beban kerja tinggi dan kurangnya mekanisme koping yang adekuat.",
 
-    plan: "1. Psychoeducation tentang depresi dan treatment options (psychotherapy + medication)\n2. Rujuk ke psikiater untuk medication evaluation - sudah dimulai Fluoxetine 20mg\n3. Safety planning - identifikasi support system (suami, kakak), crisis numbers\n4. Mulai behavioral activation - jadwal aktivitas harian (small achievable tasks)\n5. Assess suicidal ideation setiap sesi\n6. Follow-up 3-5 hari (monitoring awal medication)\n7. Emergency contact: 24/7 crisis line provided",
+    plan: "1. Psikoedukasi mengenai depresi dan manajemen stres\n2. Rujukan evaluasi psikiatri (diresepkan Fluoxetine 20mg)\n3. Pemberian Behavioral Activation Journal\n4. Jadwal konseling lanjutan 2 minggu lagi",
 
     riskLevel: "medium",
-    followUpDate: "12 Feb 2026",
-    nextSessionRecommendation: "Monitoring response terhadap medikasi, assess side effects, lanjutkan behavioral activation, re-assess suicide risk.",
-    tags: ["Depression", "First Session", "Medium Risk", "Medication", "Safety Planning"],
+    followUpDate: "20 Jul 2026",
+    nextSessionRecommendation: "Monitoring response terhadap medikasi dan behavioral activation.",
+    tags: ["Depresi", "First Session", "Medium Risk", "Medication"],
 
-    createdAt: "9 Feb 2026 12:30",
-    updatedAt: "9 Feb 2026 12:30"
+    createdAt: "5 Jul 2026 15:00",
+    updatedAt: "5 Jul 2026 15:00"
   },
 
   // AHMAD RIZKI - Session 5 (Latest)

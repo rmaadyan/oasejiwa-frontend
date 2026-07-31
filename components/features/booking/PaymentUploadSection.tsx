@@ -118,12 +118,12 @@ export default function PaymentUploadSection({
       {/* Submit Button */}
       <button
         onClick={onSubmit}
-        disabled={!uploadedFile || isSubmitting}
+        disabled={isSubmitting}
         className={`
           w-full mt-4 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2
           ${
-            uploadedFile && !isSubmitting
-              ? "bg-[#2B5379] text-white hover:bg-[#234463] shadow-lg hover:shadow-xl"
+            !isSubmitting
+              ? "bg-[#2B5379] text-white hover:bg-[#234463] shadow-lg hover:shadow-xl cursor-pointer"
               : "bg-gray-200 text-gray-400 cursor-not-allowed"
           }
         `}
@@ -148,7 +148,7 @@ export default function PaymentUploadSection({
                 d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
               />
             </svg>
-            Kirim Bukti Pembayaran
+            {uploadedFile ? "Kirim Bukti Pembayaran" : "Konfirmasi Pembayaran (Lanjut Step Berikutnya >)"}
           </>
         )}
       </button>
