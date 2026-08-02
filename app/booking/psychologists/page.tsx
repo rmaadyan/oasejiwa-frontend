@@ -1,7 +1,7 @@
 import { PsychologistSelectionContent } from "@/components/features/booking";
 
 async function getPsychologists() {
-  const API_BASE_URL =  "https://api.oasejiwa.id";
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id";
   const res = await fetch(`${API_BASE_URL}/psychologists`, {
     cache: "no-store",
   });

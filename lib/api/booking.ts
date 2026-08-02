@@ -1,4 +1,5 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id";
+// Fallback ke localhost untuk environment dev
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 // Helper terpusat — selalu pakai cookie
 const authFetch = (url: string, options: RequestInit = {}) =>
@@ -12,17 +13,79 @@ const authFetch = (url: string, options: RequestInit = {}) =>
   });
 
 // ---------------------------------------------------------
+// HELPER TRANSFORM DATA CONSULTATION FORM
+// ---------------------------------------------------------
+function sanitizeConsultationForm(rawForm: any) {
+  if (!rawForm) return undefined;
+
+  // Buat copy agar tidak merusak state asli
+  const form = { ...rawForm };
+
+  // 1. Hapus field yang memicu whitelistValidation jika tidak dipakai di DTO
+  delete form.partnerSleepQuality;
+
+  // 2. Pastikan Boolean murni
+  if ("usesAddictiveSubstances" in form) {
+    form.usesAddictiveSubstances =
+      form.usesAddictiveSubstances === true ||
+      form.usesAddictiveSubstances === "true" ||
+      form.usesAddictiveSubstances === "Ya";
+  }
+
+  // 3. Transform Enum ke UPPERCASE (sesuai Enum Prisma/NestJS)
+  const enumFields = [
+    "selfHarmThoughts",
+    "eatingPattern",
+    "exerciseFrequency",
+    "stressLevel",
+    "therapyPreference",
+  ];
+
+  enumFields.forEach((field) => {
+    if (form[field] && typeof form[field] === "string") {
+      form[field] = form[field].toUpperCase();
+    }
+  });
+
+  // 4. Pastikan consultationGoals berupa Array of String
+  if (form.consultationGoals) {
+    if (!Array.isArray(form.consultationGoals)) {
+      form.consultationGoals = [String(form.consultationGoals)];
+    }
+  } else {
+    form.consultationGoals = [];
+  }
+
+  return form;
+}
+
+// ---------------------------------------------------------
 // USER ENDPOINTS
 // ---------------------------------------------------------
 
 export async function createBooking(payload: any) {
+  // Transform consultationForm jika ada di dalam payload
+  const formattedPayload = {
+    ...payload,
+    ...(payload.consultationForm && {
+      consultationForm: sanitizeConsultationForm(payload.consultationForm),
+    }),
+  };
+
   const res = await authFetch(`${API_BASE_URL}/bookings`, {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify(formattedPayload),
   });
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || "Gagal membuat booking");
+
+    // Tangkap error validasi dari NestJS jika berupa Array of Strings
+    const errorMessage = Array.isArray(err.message)
+      ? err.message.join("\n• ")
+      : err.message || "Gagal membuat booking";
+
+    throw new Error(errorMessage);
   }
   return res.json();
 }

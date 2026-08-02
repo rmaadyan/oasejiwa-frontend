@@ -7,6 +7,7 @@ import { z } from "zod";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas-pro";
 import { createBooking } from "@/lib/api/booking";
+import { getLayananById } from "@/lib/api/layanan";
 import {
   User,
   Calendar,
@@ -60,6 +61,33 @@ const consultationFormSchema = z.object({
 });
 
 type ConsultationFormData = z.infer<typeof consultationFormSchema>;
+
+// Zod validation schema untuk Formulir Konsultasi Pasangan (JenisLayanan.KonselingPasangan)
+// Mengikuti Formulir_Klien_Oase_Jiwa_Pasangan.doc: hanya bagian B (Alasan Konsultasi)
+// dan C (Riwayat Psikologis & Kesehatan versi pasangan). Tidak ada bagian
+// D (Kebiasaan & Gaya Hidup) maupun E (Tujuan Konsultasi) seperti pada formulir individu.
+const coupleConsultationFormSchema = z.object({
+  // B. Alasan Konsultasi (sama seperti formulir individu)
+  mainReason: z.string().min(10, "Alasan konsultasi minimal 10 karakter"),
+  takingPsychiatricMeds: z.enum(["yes", "no"], "Pilih salah satu opsi"),
+  problemDuration: z.enum(["<1month", "1-3months", "3-6months", ">6months"], "Pilih durasi masalah"),
+  symptomFrequency: z.enum(["daily", "weekly", "monthly", "rarely"], "Pilih frekuensi gejala"),
+  dailyImpact: z.enum(["none", "mild", "moderate", "severe"], "Pilih tingkat dampak"),
+
+  // C. Riwayat Psikologis & Kesehatan (versi Anda dan pasangan)
+  hasSimilarHistory: z.enum(["yes", "no"]),
+  similarHistoryDetail: z.string().optional(),
+  hasFamilyHistory: z.enum(["yes", "no"]),
+  familyHistoryDetail: z.string().optional(),
+  hasMedicalTreatment: z.enum(["yes", "no"]),
+  medicalTreatmentDetail: z.string().optional(),
+  hasTraumaticEvent: z.enum(["yes", "no"]),
+  traumaticEventDetail: z.string().optional(),
+  sleepQuality: z.enum(["good", "fair", "poor", "disturbed"], "Pilih kualitas tidur Anda"),
+  partnerSleepQuality: z.enum(["good", "fair", "poor", "disturbed"], "Pilih kualitas tidur pasangan"),
+});
+
+type CoupleConsultationFormData = z.infer<typeof coupleConsultationFormSchema>;
 
 // Consent form schema for Step 3
 const consentFormSchema = z.object({
@@ -135,6 +163,36 @@ const emptyClientData: ClientFormData = {
   educationCollegeYearEnd: "",
 };
 
+// Data klien untuk Formulir Konsultasi Pasangan (JenisLayanan.KonselingPasangan).
+// Bagian A pada formulir pasangan jauh lebih sederhana daripada formulir individu:
+// tidak ada jenis kelamin, tanggal/tempat lahir, status pernikahan, anak ke-, atau
+// riwayat pendidikan — hanya identitas dasar klien + identitas dasar pasangan.
+interface CoupleClientFormData {
+  fullName: string;
+  age: string;
+  address: string;
+  phone: string;
+  email: string;
+  occupation: string;
+  partnerName: string;
+  partnerAge: string;
+  partnerAddress: string;
+  partnerOccupation: string;
+}
+
+const emptyCoupleClientData: CoupleClientFormData = {
+  fullName: "",
+  age: "",
+  address: "",
+  phone: "",
+  email: "",
+  occupation: "",
+  partnerName: "",
+  partnerAge: "",
+  partnerAddress: "",
+  partnerOccupation: "",
+};
+
 function OptionPill({
   name,
   value,
@@ -194,11 +252,66 @@ function ConsultationFormContent() {
   const time = searchParams.get("time");
   const { user, isLoading: isLoadingUser, isGuest } = useRequireCompleteProfile();
 
+  // Deteksi otomatis jenis layanan (individu vs pasangan) berdasarkan `serviceId`
+  // di URL, dengan fetch ke backend lewat getLayananById. Kalau jenis layanan
+  // adalah "KonselingPasangan" (sesuai enum JenisLayanan di Prisma schema),
+  // halaman ini akan render formulir konsultasi pasangan; selain itu tetap
+  // pakai formulir individu seperti biasa.
+  const [layananJenis, setLayananJenis] = useState<string | null>(null);
+  const [isLoadingLayanan, setIsLoadingLayanan] = useState(true);
+  const [layananFetchError, setLayananFetchError] = useState<string | null>(null);
+  const isCouple = layananJenis === "KonselingPasangan";
+
+  useEffect(() => {
+    if (!serviceId) {
+      setIsLoadingLayanan(false);
+      return;
+    }
+    let cancelled = false;
+    setIsLoadingLayanan(true);
+    setLayananFetchError(null);
+    getLayananById(serviceId)
+      .then((layanan) => {
+        if (!cancelled) setLayananJenis(layanan.jenis);
+      })
+      .catch((err) => {
+        console.error(err);
+        if (!cancelled) {
+          setLayananFetchError("Gagal memuat detail layanan. Coba muat ulang halaman.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingLayanan(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [serviceId]);
+
   const [formStep, setFormStep] = useState(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [clientData, setClientData] = useState<ClientFormData>(emptyClientData);
+  const [coupleClientData, setCoupleClientData] = useState<CoupleClientFormData>(emptyCoupleClientData);
+
+  const [coupleConsultationData, setCoupleConsultationData] = useState<Partial<CoupleConsultationFormData>>({
+    mainReason: "",
+    takingPsychiatricMeds: undefined,
+    problemDuration: undefined,
+    symptomFrequency: undefined,
+    dailyImpact: undefined,
+    hasSimilarHistory: "no",
+    similarHistoryDetail: "",
+    hasFamilyHistory: "no",
+    familyHistoryDetail: "",
+    hasMedicalTreatment: "no",
+    medicalTreatmentDetail: "",
+    hasTraumaticEvent: "no",
+    traumaticEventDetail: "",
+    sleepQuality: undefined,
+    partnerSleepQuality: undefined,
+  });
 
   const [consultationData, setConsultationData] = useState<Partial<ConsultationFormData>>({
     mainReason: "",
@@ -245,6 +358,93 @@ function ConsultationFormContent() {
     }
   }, [user]);
 
+  // ===== Simpan draft formulir ke localStorage supaya tidak hilang saat refresh =====
+  // Kunci draft dipisah per akun + per layanan, supaya draft satu klien tidak
+  // tertukar dengan klien lain di browser yang sama, dan draft satu layanan
+  // tidak tertukar dengan layanan lain.
+  const draftStorageKey =
+    user && serviceId ? `oasejiwa-booking-draft-${(user as any).id}-${serviceId}` : null;
+  const hasLoadedDraftRef = useRef(false);
+  const [isDraftLoaded, setIsDraftLoaded] = useState(false);
+
+  // Muat draft yang tersimpan (sekali saja, begitu draftStorageKey siap)
+  useEffect(() => {
+    if (!draftStorageKey || hasLoadedDraftRef.current) return;
+    hasLoadedDraftRef.current = true;
+
+    try {
+      const raw = window.localStorage.getItem(draftStorageKey);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved.clientData) {
+          setClientData((prev) => ({ ...prev, ...saved.clientData }));
+        }
+        if (saved.coupleClientData) {
+          setCoupleClientData((prev) => ({ ...prev, ...saved.coupleClientData }));
+        }
+        if (saved.consultationData) {
+          setConsultationData((prev) => ({ ...prev, ...saved.consultationData }));
+        }
+        if (saved.coupleConsultationData) {
+          setCoupleConsultationData((prev) => ({ ...prev, ...saved.coupleConsultationData }));
+        }
+        if (typeof saved.isFirstVisit === "boolean") {
+          setIsFirstVisit(saved.isFirstVisit);
+        }
+        // Step 3 (persetujuan & tanda tangan) sengaja tidak dipulihkan otomatis —
+        // klien tetap perlu menyetujui & tanda tangan ulang tiap sesi demi keabsahan
+        // persetujuan, jadi step dibatasi maksimal ke step 2.
+        if (typeof saved.formStep === "number") {
+          setFormStep(Math.min(saved.formStep, 2));
+        }
+      }
+    } catch (err) {
+      console.error("Gagal memuat draft formulir:", err);
+    } finally {
+      setIsDraftLoaded(true);
+    }
+  }, [draftStorageKey]);
+
+  // Simpan draft setiap kali data step 1 & 2 berubah, setelah draft awal selesai dimuat
+  // (supaya tidak menimpa draft lama dengan state kosong sebelum sempat dimuat).
+  useEffect(() => {
+    if (!draftStorageKey || !isDraftLoaded) return;
+    try {
+      window.localStorage.setItem(
+        draftStorageKey,
+        JSON.stringify({
+          clientData,
+          coupleClientData,
+          consultationData,
+          coupleConsultationData,
+          isFirstVisit,
+          formStep,
+        })
+      );
+    } catch (err) {
+      console.error("Gagal menyimpan draft formulir:", err);
+    }
+  }, [
+    draftStorageKey,
+    isDraftLoaded,
+    clientData,
+    coupleClientData,
+    consultationData,
+    coupleConsultationData,
+    isFirstVisit,
+    formStep,
+  ]);
+
+  const clearDraft = () => {
+    if (!draftStorageKey) return;
+    try {
+      window.localStorage.removeItem(draftStorageKey);
+    } catch (err) {
+      console.error("Gagal menghapus draft formulir:", err);
+    }
+  };
+  // ===== Selesai bagian draft localStorage =====
+
   // Ambil data pribadi dari profil akun (diisi saat registrasi), tapi tetap
   // bisa diedit lagi oleh klien di form ini. Hanya mengisi field yang masih
   // kosong supaya tidak menimpa perubahan yang sudah diketik klien.
@@ -265,6 +465,16 @@ function ConsultationFormContent() {
       fullName: prev.fullName || profile.name || "",
       gender: prev.gender || (profile.gender ? genderMap[profile.gender] ?? "" : ""),
       birthDate: prev.birthDate || autoBirthDate,
+      email: prev.email || (user as any).email || "",
+      phone: prev.phone || profile.phone || "",
+      address: prev.address || autoAddress,
+    }));
+
+    // Sama seperti clientData: isi otomatis field yang masih kosong pada
+    // formulir pasangan dari profil akun, tanpa menimpa yang sudah diketik klien.
+    setCoupleClientData((prev) => ({
+      ...prev,
+      fullName: prev.fullName || profile.name || "",
       email: prev.email || (user as any).email || "",
       phone: prev.phone || profile.phone || "",
       address: prev.address || autoAddress,
@@ -325,12 +535,44 @@ function ConsultationFormContent() {
     );
   }
 
+  if (isLoadingLayanan) {
+    return (
+      <div className="min-h-screen bg-[#f5f7fb] flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-[#2B5379] border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (layananFetchError) {
+    return (
+      <div className="min-h-screen bg-[#f5f7fb] flex items-center justify-center px-4">
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-8 h-8 text-red-500" />
+          </div>
+          <h2 className="text-xl font-semibold text-slate-800 mb-2">Gagal Memuat Layanan</h2>
+          <p className="text-slate-500 text-sm mb-6">{layananFetchError}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full py-2 rounded-xl bg-[#2B5379] text-white font-semibold hover:bg-[#234463] transition-colors"
+          >
+            Muat Ulang
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!user) return null;
 
   const clientAge = clientData.birthDate ? calculateAge(clientData.birthDate) : 0;
 
   const handleClientDataChange = (field: keyof ClientFormData, value: string) => {
     setClientData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleCoupleClientDataChange = (field: keyof CoupleClientFormData, value: string) => {
+    setCoupleClientData((prev) => ({ ...prev, [field]: value }));
   };
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -393,6 +635,22 @@ function ConsultationFormContent() {
     return true;
   };
 
+  const validateStep2Couple = (): boolean => {
+    const result = coupleConsultationFormSchema.safeParse(coupleConsultationData);
+    if (!result.success) {
+      const newErrors: Record<string, string> = {};
+      const issues = result.error.issues || [];
+      issues.forEach((err) => {
+        const key = String(err.path[0]);
+        newErrors[key] = err.message;
+      });
+      setErrors(newErrors);
+      return false;
+    }
+    setErrors({});
+    return true;
+  };
+
   const validateStep3 = (): boolean => {
     const result = consentFormSchema.safeParse(consentData);
     if (!result.success) {
@@ -413,7 +671,7 @@ function ConsultationFormContent() {
     if (formStep === 1) {
       setFormStep(2);
     } else if (formStep === 2) {
-      if (validateStep2()) {
+      if (isCouple ? validateStep2Couple() : validateStep2()) {
         setFormStep(3);
       }
     } else if (formStep === 3) {
@@ -433,24 +691,42 @@ function ConsultationFormContent() {
             noPreference: "NO_PREFERENCE",
           };
 
-          const mappedConsultation = {
-            ...consultationData,
-            problemDuration:
-              durationMap[consultationData.problemDuration!] ??
-              consultationData.problemDuration?.toUpperCase(),
-            symptomFrequency: consultationData.symptomFrequency?.toUpperCase(),
-            dailyImpact: consultationData.dailyImpact?.toUpperCase(),
-            sleepQuality: consultationData.sleepQuality?.toUpperCase(),
-            selfHarmThoughts: consultationData.selfHarmThoughts?.toUpperCase(),
-            eatingPattern: consultationData.eatingPattern?.toUpperCase(),
-            exerciseFrequency: consultationData.exerciseFrequency?.toUpperCase(),
-            stressLevel:
-              stressMap[consultationData.stressLevel!] ??
-              consultationData.stressLevel?.toUpperCase(),
-            therapyPreference:
-              therapyMap[consultationData.therapyPreference!] ??
-              consultationData.therapyPreference?.toUpperCase(),
-          };
+          // Bentuk consultationForm berbeda untuk layanan pasangan (lihat
+          // coupleConsultationFormSchema) vs layanan individu.
+          // CATATAN: sama seperti clientData pada formulir individu (yang juga
+          // tidak dikirim ke createBooking), coupleClientData (nama/usia/alamat
+          // klien & pasangan) saat ini HANYA dipakai untuk formulir cetak/PDF,
+          // belum dikirim ke API. Kalau backend butuh data ini per booking,
+          // beri tahu aku bentuk payload yang diharapkan supaya bisa ditambahkan.
+          const mappedConsultation = isCouple
+            ? {
+                ...coupleConsultationData,
+                problemDuration:
+                  durationMap[coupleConsultationData.problemDuration!] ??
+                  coupleConsultationData.problemDuration?.toUpperCase(),
+                symptomFrequency: coupleConsultationData.symptomFrequency?.toUpperCase(),
+                dailyImpact: coupleConsultationData.dailyImpact?.toUpperCase(),
+                sleepQuality: coupleConsultationData.sleepQuality?.toUpperCase(),
+                partnerSleepQuality: coupleConsultationData.partnerSleepQuality?.toUpperCase(),
+              }
+            : {
+                ...consultationData,
+                problemDuration:
+                  durationMap[consultationData.problemDuration!] ??
+                  consultationData.problemDuration?.toUpperCase(),
+                symptomFrequency: consultationData.symptomFrequency?.toUpperCase(),
+                dailyImpact: consultationData.dailyImpact?.toUpperCase(),
+                sleepQuality: consultationData.sleepQuality?.toUpperCase(),
+                selfHarmThoughts: consultationData.selfHarmThoughts?.toUpperCase(),
+                eatingPattern: consultationData.eatingPattern?.toUpperCase(),
+                exerciseFrequency: consultationData.exerciseFrequency?.toUpperCase(),
+                stressLevel:
+                  stressMap[consultationData.stressLevel!] ??
+                  consultationData.stressLevel?.toUpperCase(),
+                therapyPreference:
+                  therapyMap[consultationData.therapyPreference!] ??
+                  consultationData.therapyPreference?.toUpperCase(),
+              };
 
           const payload = {
             serviceId: Number(serviceId),
@@ -468,6 +744,7 @@ function ConsultationFormContent() {
           };
 
           const booking = await createBooking(payload);
+          clearDraft();
           router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
         } catch (error: any) {
           console.error(error);
@@ -491,6 +768,20 @@ function ConsultationFormContent() {
     value: string | string[]
   ) => {
     setConsultationData((prev) => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleCoupleConsultationChange = (
+    field: keyof CoupleConsultationFormData,
+    value: string
+  ) => {
+    setCoupleConsultationData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -771,6 +1062,11 @@ function ConsultationFormContent() {
       </span>
     );
 
+    // Field-field bagian B (Alasan Konsultasi) sama persis antara formulir
+    // individu dan formulir pasangan, jadi cukup pilih sumber datanya di sini.
+    const activeConsultation: Partial<ConsultationFormData> | Partial<CoupleConsultationFormData> =
+      isCouple ? coupleConsultationData : consultationData;
+
     return (
       <div
         id="booking-form-pdf-content"
@@ -788,7 +1084,7 @@ function ConsultationFormContent() {
         {/* HEADER DENGAN LOGO & JUDUL TEMPLATE - diulang di setiap halaman PDF */}
         <div
           id="pdf-header-block"
-          className="bg-gradient-to-r from-[#0e2f56] via-[#1f6fa8] to-[#5db8d6] text-white px-6 py-5 text-center -mt-10 -mx-10 mb-6"
+          className="bg-gradient-to-r from-[#CAFBDA] via-[#AFDAEC] to-[#95BBFE] text-white px-6 py-5 text-center -mt-10 -mx-10 mb-6"
         >
           <div className="flex items-center justify-center gap-3 mb-2">
             <img
@@ -811,7 +1107,92 @@ function ConsultationFormContent() {
           FORMULIR PENDAFTARAN KLIEN BARU
         </h1>
 
-        {/* A. INFORMASI KLIEN */}
+        {isCouple ? (
+          /* A. INFORMASI KLIEN — versi Konseling Pasangan, mengikuti
+             Formulir_Klien_Oase_Jiwa_Pasangan.doc: identitas dasar klien +
+             identitas dasar pasangan, tanpa jenis kelamin/tanggal lahir/status
+             pernikahan/riwayat pendidikan seperti pada formulir individu. */
+          <div className="mb-6 space-y-2 text-xs">
+            <h3 className="text-sm font-bold italic uppercase text-[#1f3b5b] mb-3">
+              A. INFORMASI KLIEN
+            </h3>
+
+            <div className="grid grid-cols-1 gap-y-2">
+              <div>
+                <span className="font-semibold">1. Nama Lengkap: </span>
+                <span className="border-b border-dotted border-gray-600 px-2 font-medium">
+                  {coupleClientData.fullName || "...................................................................................."}
+                </span>
+              </div>
+              <div>
+                <span className="font-semibold">2. Nama Pasangan: </span>
+                <span className="border-b border-dotted border-gray-600 px-2 font-medium">
+                  {coupleClientData.partnerName || "...................................................................................."}
+                </span>
+              </div>
+              <div className="flex flex-col gap-y-2">
+                <div>
+                  <span className="font-semibold">3. Usia: </span>
+                  <span className="border-b border-dotted border-gray-600 px-2 font-medium">
+                    {coupleClientData.age || "......"}
+                  </span>{" "}
+                  tahun
+                </div>
+                <div>
+                  <span className="font-semibold">4. Usia Pasangan: </span>
+                  <span className="border-b border-dotted border-gray-600 px-2 font-medium">
+                    {coupleClientData.partnerAge || "......"}
+                  </span>{" "}
+                  tahun
+                </div>
+              </div>
+              <div>
+                <span className="font-semibold">5. Alamat: </span>
+                <span className="border-b border-dotted border-gray-600 px-2 font-medium">
+                  {coupleClientData.address || "...................................................................................."}
+                </span>
+              </div>
+              <div>
+                <span className="font-semibold">6. Alamat Pasangan: </span>
+                <span className="border-b border-dotted border-gray-600 px-2 font-medium">
+                  {coupleClientData.partnerAddress || "...................................................................................."}
+                </span>
+              </div>
+              <div className="flex flex-col gap-y-2">
+                <div>
+                  <span className="font-semibold">7. Nomor Telepon: </span>
+                  <span className="border-b border-dotted border-gray-600 px-2 font-medium">
+                    {coupleClientData.phone || "..................................."}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-semibold">8. Email: </span>
+                  <span className="border-b border-dotted border-gray-600 px-2 font-medium">
+                    {coupleClientData.email || "..................................."}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <span className="font-semibold">9. Pekerjaan: </span>
+                <span className="border-b border-dotted border-gray-600 px-2 font-medium">
+                  {coupleClientData.occupation || "..................................................."}
+                </span>
+              </div>
+              <div>
+                <span className="font-semibold">10. Pekerjaan Pasangan: </span>
+                <span className="border-b border-dotted border-gray-600 px-2 font-medium">
+                  {coupleClientData.partnerOccupation || "..................................................."}
+                </span>
+              </div>
+              <div>
+                <span className="font-semibold mr-2">11. Apakah ini kunjungan pertama Anda ke layanan psikologi:</span>
+                <RenderBox checked={isFirstVisit} label="Ya" />
+                <RenderBox checked={!isFirstVisit} label="Tidak, Saya sudah pernah" />
+              </div>
+            </div>
+          </div>
+        ) : (
+        /* A. INFORMASI KLIEN — versi individu */
         <div className="mb-6 space-y-2 text-xs">
           <h3 className="text-sm font-bold italic uppercase text-[#1f3b5b] mb-3">
             A. INFORMASI KLIEN
@@ -976,6 +1357,7 @@ function ConsultationFormContent() {
             </div>
           </div>
         </div>
+        )}
 
         {/* B. ALASAN KONSULTASI */}
         <div className="mb-6 space-y-2 text-xs">
@@ -987,43 +1369,43 @@ function ConsultationFormContent() {
             <div>
               <p className="font-semibold">1. Alasan utama mencari layanan psikologi :</p>
               <p className="pl-4 pt-1 font-medium text-slate-800 border-b border-dotted border-gray-500 pb-1">
-                {consultationData.mainReason || "...................................................................................................................................................."}
+                {activeConsultation.mainReason || "...................................................................................................................................................."}
               </p>
             </div>
 
             <div>
               <span className="font-semibold mr-2">2. Apakah saat ini sedang mengonsumsi obat-obatan psikiatri?</span>
-              <RenderBox checked={consultationData.takingPsychiatricMeds === "yes"} label="Ya" />
-              <RenderBox checked={consultationData.takingPsychiatricMeds === "no"} label="Tidak" />
+              <RenderBox checked={activeConsultation.takingPsychiatricMeds === "yes"} label="Ya" />
+              <RenderBox checked={activeConsultation.takingPsychiatricMeds === "no"} label="Tidak" />
             </div>
 
             <div>
               <p className="font-semibold">3. Sejak kapan Anda mengalami masalah ini?</p>
               <div className="flex flex-wrap gap-2 pl-2 pt-0.5">
-                <RenderBox checked={consultationData.problemDuration === "<1month"} label="Kurang dari 1 bulan" />
-                <RenderBox checked={consultationData.problemDuration === "1-3months"} label="1-3 bulan" />
-                <RenderBox checked={consultationData.problemDuration === "3-6months"} label="3-6 bulan" />
-                <RenderBox checked={consultationData.problemDuration === ">6months"} label="Lebih dari 6 bulan" />
+                <RenderBox checked={activeConsultation.problemDuration === "<1month"} label="Kurang dari 1 bulan" />
+                <RenderBox checked={activeConsultation.problemDuration === "1-3months"} label="1-3 bulan" />
+                <RenderBox checked={activeConsultation.problemDuration === "3-6months"} label="3-6 bulan" />
+                <RenderBox checked={activeConsultation.problemDuration === ">6months"} label="Lebih dari 6 bulan" />
               </div>
             </div>
 
             <div>
               <p className="font-semibold">4. Seberapa sering Anda merasakan gejala ini?</p>
               <div className="flex flex-wrap gap-2 pl-2 pt-0.5">
-                <RenderBox checked={consultationData.symptomFrequency === "daily"} label="Setiap hari" />
-                <RenderBox checked={consultationData.symptomFrequency === "weekly"} label="Beberapa kali dalam seminggu" />
-                <RenderBox checked={consultationData.symptomFrequency === "monthly"} label="Beberapa kali dalam sebulan" />
-                <RenderBox checked={consultationData.symptomFrequency === "rarely"} label="Jarang" />
+                <RenderBox checked={activeConsultation.symptomFrequency === "daily"} label="Setiap hari" />
+                <RenderBox checked={activeConsultation.symptomFrequency === "weekly"} label="Beberapa kali dalam seminggu" />
+                <RenderBox checked={activeConsultation.symptomFrequency === "monthly"} label="Beberapa kali dalam sebulan" />
+                <RenderBox checked={activeConsultation.symptomFrequency === "rarely"} label="Jarang" />
               </div>
             </div>
 
             <div>
               <p className="font-semibold">5. Bagaimana perasaan atau dampaknya terhadap kehidupan sehari-hari Anda?</p>
               <div className="flex flex-wrap gap-2 pl-2 pt-0.5">
-                <RenderBox checked={consultationData.dailyImpact === "none"} label="Tidak terlalu mengganggu" />
-                <RenderBox checked={consultationData.dailyImpact === "mild"} label="Sedikit mengganggu" />
-                <RenderBox checked={consultationData.dailyImpact === "moderate"} label="Cukup mengganggu" />
-                <RenderBox checked={consultationData.dailyImpact === "severe"} label="Sangat mengganggu" />
+                <RenderBox checked={activeConsultation.dailyImpact === "none"} label="Tidak terlalu mengganggu" />
+                <RenderBox checked={activeConsultation.dailyImpact === "mild"} label="Sedikit mengganggu" />
+                <RenderBox checked={activeConsultation.dailyImpact === "moderate"} label="Cukup mengganggu" />
+                <RenderBox checked={activeConsultation.dailyImpact === "severe"} label="Sangat mengganggu" />
               </div>
             </div>
           </div>
@@ -1035,73 +1417,143 @@ function ConsultationFormContent() {
             C. RIWAYAT PSIKOLOGIS DAN KESEHATAN
           </h3>
 
-          <div className="space-y-2">
-            <div>
-              <p className="font-semibold">1. Apakah Anda pernah mengalami hal serupa sebelumnya?</p>
-              <div className="pl-2 pt-0.5">
-                <RenderBox
-                  checked={consultationData.hasSimilarHistory === "yes"}
-                  label={`Ya, kapan: ${consultationData.hasSimilarHistory === "yes" && consultationData.similarHistoryDetail ? consultationData.similarHistoryDetail : "..................................."}`}
-                />
-                <RenderBox checked={consultationData.hasSimilarHistory === "no"} label="Tidak" />
+          {isCouple ? (
+            <div className="space-y-2">
+              <div>
+                <p className="font-semibold">1. Apakah Anda dan pasangan pernah mengalami hal serupa sebelumnya?</p>
+                <div className="pl-2 pt-0.5">
+                  <RenderBox
+                    checked={coupleConsultationData.hasSimilarHistory === "yes"}
+                    label={`Ya, kapan: ${coupleConsultationData.hasSimilarHistory === "yes" && coupleConsultationData.similarHistoryDetail ? coupleConsultationData.similarHistoryDetail : "..................................."}`}
+                  />
+                  <RenderBox checked={coupleConsultationData.hasSimilarHistory === "no"} label="Tidak" />
+                </div>
               </div>
-            </div>
 
-            <div>
-              <p className="font-semibold">2. Apakah ada anggota keluarga yang memiliki riwayat gangguan psikologis?</p>
-              <div className="pl-2 pt-0.5">
-                <RenderBox
-                  checked={consultationData.hasFamilyHistory === "yes"}
-                  label={`Ya (sebutkan hubungan dan jenis gangguan jika diketahui): ${consultationData.hasFamilyHistory === "yes" && consultationData.familyHistoryDetail ? consultationData.familyHistoryDetail : "..................................."}`}
-                />
-                <RenderBox checked={consultationData.hasFamilyHistory === "no"} label="Tidak" />
+              <div>
+                <p className="font-semibold">2. Apakah ada anggota keluarga yang memiliki riwayat gangguan psikologis?</p>
+                <div className="pl-2 pt-0.5">
+                  <RenderBox
+                    checked={coupleConsultationData.hasFamilyHistory === "yes"}
+                    label={`Ya (sebutkan hubungan dan jenis gangguan jika diketahui): ${coupleConsultationData.hasFamilyHistory === "yes" && coupleConsultationData.familyHistoryDetail ? coupleConsultationData.familyHistoryDetail : "..................................."}`}
+                  />
+                  <RenderBox checked={coupleConsultationData.hasFamilyHistory === "no"} label="Tidak" />
+                </div>
               </div>
-            </div>
 
-            <div>
-              <p className="font-semibold">3. Apakah Anda sedang menjalani pengobatan medis atau terapi psikologis?</p>
-              <div className="pl-2 pt-0.5">
-                <RenderBox
-                  checked={consultationData.hasMedicalTreatment === "yes"}
-                  label={`Ya, sebutkan: ${consultationData.hasMedicalTreatment === "yes" && consultationData.medicalTreatmentDetail ? consultationData.medicalTreatmentDetail : "..................................."}`}
-                />
-                <RenderBox checked={consultationData.hasMedicalTreatment === "no"} label="Tidak" />
+              <div>
+                <p className="font-semibold">3. Apakah Anda atau pasangan sedang menjalani pengobatan medis atau terapi psikologis?</p>
+                <div className="pl-2 pt-0.5">
+                  <RenderBox
+                    checked={coupleConsultationData.hasMedicalTreatment === "yes"}
+                    label={`Ya, sebutkan: ${coupleConsultationData.hasMedicalTreatment === "yes" && coupleConsultationData.medicalTreatmentDetail ? coupleConsultationData.medicalTreatmentDetail : "..................................."}`}
+                  />
+                  <RenderBox checked={coupleConsultationData.hasMedicalTreatment === "no"} label="Tidak" />
+                </div>
               </div>
-            </div>
 
-            <div>
-              <p className="font-semibold">4. Apakah Anda pernah mengalami kejadian traumatis (misalnya kehilangan orang terdekat, kecelakaan, kekerasan, dll.)?</p>
-              <div className="pl-2 pt-0.5">
-                <RenderBox
-                  checked={consultationData.hasTraumaticEvent === "yes"}
-                  label={`Ya, sebutkan jika bersedia: ${consultationData.hasTraumaticEvent === "yes" && consultationData.traumaticEventDetail ? consultationData.traumaticEventDetail : "..................................."}`}
-                />
-                <RenderBox checked={consultationData.hasTraumaticEvent === "no"} label="Tidak" />
+              <div>
+                <p className="font-semibold">4. Apakah Anda atau pasangan pernah mengalami kejadian traumatis (misalnya kehilangan orang terdekat, kecelakaan, kekerasan, dll.)?</p>
+                <div className="pl-2 pt-0.5">
+                  <RenderBox
+                    checked={coupleConsultationData.hasTraumaticEvent === "yes"}
+                    label={`Ya, sebutkan jika bersedia: ${coupleConsultationData.hasTraumaticEvent === "yes" && coupleConsultationData.traumaticEventDetail ? coupleConsultationData.traumaticEventDetail : "..................................."}`}
+                  />
+                  <RenderBox checked={coupleConsultationData.hasTraumaticEvent === "no"} label="Tidak" />
+                </div>
               </div>
-            </div>
 
-            <div>
-              <p className="font-semibold">5. Bagaimana kualitas tidur Anda dalam sebulan terakhir?</p>
-              <div className="flex flex-wrap gap-2 pl-2 pt-0.5">
-                <RenderBox checked={consultationData.sleepQuality === "good"} label="Baik (7-8 jam per hari)" />
-                <RenderBox checked={consultationData.sleepQuality === "fair"} label="Cukup (5-6 jam per hari)" />
-                <RenderBox checked={consultationData.sleepQuality === "poor"} label="Kurang dari 5 jam per hari" />
-                <RenderBox checked={consultationData.sleepQuality === "disturbed"} label="Sering mengalami gangguan tidur" />
+              <div>
+                <p className="font-semibold">5. Bagaimana kualitas tidur Anda dalam sebulan terakhir?</p>
+                <div className="flex flex-wrap gap-2 pl-2 pt-0.5">
+                  <RenderBox checked={coupleConsultationData.sleepQuality === "good"} label="Baik (7-8 jam per hari)" />
+                  <RenderBox checked={coupleConsultationData.sleepQuality === "fair"} label="Cukup (5-6 jam per hari)" />
+                  <RenderBox checked={coupleConsultationData.sleepQuality === "poor"} label="Kurang dari 5 jam per hari" />
+                  <RenderBox checked={coupleConsultationData.sleepQuality === "disturbed"} label="Sering mengalami gangguan tidur" />
+                </div>
               </div>
-            </div>
 
-            <div>
-              <p className="font-semibold">6. Apakah Anda pernah memiliki pemikiran untuk menyakiti diri sendiri atau orang lain?</p>
-              <div className="flex flex-wrap gap-2 pl-2 pt-0.5">
-                <RenderBox checked={consultationData.selfHarmThoughts === "never"} label="Tidak pernah" />
-                <RenderBox checked={consultationData.selfHarmThoughts === "sometimes"} label="Pernah, tetapi tidak serius" />
-                <RenderBox checked={consultationData.selfHarmThoughts === "frequent"} label="Sering, dan saya membutuhkan bantuan segera" />
+              <div>
+                <p className="font-semibold">6. Bagaimana kualitas tidur pasangan Anda dalam sebulan terakhir?</p>
+                <div className="flex flex-wrap gap-2 pl-2 pt-0.5">
+                  <RenderBox checked={coupleConsultationData.partnerSleepQuality === "good"} label="Baik (7-8 jam per hari)" />
+                  <RenderBox checked={coupleConsultationData.partnerSleepQuality === "fair"} label="Cukup (5-6 jam per hari)" />
+                  <RenderBox checked={coupleConsultationData.partnerSleepQuality === "poor"} label="Kurang dari 5 jam per hari" />
+                  <RenderBox checked={coupleConsultationData.partnerSleepQuality === "disturbed"} label="Sering mengalami gangguan tidur" />
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="space-y-2">
+              <div>
+                <p className="font-semibold">1. Apakah Anda pernah mengalami hal serupa sebelumnya?</p>
+                <div className="pl-2 pt-0.5">
+                  <RenderBox
+                    checked={consultationData.hasSimilarHistory === "yes"}
+                    label={`Ya, kapan: ${consultationData.hasSimilarHistory === "yes" && consultationData.similarHistoryDetail ? consultationData.similarHistoryDetail : "..................................."}`}
+                  />
+                  <RenderBox checked={consultationData.hasSimilarHistory === "no"} label="Tidak" />
+                </div>
+              </div>
+
+              <div>
+                <p className="font-semibold">2. Apakah ada anggota keluarga yang memiliki riwayat gangguan psikologis?</p>
+                <div className="pl-2 pt-0.5">
+                  <RenderBox
+                    checked={consultationData.hasFamilyHistory === "yes"}
+                    label={`Ya (sebutkan hubungan dan jenis gangguan jika diketahui): ${consultationData.hasFamilyHistory === "yes" && consultationData.familyHistoryDetail ? consultationData.familyHistoryDetail : "..................................."}`}
+                  />
+                  <RenderBox checked={consultationData.hasFamilyHistory === "no"} label="Tidak" />
+                </div>
+              </div>
+
+              <div>
+                <p className="font-semibold">3. Apakah Anda sedang menjalani pengobatan medis atau terapi psikologis?</p>
+                <div className="pl-2 pt-0.5">
+                  <RenderBox
+                    checked={consultationData.hasMedicalTreatment === "yes"}
+                    label={`Ya, sebutkan: ${consultationData.hasMedicalTreatment === "yes" && consultationData.medicalTreatmentDetail ? consultationData.medicalTreatmentDetail : "..................................."}`}
+                  />
+                  <RenderBox checked={consultationData.hasMedicalTreatment === "no"} label="Tidak" />
+                </div>
+              </div>
+
+              <div>
+                <p className="font-semibold">4. Apakah Anda pernah mengalami kejadian traumatis (misalnya kehilangan orang terdekat, kecelakaan, kekerasan, dll.)?</p>
+                <div className="pl-2 pt-0.5">
+                  <RenderBox
+                    checked={consultationData.hasTraumaticEvent === "yes"}
+                    label={`Ya, sebutkan jika bersedia: ${consultationData.hasTraumaticEvent === "yes" && consultationData.traumaticEventDetail ? consultationData.traumaticEventDetail : "..................................."}`}
+                  />
+                  <RenderBox checked={consultationData.hasTraumaticEvent === "no"} label="Tidak" />
+                </div>
+              </div>
+
+              <div>
+                <p className="font-semibold">5. Bagaimana kualitas tidur Anda dalam sebulan terakhir?</p>
+                <div className="flex flex-wrap gap-2 pl-2 pt-0.5">
+                  <RenderBox checked={consultationData.sleepQuality === "good"} label="Baik (7-8 jam per hari)" />
+                  <RenderBox checked={consultationData.sleepQuality === "fair"} label="Cukup (5-6 jam per hari)" />
+                  <RenderBox checked={consultationData.sleepQuality === "poor"} label="Kurang dari 5 jam per hari" />
+                  <RenderBox checked={consultationData.sleepQuality === "disturbed"} label="Sering mengalami gangguan tidur" />
+                </div>
+              </div>
+
+              <div>
+                <p className="font-semibold">6. Apakah Anda pernah memiliki pemikiran untuk menyakiti diri sendiri atau orang lain?</p>
+                <div className="flex flex-wrap gap-2 pl-2 pt-0.5">
+                  <RenderBox checked={consultationData.selfHarmThoughts === "never"} label="Tidak pernah" />
+                  <RenderBox checked={consultationData.selfHarmThoughts === "sometimes"} label="Pernah, tetapi tidak serius" />
+                  <RenderBox checked={consultationData.selfHarmThoughts === "frequent"} label="Sering, dan saya membutuhkan bantuan segera" />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* D. KEBIASAAN DAN GAYA HIDUP */}
+        {/* D. KEBIASAAN DAN GAYA HIDUP — tidak ada pada Formulir Konsultasi Pasangan */}
+        {!isCouple && (
+        <>
         <div className="mb-6 space-y-2 text-xs">
           <h3 className="text-sm font-bold italic uppercase text-[#1f3b5b] mb-3">
             D. KEBIASAAN DAN GAYA HIDUP
@@ -1148,6 +1600,8 @@ function ConsultationFormContent() {
             </div>
           </div>
         </div>
+        </>
+        )}
 
         {/* E. INFORMASI KEBIJAKAN */}
         <div className="mb-6 text-xs space-y-2">
@@ -1238,66 +1692,6 @@ function ConsultationFormContent() {
           </div>
         </div>
 
-        {/* CATATAN UNTUK PSIKOLOG */}
-        <div
-          id="pdf-force-pagebreak"
-          className="mt-8 border-t-2 border-gray-800 pt-4 text-xs space-y-3"
-        >
-          <h3 className="text-sm font-bold uppercase text-slate-900 mb-2">
-            CATATAN UNTUK PSIKOLOG <span className="font-normal italic text-slate-600">(diisi oleh Psikolog setelah sesi)</span>
-          </h3>
-
-          <div className="space-y-2">
-            <div>
-              <p className="font-semibold">Ringkasan masalah utama :</p>
-              <div className="border-b border-gray-400 h-5 w-full mt-1"></div>
-              <div className="border-b border-gray-400 h-5 w-full mt-1"></div>
-            </div>
-
-            <div>
-              <p className="font-semibold">Rekomendasi pendekatan terapi :</p>
-              <div className="border-b border-gray-400 h-5 w-full mt-1"></div>
-              <div className="border-b border-gray-400 h-5 w-full mt-1"></div>
-            </div>
-
-            <div>
-              <p className="font-semibold mb-1">Rencana tindak lanjut:</p>
-              <div className="flex flex-wrap gap-4 pl-2">
-                <RenderBox checked={false} label="Lanjutan sesi" />
-                <RenderBox checked={false} label="Rujukan ke profesional lain" />
-                <RenderBox checked={false} label="Selesai" />
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-x-6 gap-y-2 pt-1">
-              <div>
-                <span className="font-semibold">Sesi ini merupakan sesi ke : </span>
-                <span className="border-b border-gray-400 px-4 font-medium">...................</span>
-              </div>
-              <div>
-                <span className="font-semibold">Tanggal sesi lanjutan : </span>
-                <span className="border-b border-gray-400 px-4 font-medium">...................</span>
-              </div>
-            </div>
-
-            <div>
-              <p className="font-semibold italic">catatan tambahan (jika ada):</p>
-              <div className="border border-gray-400 rounded h-64 w-full mt-1"></div>
-            </div>
-          </div>
-
-          <div className="mt-8 flex justify-end pt-4">
-            <div className="text-center w-64 space-y-1">
-              <p>Malang, ........................................... 2026</p>
-              <p className="pt-2 font-medium">Psikolog,</p>
-              <div className="h-16"></div>
-              <p className="font-bold border-b border-gray-600 pb-0.5">
-                (.............................................)
-              </p>
-              <p className="text-[11px] text-gray-700">SIPP: .............................................</p>
-            </div>
-          </div>
-        </div>
       </div>
     );
   };
@@ -1331,6 +1725,209 @@ function ConsultationFormContent() {
       ))}
     </div>
   );
+
+  const renderStep1Couple = () => {
+    const infoRows: { no: number; label: string; input: React.ReactNode }[] = [
+      {
+        no: 1,
+        label: "Nama Lengkap",
+        input: (
+          <input
+            type="text"
+            value={coupleClientData.fullName}
+            onChange={(e) => handleCoupleClientDataChange("fullName", e.target.value)}
+            placeholder="Nama lengkap Anda"
+            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none"
+          />
+        ),
+      },
+      {
+        no: 2,
+        label: "Nama Pasangan",
+        input: (
+          <input
+            type="text"
+            value={coupleClientData.partnerName}
+            onChange={(e) => handleCoupleClientDataChange("partnerName", e.target.value)}
+            placeholder="Nama lengkap pasangan Anda"
+            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none"
+          />
+        ),
+      },
+      {
+        no: 3,
+        label: "Usia",
+        input: (
+          <input
+            type="number"
+            min={0}
+            value={coupleClientData.age}
+            onChange={(e) => handleCoupleClientDataChange("age", e.target.value)}
+            placeholder="cth. 28"
+            className="w-32 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none"
+          />
+        ),
+      },
+      {
+        no: 4,
+        label: "Usia Pasangan",
+        input: (
+          <input
+            type="number"
+            min={0}
+            value={coupleClientData.partnerAge}
+            onChange={(e) => handleCoupleClientDataChange("partnerAge", e.target.value)}
+            placeholder="cth. 30"
+            className="w-32 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none"
+          />
+        ),
+      },
+      {
+        no: 5,
+        label: "Alamat",
+        input: (
+          <textarea
+            value={coupleClientData.address}
+            onChange={(e) => handleCoupleClientDataChange("address", e.target.value)}
+            rows={2}
+            placeholder="Alamat domisili Anda saat ini"
+            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none resize-none"
+          />
+        ),
+      },
+      {
+        no: 6,
+        label: "Alamat Pasangan",
+        input: (
+          <textarea
+            value={coupleClientData.partnerAddress}
+            onChange={(e) => handleCoupleClientDataChange("partnerAddress", e.target.value)}
+            rows={2}
+            placeholder="Alamat domisili pasangan Anda"
+            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none resize-none"
+          />
+        ),
+      },
+      {
+        no: 7,
+        label: "Nomor Telepon",
+        input: (
+          <input
+            type="tel"
+            value={coupleClientData.phone}
+            onChange={(e) => handleCoupleClientDataChange("phone", e.target.value)}
+            placeholder="08xxxxxxxxxx"
+            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none"
+          />
+        ),
+      },
+      {
+        no: 8,
+        label: "Email",
+        input: (
+          <input
+            type="email"
+            value={coupleClientData.email}
+            onChange={(e) => handleCoupleClientDataChange("email", e.target.value)}
+            placeholder="nama@email.com"
+            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none"
+          />
+        ),
+      },
+      {
+        no: 9,
+        label: "Pekerjaan",
+        input: (
+          <input
+            type="text"
+            value={coupleClientData.occupation}
+            onChange={(e) => handleCoupleClientDataChange("occupation", e.target.value)}
+            placeholder="cth. Karyawan Swasta"
+            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none"
+          />
+        ),
+      },
+      {
+        no: 10,
+        label: "Pekerjaan Pasangan",
+        input: (
+          <input
+            type="text"
+            value={coupleClientData.partnerOccupation}
+            onChange={(e) => handleCoupleClientDataChange("partnerOccupation", e.target.value)}
+            placeholder="cth. Wiraswasta"
+            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none"
+          />
+        ),
+      },
+    ];
+
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-12 h-12 bg-[#E8F6FF] rounded-xl flex items-center justify-center">
+            <User className="w-6 h-6 text-[#2B5379]" />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-slate-800">Informasi Klien & Pasangan</h2>
+            <p className="text-sm text-slate-500">
+              Isi data Anda dan pasangan secara lengkap dan sesuai
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-amber-800">Informasi Penting</p>
+              <p className="text-sm text-amber-700">
+                Mohon isi data berikut secara manual dan pastikan datanya benar. Data ini
+                akan digunakan psikolog untuk proses konsultasi pasangan Anda.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="overflow-hidden rounded-lg border border-gray-300">
+          <div className="bg-[#1f3b5b] px-5 py-3 text-sm font-bold text-white">
+            A. Informasi Klien
+          </div>
+          <div className="text-sm">
+            {infoRows.map((row, idx) => (
+              <div
+                key={row.label}
+                className={`flex flex-col gap-2 px-5 py-3 border-t border-gray-200 md:flex-row md:items-center md:gap-3 ${
+                  idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+                }`}
+              >
+                <span className="flex-shrink-0 font-semibold text-[#1f3b5b] md:w-52">
+                  <span className="text-gray-500 mr-1">{row.no}.</span>
+                  {row.label}
+                </span>
+                <span className="flex-1">{row.input}</span>
+              </div>
+            ))}
+
+            <div className="flex items-center gap-2 px-5 py-3 border-t border-gray-200 bg-gray-50">
+              <span className="w-6 flex-shrink-0 text-gray-500">11.</span>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isFirstVisit}
+                  onChange={(e) => setIsFirstVisit(e.target.checked)}
+                  className="w-4 h-4 text-[#2B5379]"
+                />
+                <span className="text-gray-800">
+                  Ini adalah kunjungan pertama saya ke layanan konseling
+                </span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const renderStep1 = () => {
     const infoRows: { no: number; label: string; input: React.ReactNode }[] = [
@@ -1704,6 +2301,361 @@ function ConsultationFormContent() {
       </div>
     );
   };
+
+  const renderStep2Couple = () => (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3 mb-2">
+        <div className="w-12 h-12 bg-[#E8F6FF] rounded-xl flex items-center justify-center">
+          <FileText className="w-6 h-6 text-[#2B5379]" />
+        </div>
+        <div>
+          <h2 className="text-xl font-semibold text-slate-800">
+            Formulir Konsultasi Pasangan
+          </h2>
+          <p className="text-sm text-slate-500">
+            Isi formulir berikut untuk membantu psikolog memahami kondisi Anda dan pasangan
+          </p>
+        </div>
+      </div>
+
+      {/* B. Alasan Konsultasi */}
+      <div className="overflow-hidden rounded-lg border border-gray-300">
+        <div className="bg-[#1f3b5b] px-5 py-3 text-sm font-bold text-white">
+          B. Alasan Konsultasi
+        </div>
+        <div className="bg-white px-5 py-5 space-y-6 text-sm">
+          <div>
+            <p className="font-medium text-slate-700 mb-2">
+              1. Alasan utama Anda mencari layanan konseling{" "}
+              <span className="text-red-500">*</span>
+            </p>
+            <textarea
+              value={coupleConsultationData.mainReason || ""}
+              onChange={(e) =>
+                handleCoupleConsultationChange("mainReason", e.target.value)
+              }
+              rows={4}
+              placeholder="Ceritakan alasan utama Anda dan pasangan ingin berkonsultasi..."
+              className={`w-full px-4 py-3 rounded-lg border ${
+                errors.mainReason ? "border-red-500" : "border-gray-300"
+              } focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none transition-all resize-none`}
+            />
+            {errors.mainReason && (
+              <p className="text-sm text-red-500 mt-1">{errors.mainReason}</p>
+            )}
+          </div>
+
+          <div>
+            <p className="font-medium text-slate-700 mb-2">
+              2. Apakah Anda sedang mengonsumsi obat psikiatri?{" "}
+              <span className="text-red-500">*</span>
+            </p>
+            <div className="flex gap-8">
+              {[
+                { value: "yes", label: "Ya" },
+                { value: "no", label: "Tidak" },
+              ].map((o) => (
+                <OptionPill
+                  key={o.value}
+                  name="coupleTakingPsychiatricMeds"
+                  value={o.value}
+                  label={o.label}
+                  checked={coupleConsultationData.takingPsychiatricMeds === o.value}
+                  onChange={(v) =>
+                    handleCoupleConsultationChange("takingPsychiatricMeds", v as "yes" | "no")
+                  }
+                />
+              ))}
+            </div>
+            {errors.takingPsychiatricMeds && (
+              <p className="text-sm text-red-500 mt-1">
+                {errors.takingPsychiatricMeds}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <p className="font-medium text-slate-700 mb-2">
+              3. Berapa lama Anda mengalami masalah ini?{" "}
+              <span className="text-red-500">*</span>
+            </p>
+            <div className="flex flex-col">
+              {[
+                { value: "<1month", label: "Kurang dari 1 bulan" },
+                { value: "1-3months", label: "1-3 bulan" },
+                { value: "3-6months", label: "3-6 bulan" },
+                { value: ">6months", label: "Lebih dari 6 bulan" },
+              ].map((o) => (
+                <OptionPill
+                  key={o.value}
+                  name="coupleProblemDuration"
+                  value={o.value}
+                  label={o.label}
+                  checked={coupleConsultationData.problemDuration === o.value}
+                  onChange={(v) => handleCoupleConsultationChange("problemDuration", v)}
+                />
+              ))}
+            </div>
+            {errors.problemDuration && (
+              <p className="text-sm text-red-500 mt-1">{errors.problemDuration}</p>
+            )}
+          </div>
+
+          <div>
+            <p className="font-medium text-slate-700 mb-2">
+              4. Seberapa sering Anda merasakan gejala ini?{" "}
+              <span className="text-red-500">*</span>
+            </p>
+            <div className="flex flex-col">
+              {[
+                { value: "daily", label: "Setiap hari" },
+                { value: "weekly", label: "Beberapa kali dalam seminggu" },
+                { value: "monthly", label: "Beberapa kali dalam sebulan" },
+                { value: "rarely", label: "Jarang" },
+              ].map((o) => (
+                <OptionPill
+                  key={o.value}
+                  name="coupleSymptomFrequency"
+                  value={o.value}
+                  label={o.label}
+                  checked={coupleConsultationData.symptomFrequency === o.value}
+                  onChange={(v) => handleCoupleConsultationChange("symptomFrequency", v)}
+                />
+              ))}
+            </div>
+            {errors.symptomFrequency && (
+              <p className="text-sm text-red-500 mt-1">{errors.symptomFrequency}</p>
+            )}
+          </div>
+
+          <div>
+            <p className="font-medium text-slate-700 mb-2">
+              5. Bagaimana perasaan atau dampaknya terhadap kehidupan sehari-hari Anda?{" "}
+              <span className="text-red-500">*</span>
+            </p>
+            <div className="flex flex-col">
+              {[
+                { value: "none", label: "Tidak terlalu mengganggu" },
+                { value: "mild", label: "Sedikit mengganggu" },
+                { value: "moderate", label: "Cukup mengganggu" },
+                { value: "severe", label: "Sangat mengganggu" },
+              ].map((o) => (
+                <OptionPill
+                  key={o.value}
+                  name="coupleDailyImpact"
+                  value={o.value}
+                  label={o.label}
+                  checked={coupleConsultationData.dailyImpact === o.value}
+                  onChange={(v) => handleCoupleConsultationChange("dailyImpact", v)}
+                />
+              ))}
+            </div>
+            {errors.dailyImpact && (
+              <p className="text-sm text-red-500 mt-1">{errors.dailyImpact}</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* C. Riwayat Psikologis dan Kesehatan */}
+      <div className="overflow-hidden rounded-lg border border-gray-300">
+        <div className="bg-[#1f3b5b] px-5 py-3 text-sm font-bold text-white">
+          C. Riwayat Psikologis dan Kesehatan
+        </div>
+        <div className="bg-white px-5 py-5 space-y-6 text-sm">
+          <div>
+            <p className="font-medium text-slate-700 mb-2">
+              1. Apakah Anda dan pasangan pernah mengalami hal serupa sebelumnya?
+            </p>
+            <div className="flex gap-8 mb-2">
+              {[
+                { value: "yes", label: "Ya" },
+                { value: "no", label: "Tidak" },
+              ].map((o) => (
+                <OptionPill
+                  key={o.value}
+                  name="coupleHasSimilarHistory"
+                  value={o.value}
+                  label={o.label}
+                  checked={coupleConsultationData.hasSimilarHistory === o.value}
+                  onChange={(v) =>
+                    handleCoupleConsultationChange("hasSimilarHistory", v as "yes" | "no")
+                  }
+                />
+              ))}
+            </div>
+            {coupleConsultationData.hasSimilarHistory === "yes" && (
+              <textarea
+                value={coupleConsultationData.similarHistoryDetail || ""}
+                onChange={(e) =>
+                  handleCoupleConsultationChange("similarHistoryDetail", e.target.value)
+                }
+                rows={2}
+                placeholder="Jelaskan kapan dan riwayat masalah serupa yang pernah dialami..."
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none transition-all resize-none"
+              />
+            )}
+          </div>
+
+          <div>
+            <p className="font-medium text-slate-700 mb-2">
+              2. Apakah ada anggota keluarga yang memiliki riwayat gangguan psikologis?
+            </p>
+            <div className="flex gap-8 mb-2">
+              {[
+                { value: "yes", label: "Ya" },
+                { value: "no", label: "Tidak" },
+              ].map((o) => (
+                <OptionPill
+                  key={o.value}
+                  name="coupleHasFamilyHistory"
+                  value={o.value}
+                  label={o.label}
+                  checked={coupleConsultationData.hasFamilyHistory === o.value}
+                  onChange={(v) =>
+                    handleCoupleConsultationChange("hasFamilyHistory", v as "yes" | "no")
+                  }
+                />
+              ))}
+            </div>
+            {coupleConsultationData.hasFamilyHistory === "yes" && (
+              <textarea
+                value={coupleConsultationData.familyHistoryDetail || ""}
+                onChange={(e) =>
+                  handleCoupleConsultationChange("familyHistoryDetail", e.target.value)
+                }
+                rows={2}
+                placeholder="Sebutkan hubungan dan jenis gangguan jika diketahui..."
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none transition-all resize-none"
+              />
+            )}
+          </div>
+
+          <div>
+            <p className="font-medium text-slate-700 mb-2">
+              3. Apakah Anda atau pasangan sedang menjalani pengobatan medis atau terapi psikologis?
+            </p>
+            <div className="flex gap-8 mb-2">
+              {[
+                { value: "yes", label: "Ya" },
+                { value: "no", label: "Tidak" },
+              ].map((o) => (
+                <OptionPill
+                  key={o.value}
+                  name="coupleHasMedicalTreatment"
+                  value={o.value}
+                  label={o.label}
+                  checked={coupleConsultationData.hasMedicalTreatment === o.value}
+                  onChange={(v) =>
+                    handleCoupleConsultationChange("hasMedicalTreatment", v as "yes" | "no")
+                  }
+                />
+              ))}
+            </div>
+            {coupleConsultationData.hasMedicalTreatment === "yes" && (
+              <textarea
+                value={coupleConsultationData.medicalTreatmentDetail || ""}
+                onChange={(e) =>
+                  handleCoupleConsultationChange("medicalTreatmentDetail", e.target.value)
+                }
+                rows={2}
+                placeholder="Sebutkan pengobatan medis yang sedang dijalani..."
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none transition-all resize-none"
+              />
+            )}
+          </div>
+
+          <div>
+            <p className="font-medium text-slate-700 mb-2">
+              4. Apakah Anda atau pasangan pernah mengalami kejadian traumatis (misalnya kehilangan orang terdekat, kecelakaan, kekerasan, dll.)?
+            </p>
+            <div className="flex gap-8 mb-2">
+              {[
+                { value: "yes", label: "Ya" },
+                { value: "no", label: "Tidak" },
+              ].map((o) => (
+                <OptionPill
+                  key={o.value}
+                  name="coupleHasTraumaticEvent"
+                  value={o.value}
+                  label={o.label}
+                  checked={coupleConsultationData.hasTraumaticEvent === o.value}
+                  onChange={(v) =>
+                    handleCoupleConsultationChange("hasTraumaticEvent", v as "yes" | "no")
+                  }
+                />
+              ))}
+            </div>
+            {coupleConsultationData.hasTraumaticEvent === "yes" && (
+              <textarea
+                value={coupleConsultationData.traumaticEventDetail || ""}
+                onChange={(e) =>
+                  handleCoupleConsultationChange("traumaticEventDetail", e.target.value)
+                }
+                rows={2}
+                placeholder="Jika bersedia, ceritakan secara singkat kejadian traumatis tersebut..."
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none transition-all resize-none"
+              />
+            )}
+          </div>
+
+          <div>
+            <p className="font-medium text-slate-700 mb-2">
+              5. Bagaimana kualitas tidur Anda dalam sebulan terakhir?{" "}
+              <span className="text-red-500">*</span>
+            </p>
+            <div className="flex flex-col">
+              {[
+                { value: "good", label: "Baik (7-8 jam per hari)" },
+                { value: "fair", label: "Cukup (5-6 jam per hari)" },
+                { value: "poor", label: "Kurang dari 5 jam per hari" },
+                { value: "disturbed", label: "Sering mengalami gangguan tidur" },
+              ].map((o) => (
+                <OptionPill
+                  key={o.value}
+                  name="coupleSleepQuality"
+                  value={o.value}
+                  label={o.label}
+                  checked={coupleConsultationData.sleepQuality === o.value}
+                  onChange={(v) => handleCoupleConsultationChange("sleepQuality", v)}
+                />
+              ))}
+            </div>
+            {errors.sleepQuality && (
+              <p className="text-sm text-red-500 mt-1">{errors.sleepQuality}</p>
+            )}
+          </div>
+
+          <div>
+            <p className="font-medium text-slate-700 mb-2">
+              6. Bagaimana kualitas tidur pasangan Anda dalam sebulan terakhir?{" "}
+              <span className="text-red-500">*</span>
+            </p>
+            <div className="flex flex-col">
+              {[
+                { value: "good", label: "Baik (7-8 jam per hari)" },
+                { value: "fair", label: "Cukup (5-6 jam per hari)" },
+                { value: "poor", label: "Kurang dari 5 jam per hari" },
+                { value: "disturbed", label: "Sering mengalami gangguan tidur" },
+              ].map((o) => (
+                <OptionPill
+                  key={o.value}
+                  name="couplePartnerSleepQuality"
+                  value={o.value}
+                  label={o.label}
+                  checked={coupleConsultationData.partnerSleepQuality === o.value}
+                  onChange={(v) => handleCoupleConsultationChange("partnerSleepQuality", v)}
+                />
+              ))}
+            </div>
+            {errors.partnerSleepQuality && (
+              <p className="text-sm text-red-500 mt-1">{errors.partnerSleepQuality}</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   const renderStep2 = () => (
     <div className="space-y-6">
@@ -2525,8 +3477,8 @@ function ConsultationFormContent() {
           {renderFormStepIndicator()}
 
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
-            {formStep === 1 && renderStep1()}
-            {formStep === 2 && renderStep2()}
+            {formStep === 1 && (isCouple ? renderStep1Couple() : renderStep1())}
+            {formStep === 2 && (isCouple ? renderStep2Couple() : renderStep2())}
             {formStep === 3 && renderStep3()}
 
             {/* Navigation Buttons */}

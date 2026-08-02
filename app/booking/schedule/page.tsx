@@ -1,7 +1,7 @@
 import { ScheduleSelectionContent } from "@/components/features/booking";
 import { PsychologistProfile } from "@/components/features/booking";
 import { deriveUniqueDates, RawSchedule, DateOption } from "@/lib/booking-data";
-const API_BASE_URL =  "https://api.oasejiwa.id";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 async function getPsychologistDetail(id: string): Promise<PsychologistProfile | null> {
   try {
