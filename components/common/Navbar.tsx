@@ -39,7 +39,24 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [pathname]);
 
-  const navItems = [
+  const getRoleDashboardHref = (role?: string) => {
+    if (!role) return "/userprofile";
+    const upperRole = String(role).toUpperCase();
+    switch (upperRole) {
+      case "PSYCHOLOGIST":
+        return "/psychologist/profile";
+      case "ADMIN":
+        return "/admin";
+      case "USER":
+      default:
+        return "/userprofile";
+    }
+  };
+
+  const dashboardHref = isLoggedIn ? getRoleDashboardHref(user?.role) : "/";
+  const authHref = isLoggedIn ? getRoleDashboardHref(user?.role) : "/auth/signin";
+
+  const baseNavItems = [
     { name: "Beranda", href: "/" },
     { name: "Tentang Kami", href: "/about" },
     { name: "Layanan Kami", href: "/layanan" },
@@ -47,18 +64,20 @@ export default function Navbar() {
     { name: "Tes Psikologi", href: "/tes" },
   ];
 
-  const authHref = isLoggedIn ? "/userprofile" : "/auth/signin";
+  const navItems = isLoggedIn
+    ? [
+        ...baseNavItems,
+        { name: "Dashboard", href: dashboardHref },
+      ]
+    : baseNavItems;
 
+  const displayName = 
+    user?.fullName || 
+    user?.userProfile?.fullName || 
+    user?.name || 
+    (user?.email ? user.email.split('@')[0] : "Profile");
 
-// Di Navbar.tsx
-
-const displayName = 
-  user?.fullName || 
-  user?.userProfile?.fullName || 
-  user?.name || 
-  (user?.email ? user.email.split('@')[0] : "Profile");
-
-const authLabel = isLoggedIn ? displayName : "Login";
+  const authLabel = isLoggedIn ? displayName : "Login";
 
   const buttonClassName = `transition-all ${
     isScrolled

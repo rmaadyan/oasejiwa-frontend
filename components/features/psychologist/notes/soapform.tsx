@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AlertCircle, AlertTriangle } from "lucide-react";
 import type { SessionNotePayload } from "@/lib/types/psychologist";
 
 interface SOAPFormProps {
@@ -12,22 +13,26 @@ interface SOAPFormProps {
 
 export default function SOAPForm({ initialData, onSubmit, onCancel, loading }: SOAPFormProps) {
   const [formData, setFormData] = useState<Partial<SessionNotePayload>>({
-  userId: initialData?.userId || "",
-  scheduleId: initialData?.scheduleId,
-  subjective: initialData?.subjective || "",
-  objective: initialData?.objective || "",
-  assessment: initialData?.assessment || "",
-  plan: initialData?.plan || "",
-  riskLevel: initialData?.riskLevel || "low",
-  followUpDate: initialData?.followUpDate,
-  nextSessionRecommendation: initialData?.nextSessionRecommendation,
-  tags: initialData?.tags || [],
-});
+    userId: initialData?.userId || "",
+    scheduleId: initialData?.scheduleId,
+    subjective: initialData?.subjective || "",
+    objective: initialData?.objective || "",
+    assessment: initialData?.assessment || "",
+    plan: initialData?.plan || "",
+    riskLevel: initialData?.riskLevel || "low",
+    followUpDate: initialData?.followUpDate,
+    nextSessionRecommendation: initialData?.nextSessionRecommendation,
+    tags: initialData?.tags || [],
+  });
 
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [tagInput, setTagInput] = useState("");
 
   const handleChange = (field: keyof SessionNotePayload, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (fieldErrors[field]) {
+      setFieldErrors((prev) => ({ ...prev, [field]: "" }));
+    }
   };
 
   const handleAddTag = () => {
@@ -38,20 +43,82 @@ export default function SOAPForm({ initialData, onSubmit, onCancel, loading }: S
   };
 
   const handleRemoveTag = (tag: string) => {
-    handleChange("tags", (formData.tags || []).filter(t => t !== tag));
+    handleChange("tags", (formData.tags || []).filter((t) => t !== tag));
+  };
+
+  const scrollToField = (fieldId: string) => {
+    const el = document.getElementById(fieldId) || document.querySelector(`[name="${fieldId}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      if ("focus" in el && typeof el.focus === "function") {
+        (el as HTMLElement).focus();
+      }
+    }
+  };
+
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+
+    if (!formData.subjective?.trim()) {
+      errors.subjective = "Keluhan Utama (Subjective) wajib diisi";
+    }
+
+    if (!formData.objective?.trim()) {
+      errors.objective = "Observasi Psikolog (Objective) wajib diisi";
+    }
+
+    if (!formData.assessment?.trim()) {
+      errors.assessment = "Assessment & Analisis Psikologis wajib diisi";
+    }
+
+    if (!formData.plan?.trim()) {
+      errors.plan = "Intervensi & Rencana (Plan) wajib diisi";
+    }
+
+    setFieldErrors(errors);
+
+    const errorFields = Object.keys(errors);
+    if (errorFields.length > 0) {
+      setTimeout(() => {
+        scrollToField(errorFields[0]);
+      }, 50);
+      return false;
+    }
+
+    return true;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.subjective || !formData.objective || !formData.assessment || !formData.plan) {
-      alert("Harap lengkapi semua field SOAP");
-      return;
-    }
+    if (!validateForm()) return;
     onSubmit(formData as SessionNotePayload);
   };
 
+  const errorCount = Object.keys(fieldErrors).length;
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form noValidate onSubmit={handleSubmit} className="space-y-6">
+      {/* Top Error Summary Banner */}
+      {errorCount > 0 && (
+        <div className="rounded-xl border border-red-300 bg-red-50 p-4 text-xs">
+          <div className="flex items-center gap-2 text-red-800 font-bold mb-2">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-red-600" />
+            <span>Harap perbaiki {errorCount} kesalahan sebelum menyimpan:</span>
+          </div>
+          <ul className="list-disc list-inside space-y-1 text-red-700 font-medium">
+            {Object.entries(fieldErrors).map(([field, msg]) => (
+              <li
+                key={field}
+                onClick={() => scrollToField(field)}
+                className="cursor-pointer hover:underline"
+              >
+                {msg}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Risk Level */}
       <div>
         <label className="block text-sm font-medium text-gray-900 mb-2">
@@ -61,13 +128,13 @@ export default function SOAPForm({ initialData, onSubmit, onCancel, loading }: S
           {[
             { value: "low", label: "Low Risk", color: "green" },
             { value: "medium", label: "Medium Risk", color: "orange" },
-            { value: "high", label: "High Risk", color: "red" }
-          ].map(option => (
+            { value: "high", label: "High Risk", color: "red" },
+          ].map((option) => (
             <button
               key={option.value}
               type="button"
               onClick={() => handleChange("riskLevel", option.value)}
-              className={`flex-1 px-4 py-2 rounded-lg border-2 text-sm font-medium transition-colors ${
+              className={`flex-1 px-4 py-2 rounded-lg border-2 text-sm font-medium transition-colors cursor-pointer ${
                 formData.riskLevel === option.value
                   ? `border-${option.color}-500 bg-${option.color}-50 text-${option.color}-700`
                   : "border-gray-300 text-gray-700 hover:border-gray-400"
@@ -82,156 +149,119 @@ export default function SOAPForm({ initialData, onSubmit, onCancel, loading }: S
       {/* SOAP Fields */}
       <div className="space-y-4">
         {/* Subjective */}
-        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <label className="block text-sm font-bold text-blue-900 mb-2">
+        <div className="p-4 bg-blue-50/60 border border-blue-200 rounded-lg">
+          <label className="block text-sm font-bold text-blue-900 mb-1">
             S - SUBJECTIVE <span className="text-red-500">*</span>
           </label>
-          <p className="text-xs text-blue-700 mb-2">Keluhan pasien, apa yang pasien sampaikan</p>
+          <p className="text-xs text-blue-700 mb-2">Keluhan pasien, apa yang disampaikan pasien</p>
           <textarea
+            id="subjective"
+            name="subjective"
             value={formData.subjective}
             onChange={(e) => handleChange("subjective", e.target.value)}
             rows={4}
-            placeholder="Contoh: Pasien melaporkan penurunan frekuensi serangan kecemasan..."
-            className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-            required
+            placeholder="Jelaskan keluhan utama pasien..."
+            className={`w-full px-3 py-2 border rounded-lg text-sm outline-none transition focus:ring-2 ${
+              fieldErrors.subjective ? "border-red-500 bg-red-50/30 focus:ring-red-500/20" : "border-blue-300 focus:ring-blue-500"
+            }`}
           />
+          {fieldErrors.subjective && (
+            <p className="mt-1 text-xs font-medium text-red-600 flex items-center gap-1">
+              <AlertCircle className="h-3 w-3" />
+              {fieldErrors.subjective}
+            </p>
+          )}
         </div>
 
         {/* Objective */}
-        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-          <label className="block text-sm font-bold text-green-900 mb-2">
+        <div className="p-4 bg-green-50/60 border border-green-200 rounded-lg">
+          <label className="block text-sm font-bold text-green-900 mb-1">
             O - OBJECTIVE <span className="text-red-500">*</span>
           </label>
-          <p className="text-xs text-green-700 mb-2">Observasi psikolog, hasil tes/assessment</p>
+          <p className="text-xs text-green-700 mb-2">Hasil pengamatan dan psikotes</p>
           <textarea
+            id="objective"
+            name="objective"
             value={formData.objective}
             onChange={(e) => handleChange("objective", e.target.value)}
             rows={4}
-            placeholder="Contoh: Pasien tampak lebih rileks, kontak mata baik. GAD-7 score: 12..."
-            className="w-full px-3 py-2 border border-green-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
-            required
+            placeholder="Jelaskan observasi klinis psikolog..."
+            className={`w-full px-3 py-2 border rounded-lg text-sm outline-none transition focus:ring-2 ${
+              fieldErrors.objective ? "border-red-500 bg-red-50/30 focus:ring-red-500/20" : "border-green-300 focus:ring-green-500"
+            }`}
           />
+          {fieldErrors.objective && (
+            <p className="mt-1 text-xs font-medium text-red-600 flex items-center gap-1">
+              <AlertCircle className="h-3 w-3" />
+              {fieldErrors.objective}
+            </p>
+          )}
         </div>
 
         {/* Assessment */}
-        <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
-          <label className="block text-sm font-bold text-orange-900 mb-2">
+        <div className="p-4 bg-orange-50/60 border border-orange-200 rounded-lg">
+          <label className="block text-sm font-bold text-orange-900 mb-1">
             A - ASSESSMENT <span className="text-red-500">*</span>
           </label>
-          <p className="text-xs text-orange-700 mb-2">Diagnosis, analisis, dan evaluasi klinis</p>
+          <p className="text-xs text-orange-700 mb-2">Analisis dan diagnosis psikolog</p>
           <textarea
+            id="assessment"
+            name="assessment"
             value={formData.assessment}
             onChange={(e) => handleChange("assessment", e.target.value)}
             rows={4}
-            placeholder="Contoh: Anxiety Disorder - menunjukkan progress signifikan. Teknik CBT efektif..."
-            className="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none"
-            required
+            placeholder="Jelaskan analisis & diagnosis..."
+            className={`w-full px-3 py-2 border rounded-lg text-sm outline-none transition focus:ring-2 ${
+              fieldErrors.assessment ? "border-red-500 bg-red-50/30 focus:ring-red-500/20" : "border-orange-300 focus:ring-orange-500"
+            }`}
           />
+          {fieldErrors.assessment && (
+            <p className="mt-1 text-xs font-medium text-red-600 flex items-center gap-1">
+              <AlertCircle className="h-3 w-3" />
+              {fieldErrors.assessment}
+            </p>
+          )}
         </div>
 
         {/* Plan */}
-        <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-          <label className="block text-sm font-bold text-purple-900 mb-2">
+        <div className="p-4 bg-purple-50/60 border border-purple-200 rounded-lg">
+          <label className="block text-sm font-bold text-purple-900 mb-1">
             P - PLAN <span className="text-red-500">*</span>
           </label>
-          <p className="text-xs text-purple-700 mb-2">Rencana treatment, homework, follow-up</p>
+          <p className="text-xs text-purple-700 mb-2">Rencana intervensi & sesi selanjutnya</p>
           <textarea
+            id="plan"
+            name="plan"
             value={formData.plan}
             onChange={(e) => handleChange("plan", e.target.value)}
-            rows={5}
-            placeholder="Contoh: 1. Lanjutkan teknik CBT&#10;2. Homework: journal daily mood&#10;3. Follow-up 1 minggu"
-            className="w-full px-3 py-2 border border-purple-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-            required
+            rows={4}
+            placeholder="Jelaskan intervensi & rencana..."
+            className={`w-full px-3 py-2 border rounded-lg text-sm outline-none transition focus:ring-2 ${
+              fieldErrors.plan ? "border-red-500 bg-red-50/30 focus:ring-red-500/20" : "border-purple-300 focus:ring-purple-500"
+            }`}
           />
+          {fieldErrors.plan && (
+            <p className="mt-1 text-xs font-medium text-red-600 flex items-center gap-1">
+              <AlertCircle className="h-3 w-3" />
+              {fieldErrors.plan}
+            </p>
+          )}
         </div>
       </div>
 
-      {/* Additional Info */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-900 mb-2">
-            Follow-up Date
-          </label>
-          <input
-            type="text"
-            value={formData.followUpDate}
-            onChange={(e) => handleChange("followUpDate", e.target.value)}
-            placeholder="16 Feb 2026"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-          />
-        </div>
-
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-900 mb-2">
-            Rekomendasi Sesi Berikutnya
-          </label>
-          <textarea
-            value={formData.nextSessionRecommendation}
-            onChange={(e) => handleChange("nextSessionRecommendation", e.target.value)}
-            rows={2}
-            placeholder="Fokus pada exposure therapy untuk situasi sosial..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-          />
-        </div>
-      </div>
-
-      {/* Tags */}
-      <div>
-        <label className="block text-sm font-medium text-gray-900 mb-2">
-          Tags
-        </label>
-        <div className="flex gap-2 mb-2">
-          <input
-            type="text"
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), handleAddTag())}
-            placeholder="Tambah tag (Enter untuk menambah)"
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-          />
-          <button
-            type="button"
-            onClick={handleAddTag}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300 transition-colors"
-          >
-            Tambah
-          </button>
-        </div>
-        {formData.tags && formData.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {formData.tags.map((tag, index) => (
-              <span
-                key={index}
-                className="inline-flex items-center gap-2 px-3 py-1 bg-purple-100 text-purple-700 text-sm rounded-md"
-              >
-                {tag}
-                <button
-                  type="button"
-                  onClick={() => handleRemoveTag(tag)}
-                  className="hover:text-purple-900"
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Actions */}
-      <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+      {/* Buttons */}
+      <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
         <button
           type="button"
           onClick={onCancel}
-          disabled={loading}
-          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+          className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
         >
           Batal
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+          className="px-6 py-2 text-sm font-medium text-white bg-[#2B5379] rounded-lg hover:bg-[#234463] transition-colors cursor-pointer disabled:opacity-50"
         >
           {loading ? "Menyimpan..." : "Simpan Catatan"}
         </button>

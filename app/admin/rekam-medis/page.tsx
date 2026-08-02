@@ -24,7 +24,7 @@ import {
   Calendar,
   FileSpreadsheet,
 } from "lucide-react";
-import MedicalRecordPdfModal from "@/components/features/psychologist/patients/MedicalRecordPdfModal";
+import MedicalRecordPdfModal from "@/components/medical-record/MedicalRecordPdfModal";
 import type { PsychologistPatientDetail } from "@/lib/types/psychologist";
 import { getUserTesResults, getAllTesResults } from "@/lib/api/tes";
 
@@ -250,17 +250,17 @@ export default function AdminMedicalRecordsPage() {
       }
 
       setSelectedPatient(detail);
+      setIsPdfOpen(true);
     } catch (err) {
       setSelectedPatient(getFallbackPatientDetail(userId));
+      setIsPdfOpen(true);
     } finally {
       setLoadingPatient(false);
-      setDetailModalOpen(true);
     }
   };
 
   const handleOpenPdf = async (userId: string) => {
     await handleViewPatientRecord(userId);
-    setIsPdfOpen(true);
   };
 
   const getFallbackPatientDetail = (userId: string): PsychologistPatientDetail => {
@@ -832,275 +832,7 @@ export default function AdminMedicalRecordsPage() {
         )}
       </div>
 
-      {/* Admin Patient Detail View Modal (STRICTLY READ-ONLY) */}
-      {detailModalOpen && selectedPatient && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white shadow-2xl border border-slate-200">
-            {/* Modal Header Banner */}
-            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-gradient-to-r from-[#1E3A5F] to-[#2B5379] px-6 py-4 text-white">
-              <div>
-                <span className="bg-white/20 text-xs px-2.5 py-0.5 rounded-full font-semibold inline-flex items-center gap-1 mb-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" /> Mode Monitoring Admin (Read-Only)
-                </span>
-                <h2 className="text-xl font-bold">
-                  Detail Rekam Medis: {selectedPatient.name}
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setDetailModalOpen(false)}
-                className="rounded-full p-2 text-white/80 hover:bg-white/10 hover:text-white transition"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-6">
-              {/* 1. Informasi Pasien & Psikolog Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Information Pasien Card */}
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
-                  <h3 className="font-bold text-[#234463] text-sm flex items-center gap-2 border-b border-slate-200 pb-2">
-                    <User className="w-4 h-4 text-blue-600" /> Informasi Pasien
-                  </h3>
-                  <div className="text-xs space-y-1.5 pt-1">
-                    <p><span className="text-slate-500 w-28 inline-block font-medium">Nama Lengkap:</span> <strong className="text-slate-900">{selectedPatient.name}</strong></p>
-                    <p><span className="text-slate-500 w-28 inline-block font-medium">Email:</span> <span className="text-slate-800">{selectedPatient.email}</span></p>
-                    <p><span className="text-slate-500 w-28 inline-block font-medium">Nomor Telepon:</span> <span className="text-slate-800">{selectedPatient.phone || "0812-3456-7890"}</span></p>
-                    <p><span className="text-slate-500 w-28 inline-block font-medium">Umur / Gender:</span> <span className="text-slate-800">{selectedPatient.age || 28} tahun / {String(selectedPatient.gender).toLowerCase() === "female" ? "Perempuan" : "Laki-laki"}</span></p>
-                    <p><span className="text-slate-500 w-28 inline-block font-medium">Alamat:</span> <span className="text-slate-800">{selectedPatient.address || "Jl. Sudirman No. 45, Jakarta Selatan"}</span></p>
-                    <p><span className="text-slate-500 w-28 inline-block font-medium">Pekerjaan:</span> <span className="text-slate-800">{selectedPatient.occupation || "Software Engineer"}</span></p>
-                    <p><span className="text-slate-500 w-28 inline-block font-medium">Status Nikah:</span> <span className="text-slate-800">{selectedPatient.maritalStatus || "Menikah"}</span></p>
-                  </div>
-                </div>
-
-                {/* Information Penanganan Psikolog Card */}
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
-                  <h3 className="font-bold text-[#234463] text-sm flex items-center gap-2 border-b border-slate-200 pb-2">
-                    <Stethoscope className="w-4 h-4 text-emerald-600" /> Informasi Penanganan & Psikolog
-                  </h3>
-                  <div className="text-xs space-y-1.5 pt-1">
-                    <p><span className="text-slate-500 w-32 inline-block font-medium">Psikolog Penilai:</span> <strong className="text-slate-900">{selectedPatient.assessingPsychologistName || "Dr. Ani Wijaya, M.Psi., Psikolog"}</strong></p>
-                    <p><span className="text-slate-500 w-32 inline-block font-medium">Jenis Layanan:</span> <span className="text-slate-800">Konseling Individu</span></p>
-                    <p><span className="text-slate-500 w-32 inline-block font-medium">Total Sesi Penanganan:</span> <span className="text-[#234463] font-bold">{selectedPatient.totalSessions || 2} Sesi</span></p>
-                    <p><span className="text-slate-500 w-32 inline-block font-medium">Tanggal Assessment:</span> <span className="text-slate-800">{selectedPatient.assessmentDate || "27 Juli 2026"}</span></p>
-                    <p><span className="text-slate-500 w-32 inline-block font-medium">Status Konsultasi:</span> {getStatusBadge(selectedPatient.sessionNotesList?.[0]?.consultationStatus || "SEDANG_BERJALAN")}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* 2. Assessment Tingkat Risiko Card (5 Risk Levels) */}
-              <div className="bg-amber-50/60 p-5 rounded-2xl border border-amber-200 space-y-3">
-                <div className="flex items-center justify-between border-b border-amber-200/80 pb-2.5">
-                  <h3 className="font-bold text-[#234463] text-sm flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-amber-600" /> Assessment Tingkat Risiko Pasien
-                  </h3>
-                  {getRiskBadge(selectedPatient.riskLevel)}
-                </div>
-                <div className="text-xs space-y-2 text-slate-800">
-                  <p><strong className="text-slate-900">Alasan Penilaian Risiko:</strong></p>
-                  <p className="bg-white p-3 rounded-xl border border-amber-200/60 text-slate-700 italic">
-                    "{selectedPatient.riskReason || "Pasien mengalami gejala kecemasan sedang yang mempengaruhi produktivitas harian dan kualitas tidur."}"
-                  </p>
-                  {selectedPatient.riskRecommendations && selectedPatient.riskRecommendations.length > 0 && (
-                    <div>
-                      <strong className="text-slate-900 block mb-1">Rekomendasi Penanganan:</strong>
-                      <ul className="list-disc pl-5 space-y-0.5 text-slate-700">
-                        {selectedPatient.riskRecommendations.map((rec, i) => (
-                          <li key={i}>{rec}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* 3. Profil Medis & Clinical Information */}
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4">
-                <h3 className="font-bold text-[#234463] text-sm flex items-center gap-2 border-b border-slate-200 pb-2.5">
-                  <Pill className="w-4 h-4 text-sky-600" /> Profil Medis & Diagnostik
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                  <div>
-                    <span className="font-bold text-slate-900 block mb-1">Diagnosis Utama:</span>
-                    <div className="flex flex-wrap gap-1">
-                      {selectedPatient.diagnosis?.map((d, i) => (
-                        <span key={i} className="bg-sky-100 text-sky-900 px-2.5 py-1 rounded-lg font-semibold">
-                          {d}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="font-bold text-slate-900 block mb-1">Obat Saat Ini:</span>
-                    <ul className="list-disc pl-4 text-slate-700">
-                      {selectedPatient.currentMedication?.map((m, i) => (
-                        <li key={i}>{m}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <span className="font-bold text-slate-900 block mb-1">Alergi:</span>
-                    <ul className="list-disc pl-4 text-slate-700">
-                      {selectedPatient.allergies?.map((a, i) => (
-                        <li key={i}>{a}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              {/* 4. SOAP & Detailed Note Section */}
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-3">
-                <h3 className="font-bold text-[#234463] text-sm flex items-center gap-2 border-b border-slate-200 pb-2.5">
-                  <FileText className="w-4 h-4 text-indigo-600" /> Catatan Sesi & SOAP Konseling
-                </h3>
-                <div className="text-xs space-y-2 text-slate-800">
-                  <p><strong className="text-slate-900">• Ringkasan Masalah (Subjective/Objective):</strong></p>
-                  <p className="bg-white p-3 rounded-xl border border-slate-200 text-slate-700">
-                    {selectedPatient.sessionNotesList?.[0]?.subjective || selectedPatient.lastNotes || "Pasien mengeluhkan kecemasan berlebih terkait beban kerja."}
-                  </p>
-
-                  <p><strong className="text-slate-900">• Pendekatan Terapi & Intervensi:</strong></p>
-                  <p className="bg-white p-3 rounded-xl border border-slate-200 text-slate-700">
-                    {selectedPatient.sessionNotesList?.[0]?.treatmentApproach || "Cognitive Behavioral Therapy (CBT) dan latihan relaksasi diafragma."}
-                  </p>
-
-                  <p><strong className="text-slate-900">• Rencana Tindak Lanjut & Rekomendasi Sesi Berikutnya:</strong></p>
-                  <p className="bg-white p-3 rounded-xl border border-slate-200 text-slate-700">
-                    {selectedPatient.sessionNotesList?.[0]?.recommendation || "Lanjutan sesi konseling 2 minggu sekali dan pencatatan harian."}
-                  </p>
-
-                  {selectedPatient.sessionNotesList?.[0]?.additionalNotes && (
-                    <div>
-                      <strong className="text-slate-900 block mt-2">• Catatan Tambahan:</strong>
-                      <p className="bg-white p-3 rounded-xl border border-slate-200 italic text-slate-700">
-                        {selectedPatient.sessionNotesList[0].additionalNotes}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* 5. Hasil Tes Psikologi (Read-Only Admin View) */}
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-3">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
-                  <h3 className="font-bold text-[#234463] text-sm flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-emerald-600" /> Hasil Tes Psikologi Pasien
-                  </h3>
-                  <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                    Read-Only
-                  </span>
-                </div>
-
-                {!selectedPatient.tesResults || selectedPatient.tesResults.length === 0 ? (
-                  <p className="text-xs text-slate-500 italic p-3 bg-white rounded-xl border border-slate-200">
-                    Belum ada data hasil tes psikologi yang tersimpan untuk pasien ini.
-                  </p>
-                ) : (
-                  <div className="space-y-3">
-                    {selectedPatient.tesResults.map((t: any, idx: number) => (
-                      <div key={idx} className="bg-white p-4 rounded-xl border border-slate-200 space-y-2 text-xs">
-                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
-                          <div>
-                            <span className="font-bold text-slate-900 text-sm">{t.namaTes}</span>
-                            <span className="ml-2 text-[11px] font-semibold text-[#234463] bg-blue-50 px-2 py-0.5 rounded">
-                              {t.jenisTes || t.kategoriNama || "Psikologi"}
-                            </span>
-                          </div>
-                          <span className="text-slate-500 font-medium text-[11px]">
-                            Tanggal: {formatDate(t.createdAt)}
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 py-1 text-center">
-                          <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-                            <span className="text-[10px] text-slate-500 block">Total Skor</span>
-                            <strong className="text-slate-900">{t.totalScore} / {t.maxScore}</strong>
-                          </div>
-                          <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-                            <span className="text-[10px] text-slate-500 block">Persentase</span>
-                            <strong className="text-emerald-600">{t.percentage}%</strong>
-                          </div>
-                          <div className="bg-slate-50 p-2 rounded-lg border border-slate-100 col-span-2">
-                            <span className="text-[10px] text-slate-500 block">Kategori / Diagnosis</span>
-                            <strong className="text-[#234463]">{t.diagnosis || t.kategoriNama}</strong>
-                          </div>
-                        </div>
-
-                        {t.detailDiagnosis && (
-                          <div className="pt-1">
-                            <span className="font-semibold text-slate-800 block mb-0.5">Detail Diagnosis:</span>
-                            <p className="text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-100 leading-relaxed">
-                              {t.detailDiagnosis}
-                            </p>
-                          </div>
-                        )}
-
-                        {t.interpretasi && (
-                          <div className="pt-1">
-                            <span className="font-semibold text-slate-800 block mb-0.5">Interpretasi:</span>
-                            <p className="text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-100 leading-relaxed">
-                              {t.interpretasi}
-                            </p>
-                          </div>
-                        )}
-
-                        {t.rekomendasi && t.rekomendasi.length > 0 && (
-                          <div className="pt-1">
-                            <span className="font-semibold text-slate-800 block mb-0.5">Rekomendasi:</span>
-                            <ul className="list-disc pl-4 text-slate-600 space-y-0.5">
-                              {t.rekomendasi.map((rec: string, rIdx: number) => (
-                                <li key={rIdx}>{rec}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* 6. Riwayat Sesi Pasien */}
-              {selectedPatient.sessionHistory && selectedPatient.sessionHistory.length > 0 && (
-                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-3">
-                  <h3 className="font-bold text-[#234463] text-sm flex items-center gap-2 border-b border-slate-200 pb-2.5">
-                    <Calendar className="w-4 h-4 text-blue-600" /> Riwayat Sesi Konsultasi
-                  </h3>
-                  <div className="space-y-2">
-                    {selectedPatient.sessionHistory.map((s, idx) => (
-                      <div key={idx} className="bg-white p-3 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
-                        <div>
-                          <p className="font-bold text-[#234463]">Sesi {s.date} ({s.time || "14.00"})</p>
-                          <p className="text-slate-500">{s.service || "Konseling Individu"}</p>
-                        </div>
-                        {getStatusBadge(s.status === "completed" ? "SELESAI" : "SEDANG_BERJALAN")}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Modal Bottom Close Bar (STRICTLY NO EDIT/SAVE/DELETE BUTTONS) */}
-            <div className="sticky bottom-0 border-t border-slate-200 bg-slate-50 px-6 py-4 flex items-center justify-between">
-              <span className="text-xs text-slate-500 font-medium italic">
-                Mode Monitoring Administrasi — Tidak ada hak akses untuk mengubah data
-              </span>
-              <button
-                type="button"
-                onClick={() => setDetailModalOpen(false)}
-                className="rounded-xl bg-[#2B5379] px-6 py-2 text-xs font-bold text-white hover:bg-[#1f3b5b] transition shadow-sm"
-              >
-                Tutup Pratinjau
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Official 4-Page Medical Record PDF Modal */}
+      {/* Shared Medical Record PDF Modal (100% Identical to Psychologist View) */}
       <MedicalRecordPdfModal
         isOpen={isPdfOpen}
         onClose={() => {

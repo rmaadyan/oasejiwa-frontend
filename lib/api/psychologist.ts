@@ -22,9 +22,9 @@ import {
   mockSessionNotes,
 } from "@/lib/data/mock-ui-data";
 
-// 🟢 BASE URL (Fallback ke localhost:5000 / localhost:3000 backend NestJS)
+// 🟢 BASE URL (Fallback ke localhost:3001 backend NestJS)
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 const USE_REAL_NOTES_API = true;
 
@@ -66,20 +66,8 @@ function normalizeRiskLevel(
   return "low";
 }
 
-export async function getPsychologistProfile(): Promise<Psychologist> {
-  const res = await fetch(`${API_BASE_URL}/psychologist/profile`, {
-    cache: "no-store",
-    credentials: "include",
-    headers: getAuthHeaders(),
-  });
-
-  if (!res.ok) {
-    const errorText = await res.text();
-    throw new Error(`Failed to fetch profile: ${res.status} ${errorText}`);
-  }
-
-  const result = await res.json();
-  const data = result.data || result;
+export function formatPsychologistProfile(data: any): Psychologist {
+  if (!data) return {} as any;
 
   const parsedExperiences = Array.isArray(data.experiences)
     ? data.experiences.map((ex: any) =>
@@ -143,7 +131,59 @@ export async function getPsychologistProfile(): Promise<Psychologist> {
       duration: schedule.duration || 60,
       isAvailable: schedule.isAvailable ?? true,
     })),
+
+    signatureUrl: data.signatureUrl
+      ? data.signatureUrl.startsWith("http")
+        ? data.signatureUrl
+        : `${API_BASE_URL}${data.signatureUrl.startsWith("/") ? "" : "/"}${data.signatureUrl}`
+      : null,
+    signatureUpdatedAt: data.signatureUpdatedAt || null,
+    signatureMethod: data.signatureMethod || "UPLOAD",
+    totalPatients: typeof data.totalPatients === "number" ? data.totalPatients : 0,
+    totalSessions: typeof data.totalSessions === "number" ? data.totalSessions : 0,
   } as any;
+}
+
+export async function getPsychologistProfile(): Promise<Psychologist> {
+  const res = await fetch(`${API_BASE_URL}/psychologist/profile`, {
+    cache: "no-store",
+    credentials: "include",
+    headers: getAuthHeaders(),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Failed to fetch profile: ${res.status} ${errorText}`);
+  }
+
+  const result = await res.json();
+  const data = result.data || result;
+
+  return formatPsychologistProfile(data);
+}
+
+export async function uploadImage(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch(`${API_BASE_URL}/upload/image`, {
+    method: "POST",
+    headers: {
+      ...(getAuthHeaders().Authorization ? { Authorization: getAuthHeaders().Authorization } : {}),
+    },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Upload failed: ${res.status} ${errText}`);
+  }
+
+  const data = await res.json();
+  const rawUrl = data.url || data.data?.url || "";
+  if (!rawUrl) throw new Error("Upload response missing URL");
+
+  return rawUrl.startsWith("http") ? rawUrl : `${API_BASE_URL}${rawUrl}`;
 }
 
 export async function getPsychologistDashboard(): Promise<any> {
@@ -582,7 +622,8 @@ export async function updatePsychologistProfile(
   }
 
   const result = await res.json();
-  return result.data || result;
+  const profileData = result.data || result;
+  return formatPsychologistProfile(profileData);
 }
 
 // 🟢 FIX 1: GET ALL PUBLIC (PERBAIKAN UTAMA TANPA PERLU DRAFT DB)
@@ -701,4 +742,62 @@ export async function deletePsychologistSchedule(scheduleId: string) {
   }
 
   return res.json();
+}
+
+// 🟢 OFFICIAL MEDICAL RECORD API
+export async function createOfficialMedicalRecord(payload: any) {
+  const res = await fetch(`${API_BASE_URL}/official-medical-records`, {
+    method: "POST",
+    credentials: "include",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Gagal membuat rekam medis resmi: ${errorText}`);
+  }
+
+  return res.json();
+}
+
+export async function getOfficialMedicalRecords() {
+  const res = await fetch(`${API_BASE_URL}/official-medical-records`, {
+    method: "GET",
+    credentials: "include",
+    headers: getAuthHeaders(),
+  });
+
+  if (!res.ok) {
+    return { data: [] };
+  }
+
+  return res.json();
+}
+
+export async function getPatientOfficialMedicalRecords(patientId: string) {
+  const res = await fetch(`${API_BASE_URL}/official-medical-records/patient/${patientId}`, {
+    method: "GET",
+    credentials: "include",
+    headers: getAuthHeaders(),
+  });
+
+  if (!res.ok) {
+    return { data: [] };
+  }
+
+  return res.json();
+}
+
+export async function deletePatient(patientId: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/psychologist/patients/${patientId}`, {
+    method: "DELETE",
+    credentials: "include",
+    headers: getAuthHeaders(),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Gagal menghapus data pasien: ${res.status} ${errorText}`);
+  }
 }

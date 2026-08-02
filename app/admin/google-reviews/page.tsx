@@ -9,8 +9,15 @@ import {
   MessageSquareText,
   Clock,
   Award,
+  AlertCircle,
 } from "lucide-react";
-import { getAdminGoogleReviews, type GoogleReviewsData, type GoogleReview } from "@/lib/api/google-reviews";
+import {
+  getAdminGoogleReviews,
+  syncAdminGoogleReviews,
+  type GoogleReviewsData,
+  type GoogleReview,
+} from "@/lib/api/google-reviews";
+import { ReviewerAvatar } from "@/components/features/landingpage/testimonialssection";
 
 function GoogleIcon() {
   return (
@@ -56,8 +63,6 @@ function Stars({ rating }: { rating: number }) {
   );
 }
 
-import { ReviewerAvatar } from "@/components/features/landingpage/testimonialssection";
-
 export default function AdminGoogleReviewsPage() {
   const [data, setData] = useState<GoogleReviewsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -66,12 +71,15 @@ export default function AdminGoogleReviewsPage() {
   const fetchReviews = async (isManual = false) => {
     setLoading(true);
     try {
-      const result = await getAdminGoogleReviews();
+      const result = isManual
+        ? await syncAdminGoogleReviews()
+        : await getAdminGoogleReviews();
+
       if (result) {
         setData(result);
       }
       if (isManual) {
-        setToastMsg("Data ulasan Google berhasil disinkronkan!");
+        setToastMsg("Data Google Business Profile berhasil disinkronkan!");
         setTimeout(() => setToastMsg(null), 3500);
       }
     } catch (err) {
@@ -82,7 +90,7 @@ export default function AdminGoogleReviewsPage() {
   };
 
   useEffect(() => {
-    fetchReviews();
+    fetchReviews(false);
   }, []);
 
   const formatDate = (dateStr?: string) => {
@@ -101,10 +109,10 @@ export default function AdminGoogleReviewsPage() {
   };
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Toast */}
+    <div className="space-y-6 p-6 font-poppins">
+      {/* Toast Notification */}
       {toastMsg && (
-        <div className="fixed top-5 right-5 z-50 flex items-center gap-2 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-xl text-sm font-medium animate-bounce">
+        <div className="fixed top-5 right-5 z-50 flex items-center gap-2 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-xl text-xs font-semibold animate-bounce">
           <ShieldCheck className="w-5 h-5" />
           <span>{toastMsg}</span>
         </div>
@@ -116,14 +124,14 @@ export default function AdminGoogleReviewsPage() {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="bg-white/20 text-white text-xs px-3 py-1 rounded-full font-semibold flex items-center gap-1.5 backdrop-blur-sm">
-                <ShieldCheck className="w-4 h-4 text-emerald-300" /> Mode Monitoring Admin (Read-Only)
+                <ShieldCheck className="w-4 h-4 text-emerald-300" /> Sinkronisasi Google Business Profile
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
               <GoogleIcon /> Google Reviews & Rating Monitoring
             </h1>
-            <p className="text-blue-100 text-sm mt-1">
-              Pantau ulasan, rating rata-rata, dan statistik Google Business Profile resmi Oase Jiwa secara real-time.
+            <p className="text-blue-100 text-xs sm:text-sm mt-1">
+              Pantau rating, jumlah ulasan terbaru, dan daftar ulasan resmi Google Business Profile Oase Jiwa.
             </p>
           </div>
 
@@ -142,17 +150,18 @@ export default function AdminGoogleReviewsPage() {
 
             <button
               onClick={() => fetchReviews(true)}
-              className="flex items-center justify-center gap-2 bg-white text-[#2B5379] hover:bg-blue-50 font-semibold px-4 py-2.5 rounded-xl transition-all shadow-sm text-xs"
+              disabled={loading}
+              className="flex items-center justify-center gap-2 bg-white text-[#2B5379] hover:bg-blue-50 font-bold px-4 py-2.5 rounded-xl transition-all shadow-sm text-xs cursor-pointer disabled:opacity-50"
               type="button"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-              <span>Sinkronkan Sekarang</span>
+              <span>{loading ? "Menyingkronkan..." : "Sinkronkan Sekarang"}</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* 4 Summary Cards */}
+      {/* 4 Dynamic Summary Cards (NO HARDCODED VALUES) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
           <div className="p-3.5 bg-amber-50 text-amber-600 rounded-xl">
@@ -161,7 +170,7 @@ export default function AdminGoogleReviewsPage() {
           <div>
             <p className="text-xs text-slate-500 font-medium">Rating Rata-rata</p>
             <p className="text-2xl font-bold text-slate-900 flex items-center gap-1">
-              {data ? data.rating.toFixed(1) : "4.9"}{" "}
+              {data ? data.rating.toFixed(1) : "0.0"}{" "}
               <span className="text-sm font-normal text-slate-400">/ 5.0</span>
             </p>
           </div>
@@ -173,7 +182,9 @@ export default function AdminGoogleReviewsPage() {
           </div>
           <div>
             <p className="text-xs text-slate-500 font-medium">Total Ulasan Terverifikasi</p>
-            <p className="text-2xl font-bold text-slate-900">{data ? data.totalReviews : 157} Ulasan</p>
+            <p className="text-2xl font-bold text-slate-900">
+              {data ? data.totalReviews : 0} Ulasan
+            </p>
           </div>
         </div>
 
@@ -190,13 +201,31 @@ export default function AdminGoogleReviewsPage() {
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="p-3.5 bg-purple-50 text-purple-600 rounded-xl">
-            <ShieldCheck className="w-6 h-6" />
+          <div
+            className={`p-3.5 rounded-xl ${
+              data?.isFromCache
+                ? "bg-amber-50 text-amber-700"
+                : "bg-emerald-50 text-emerald-700"
+            }`}
+          >
+            {data?.isFromCache ? (
+              <AlertCircle className="w-6 h-6" />
+            ) : (
+              <ShieldCheck className="w-6 h-6" />
+            )}
           </div>
           <div>
-            <p className="text-xs text-slate-500 font-medium">Status Cache / API</p>
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 mt-1">
-              {data?.isFromCache ? "Ter-cache (6 Jam)" : "Live Google API"}
+            <p className="text-xs text-slate-500 font-medium">Status Data Google</p>
+            <span
+              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border mt-1 ${
+                data?.isFromCache
+                  ? "bg-amber-50 text-amber-800 border-amber-300"
+                  : "bg-emerald-50 text-emerald-800 border-emerald-300"
+              }`}
+            >
+              {data?.isFromCache
+                ? "Menggunakan Data Cache"
+                : "Terhubung Langsung"}
             </span>
           </div>
         </div>
@@ -209,7 +238,7 @@ export default function AdminGoogleReviewsPage() {
             <GoogleIcon /> Daftar Ulasan Terbaru (Google Business Profile)
           </h2>
           <span className="text-xs text-slate-500 font-medium bg-slate-100 px-3 py-1 rounded-full">
-            Read-Only (Tidak Dapat Diedit/Dihapus)
+            Read-Only (Tersinkronisasi Otomatis)
           </span>
         </div>
 
@@ -274,7 +303,7 @@ export default function AdminGoogleReviewsPage() {
           </div>
         ) : (
           <div className="p-12 text-center text-slate-500 text-xs">
-            Belum ada ulasan yang disinkronkan.
+            Belum ada ulasan yang disinkronkan. Klik <strong>Sinkronkan Sekarang</strong> untuk mengambil ulasan terbaru dari Google Maps.
           </div>
         )}
       </div>

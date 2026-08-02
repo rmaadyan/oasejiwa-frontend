@@ -41,7 +41,7 @@ export default function ChangePasswordPsychologist() {
             setMessage("Password berhasil diubah");
 
             setTimeout(() => {
-                router.push("/psychologist/dashboard");
+                router.push("/psychologist/profile");
             }, 2000);
 
         } catch (err: any) {

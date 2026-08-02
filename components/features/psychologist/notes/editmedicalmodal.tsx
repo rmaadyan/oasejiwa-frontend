@@ -106,7 +106,7 @@ export default function EditMedicalModal({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form noValidate onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Error Message */}
           {error && (
             <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">

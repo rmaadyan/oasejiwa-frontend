@@ -29,10 +29,15 @@ export interface Psychologist {
   rating?: number;
   totalReviews?: number;
 
-  status: "active" | "inactive";
+  status: "active" | "inactive" | string;
   joinedDate: string;
+  totalPatients?: number;
+  totalSessions?: number;
 
   schedules?: PsychologistSchedule[];
+  signatureUrl?: string | null;
+  signatureUpdatedAt?: string | null;
+  signatureMethod?: "UPLOAD" | "DRAW" | string | null;
 }
 
 // ========================================
