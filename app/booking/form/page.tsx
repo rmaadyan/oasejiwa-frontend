@@ -77,7 +77,6 @@ function calculateAge(birthday: string): number {
   return age;
 }
 
-<<<<<<< Updated upstream
 // 🟢 Helper Generator 4 Tanggal Mendatang Sesuai Hari Praktik
 function getAvailableDatesForDay(dayName: string, count = 4) {
   const daysMap: Record<string, number> = {
@@ -117,42 +116,6 @@ function getAvailableDatesForDay(dayName: string, count = 4) {
   }
 
   return resultDates;
-=======
-function parseToIsoDateString(rawDate: string | null): string {
-  if (!rawDate) {
-    return new Date().toISOString().split('T')[0];
-  }
-  const daysMap: Record<string, number> = {
-    MINGGU: 0, SUNDAY: 0,
-    SENIN: 1, MONDAY: 1,
-    SELASA: 2, TUESDAY: 2,
-    RABU: 3, WEDNESDAY: 3,
-    KAMIS: 4, THURSDAY: 4,
-    JUMAT: 5, FRIDAY: 5,
-    SABTU: 6, SATURDAY: 6,
-  };
-
-  const targetDay = daysMap[rawDate.toUpperCase().trim()];
-  if (targetDay !== undefined) {
-    const today = new Date();
-    const currentDay = today.getDay();
-    let distance = targetDay - currentDay;
-    if (distance < 0) distance += 7;
-    const targetDate = new Date(today);
-    targetDate.setDate(today.getDate() + distance);
-    return targetDate.toISOString().split('T')[0];
-  }
-
-  if (!isNaN(Date.parse(rawDate))) {
-    try {
-      return new Date(rawDate).toISOString().split('T')[0];
-    } catch {
-      // Fallback
-    }
-  }
-
-  return new Date().toISOString().split('T')[0];
->>>>>>> Stashed changes
 }
 
 function ConsultationFormContent() {
@@ -416,11 +379,10 @@ function ConsultationFormContent() {
             therapyPreference: therapyMap[consultationData.therapyPreference!] ?? consultationData.therapyPreference?.toUpperCase(),
           };
 
-<<<<<<< Updated upstream
           const validScheduledDate = toValidIsoDateString(selectedDate);
           const validConsentDate = toValidIsoDateString(consentData.consentDate!);
 
-          const payload = {
+          const payload: any = {
             serviceId: Number(serviceId),
             psychologistId: psychologistId || "",
             scheduleId: scheduleId || undefined,
@@ -431,20 +393,6 @@ function ConsultationFormContent() {
               consentDate: validConsentDate,
               clientNameConfirmation: consentData.clientNameConfirmation || "",
               signatureData: consentData.signature || "",
-=======
-          const formattedDate = parseToIsoDateString(date);
-
-          const payload: any = {
-            serviceId: Number(serviceId),
-            psychologistId: psychologistId,
-            scheduledDate: formattedDate,
-            scheduledTime: time || "09.00",
-            consultationForm: mappedConsultation,
-            consentForm: {
-              consentDate: consentData.consentDate || formattedDate,
-              clientNameConfirmation: consentData.clientNameConfirmation,
-              signatureData: consentData.signature,
->>>>>>> Stashed changes
               signatureType: useTextSignature ? 'TEXT' : 'DRAWING',
               agreedToTerms: consentData.agreedToTerms ?? false,
             },
@@ -453,12 +401,8 @@ function ConsultationFormContent() {
           if (scheduleId && typeof scheduleId === 'string' && scheduleId.trim() !== '' && scheduleId !== 'null' && !scheduleId.startsWith('sch-')) {
             payload.scheduleId = scheduleId;
           }
-          
-<<<<<<< Updated upstream
-          console.log("PAYLOAD RESULT:", payload); 
-=======
-          console.log("PAYLOAD:", payload); 
->>>>>>> Stashed changes
+
+          console.log("PAYLOAD:", payload);
           const booking = await createBooking(payload);
           
           router.push(
