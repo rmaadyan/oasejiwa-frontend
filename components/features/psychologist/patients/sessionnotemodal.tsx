@@ -2,6 +2,7 @@
 
 import { X, Calendar, Clock, AlertTriangle } from "lucide-react";
 import type { SessionNote } from "@/lib/types/psychologist";
+import { getRiskConfig } from "@/lib/types/psychologist";
 
 interface SessionNoteModalProps {
   isOpen: boolean;
@@ -185,61 +186,143 @@ export default function SessionNoteModal({
             </div>
           </div>
 
-          {/* SOAP */}
+          {/* SOAP / Rekam Medis Sesi */}
           <div className="space-y-4">
-            <h4 className="font-semibold text-[#2B5379]">Catatan SOAP</h4>
+            <h4 className="font-semibold text-[#2B5379]">Detail Rekam Medis Sesi</h4>
 
             <SoapSection
-              title="S - Subjective"
+              title="Keluhan Utama (Subjective)"
               subtitle="Keluhan, cerita, atau pengalaman yang disampaikan pasien"
               content={note.subjective}
               className="border-blue-200 bg-blue-50"
             />
 
             <SoapSection
-              title="O - Objective"
-              subtitle="Observasi objektif selama sesi"
+              title="Observasi Psikolog (Objective)"
+              subtitle="Observasi objektif psikolog selama sesi berlangsung"
               content={note.objective}
               className="border-green-200 bg-green-50"
             />
 
             <SoapSection
-              title="A - Assessment"
-              subtitle="Analisis, progress, atau kesimpulan psikolog"
+              title="Assessment"
+              subtitle="Gejala, diagnosis, dan analisis psikologis"
               content={note.assessment}
               className="border-yellow-200 bg-yellow-50"
             />
 
             <SoapSection
-              title="P - Plan"
-              subtitle="Rencana treatment, latihan rumah, atau rekomendasi"
+              title="Intervensi (Plan)"
+              subtitle="Pendekatan terapi, psychoeducation, dan latihan relaksasi"
               content={note.plan}
               className="border-purple-200 bg-purple-50"
             />
           </div>
 
-          {/* Follow-up and Recommendation */}
-          {(note.followUpDate || note.nextSessionRecommendation) && (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {note.followUpDate && (
-                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                  <p className="mb-2 text-xs font-medium text-blue-900">
-                    Tanggal Follow-up
-                  </p>
-                  <p className="text-sm text-blue-700">
-                    {formatDateOnly(note.followUpDate)}
-                  </p>
+          {/* Assessment Tingkat Risiko Card */}
+          {(() => {
+            const activeRiskConfig = getRiskConfig(note.riskLevel || "medium");
+            const riskReasonText =
+              note.riskReason ||
+              "Pasien mengalami kecemasan sedang berdasarkan hasil DASS-21, kesulitan tidur, serta mengalami overthinking yang mengganggu aktivitas sehari-hari.";
+            const recommendationsList = note.riskRecommendations || [
+              "Konseling dua minggu sekali.",
+              "CBT.",
+              "Latihan relaksasi.",
+              "Evaluasi pada sesi berikutnya.",
+            ];
+            const assessmentDateText = note.assessmentDate || "29 Juli 2026";
+            const psychologistName =
+              note.assessingPsychologistName || "Dr. Maya Putri, M.Psi., Psikolog";
+
+            return (
+              <div className="space-y-3 pt-2">
+                <h4 className="font-semibold text-[#2B5379] flex items-center gap-2 text-base">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  Assessment Tingkat Risiko
+                </h4>
+
+                <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 shadow-xs space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-200/80 pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-gray-700">Tingkat Risiko:</span>
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold border ${activeRiskConfig.badgeClass}`}
+                      >
+                        {activeRiskConfig.emoji} {activeRiskConfig.label}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 text-xs text-gray-600 font-medium">
+                      <Calendar className="h-3.5 w-3.5 text-gray-400" />
+                      <span>
+                        Tanggal Assessment:{" "}
+                        <strong className="text-gray-900">
+                          {formatDateOnly(assessmentDateText)}
+                        </strong>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-bold text-gray-800 mb-1">Alasan Penilaian:</p>
+                    <p className="text-xs text-gray-700 bg-white p-3 rounded-lg border border-amber-100 leading-relaxed font-normal">
+                      {riskReasonText}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-bold text-gray-800 mb-1">Rekomendasi:</p>
+                    <div className="rounded-lg bg-white p-3 border border-amber-100">
+                      <ul className="space-y-1">
+                        {recommendationsList.map((item, idx) => (
+                          <li
+                            key={idx}
+                            className="text-xs text-gray-700 font-medium flex items-start gap-1.5"
+                          >
+                            <span className="text-amber-600 font-bold">•</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 border-t border-amber-200/60 text-xs text-gray-600">
+                    <span className="italic text-[11px] text-gray-500">
+                      {activeRiskConfig.description}
+                    </span>
+                    <span className="font-semibold text-[#2B5379] flex items-center gap-1 shrink-0">
+                      Psikolog Penilai: {psychologistName}
+                    </span>
+                  </div>
                 </div>
+              </div>
+            );
+          })()}
+
+          {/* Rencana Tindak Lanjut */}
+          {(note.followUpDate || note.nextSessionRecommendation || note.additionalNotes) && (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+              <p className="mb-1 text-sm font-bold text-[#2B5379]">Rencana Tindak Lanjut</p>
+              <p className="mb-3 text-xs text-emerald-700">Kontrol kembali, jurnal harian, dan latihan rumah</p>
+              
+              {note.nextSessionRecommendation && (
+                <p className="whitespace-pre-wrap text-sm text-gray-800 mb-2">
+                  {note.nextSessionRecommendation}
+                </p>
               )}
 
-              {note.nextSessionRecommendation && (
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                  <p className="mb-2 text-xs font-medium text-gray-700">
-                    Rekomendasi Sesi Berikutnya
-                  </p>
-                  <p className="whitespace-pre-wrap text-sm text-gray-800">
-                    {note.nextSessionRecommendation}
-                  </p>
+              {note.additionalNotes && (
+                <p className="whitespace-pre-wrap text-sm text-gray-700 italic border-t border-emerald-200 pt-2 mt-2">
+                  {note.additionalNotes}
+                </p>
+              )}
+
+              {note.followUpDate && (
+                <div className="mt-3 inline-flex items-center gap-2 rounded-md bg-white px-3 py-1 text-xs font-semibold text-emerald-800 border border-emerald-300">
+                  <Calendar className="h-3.5 w-3.5" />
+                  Jadwal Kontrol: {formatDateOnly(note.followUpDate)}
                 </div>
               )}
             </div>

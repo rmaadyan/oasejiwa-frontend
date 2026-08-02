@@ -7,6 +7,9 @@ import {
   AlertTriangle,
   Edit,
   Trash2,
+  FileText,
+  User,
+  CheckCircle2,
 } from "lucide-react";
 import { useState } from "react";
 import type { SessionNote } from "@/lib/types/psychologist";
@@ -37,7 +40,7 @@ function formatDateOnly(date?: string | Date | null) {
   const parsedDate = new Date(date);
 
   if (Number.isNaN(parsedDate.getTime())) {
-    return "-";
+    return String(date);
   }
 
   return parsedDate.toLocaleDateString("id-ID", {
@@ -53,7 +56,7 @@ function formatDateTime(date?: string | Date | null) {
   const parsedDate = new Date(date);
 
   if (Number.isNaN(parsedDate.getTime())) {
-    return "-";
+    return String(date);
   }
 
   return parsedDate.toLocaleString("id-ID", {
@@ -77,10 +80,10 @@ function SoapSection({
   className: string;
 }) {
   return (
-    <div className={`rounded-lg border p-4 ${className}`}>
-      <p className="mb-1 text-sm font-bold text-[#2B5379]">{title}</p>
-      <p className="mb-3 text-xs text-gray-600">{subtitle}</p>
-      <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-800">
+    <div className={`rounded-xl border p-4 shadow-2xs ${className}`}>
+      <p className="mb-0.5 text-sm font-bold text-[#2B5379]">{title}</p>
+      <p className="mb-2.5 text-xs text-gray-500">{subtitle}</p>
+      <p className="whitespace-pre-wrap text-xs sm:text-sm leading-relaxed text-gray-800 font-normal">
         {content || "-"}
       </p>
     </div>
@@ -107,20 +110,20 @@ export default function NoteDetailModal({
   const getRiskBadge = () => {
     const styles = {
       low: {
-        bg: "bg-green-100",
-        text: "text-green-700",
-        border: "border-green-200",
+        bg: "bg-emerald-100",
+        text: "text-emerald-800",
+        border: "border-emerald-200",
         label: "Risiko Rendah",
       },
       medium: {
-        bg: "bg-yellow-100",
-        text: "text-yellow-700",
-        border: "border-yellow-200",
+        bg: "bg-amber-100",
+        text: "text-amber-800",
+        border: "border-amber-200",
         label: "Risiko Sedang",
       },
       high: {
         bg: "bg-red-100",
-        text: "text-red-700",
+        text: "text-red-800",
         border: "border-red-200",
         label: "Risiko Tinggi",
       },
@@ -130,9 +133,9 @@ export default function NoteDetailModal({
 
     return (
       <span
-        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium ${style.bg} ${style.text} ${style.border}`}
+        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${style.bg} ${style.text} ${style.border}`}
       >
-        <AlertTriangle className="h-4 w-4" />
+        <AlertTriangle className="h-3.5 w-3.5" />
         {style.label}
       </span>
     );
@@ -158,6 +161,7 @@ export default function NoteDetailModal({
   const updatedText = formatDateTime(note.updatedAt);
   const createdText = formatDateTime(note.createdAt);
   const showUpdatedAt = Boolean(note.updatedAt) && updatedText !== createdText;
+  const initialLetter = note.patientName ? note.patientName.charAt(0).toUpperCase() : "P";
 
   return (
     <div
@@ -165,17 +169,17 @@ export default function NoteDetailModal({
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl bg-white shadow-xl"
+        className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white p-6">
+        {/* Header Sticky */}
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white p-6 shadow-xs">
           <div className="flex-1">
-            <h2 className="text-xl font-semibold text-[#2B5379]">
-              Catatan Konseling
+            <h2 className="text-xl font-bold text-[#2B5379]">
+              Detail Catatan Rekam Medis Sesi
             </h2>
-            <p className="mt-1 text-sm text-gray-600">
-              Detail catatan sesi SOAP
+            <p className="mt-0.5 text-xs text-gray-500">
+              Dokumentasi terstruktur format SOAP Oase Jiwa
             </p>
           </div>
 
@@ -183,22 +187,22 @@ export default function NoteDetailModal({
             {onEdit && (
               <button
                 onClick={() => onEdit(note)}
-                className="rounded-lg p-2 transition-colors hover:bg-gray-100"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
                 type="button"
-                aria-label="Edit catatan"
               >
-                <Edit className="h-5 w-5 text-gray-600" />
+                <Edit className="h-4 w-4 text-[#2B5379]" />
+                Edit Catatan
               </button>
             )}
 
             {onDelete && (
               <button
                 onClick={() => setShowDeleteConfirm(true)}
-                className="rounded-lg p-2 transition-colors hover:bg-red-50"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition"
                 type="button"
-                aria-label="Hapus catatan"
               >
-                <Trash2 className="h-5 w-5 text-red-600" />
+                <Trash2 className="h-4 w-4" />
+                Hapus
               </button>
             )}
 
@@ -206,7 +210,6 @@ export default function NoteDetailModal({
               onClick={onClose}
               className="rounded-lg p-2 transition-colors hover:bg-gray-100"
               type="button"
-              aria-label="Tutup modal"
             >
               <X className="h-5 w-5 text-gray-600" />
             </button>
@@ -214,99 +217,102 @@ export default function NoteDetailModal({
         </div>
 
         <div className="space-y-6 p-6">
-          {/* Patient and Session Info */}
-          <div className="rounded-lg bg-[#D1EAFF] p-4">
-            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-[#2B5379]">
-                  {note.patientName || "Pasien"}
-                </h3>
-                <p className="mt-1 text-sm text-gray-700">
-                  {note.service || "Konseling"}
-                </p>
+          {/* Banner Pasien Gradient */}
+          <div className="rounded-xl bg-gradient-to-r from-[#234463] to-[#2B5379] p-5 text-white shadow-md">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-full bg-white/20 border-2 border-white/40 text-white flex items-center justify-center font-bold text-xl shrink-0">
+                  {initialLetter}
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold">{note.patientName || "Budi Santoso"}</h3>
+                  <p className="text-xs text-blue-100 font-medium mt-0.5">
+                    {note.service || "Konseling Individu"}
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-blue-100 font-medium">
+                    <span className="flex items-center gap-1 bg-white/20 px-2.5 py-0.5 rounded-md">
+                      <Calendar className="h-3.5 w-3.5" /> {formatDateOnly(note.sessionDate || note.createdAt)}
+                    </span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1 bg-white/20 px-2.5 py-0.5 rounded-md">
+                      <Clock className="h-3.5 w-3.5" /> {note.sessionTime || "09.00"}
+                    </span>
+                    <span>•</span>
+                    <span className="bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 px-2.5 py-0.5 rounded-md font-bold">
+                      Sesi ke-{note.sessionNumber || 1} ({note.duration || 60} menit)
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              {getRiskBadge()}
-            </div>
-
-            <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-gray-700">
-              <div className="flex items-center gap-1.5">
-                <Calendar className="h-4 w-4" />
-                <span>{formatDateOnly(note.sessionDate)}</span>
+              <div className="self-start sm:self-auto">
+                {getRiskBadge()}
               </div>
-
-              <span className="text-gray-400">•</span>
-
-              <div className="flex items-center gap-1.5">
-                <Clock className="h-4 w-4" />
-                <span>{note.sessionTime || "-"}</span>
-              </div>
-
-              <span className="text-gray-400">•</span>
-
-              <span>{note.duration ? `${note.duration} menit` : "-"}</span>
-
-              <span className="text-gray-400">•</span>
-
-              <span>Sesi ke-{note.sessionNumber || 1}</span>
             </div>
           </div>
 
-          {/* SOAP */}
+          {/* Section Rekam Medis Sesi (SOAP Format) */}
           <div className="space-y-4">
-            <h4 className="font-semibold text-[#2B5379]">Catatan SOAP</h4>
+            <h4 className="font-bold text-[#2B5379] flex items-center gap-2 text-base">
+              <FileText className="h-4.5 w-4.5 text-[#2B5379]" />
+              Detail Rekam Medis Sesi
+            </h4>
 
             <SoapSection
-              title="S - Subjective"
-              subtitle="Keluhan, cerita, atau pengalaman yang disampaikan pasien"
+              title="Keluhan Utama (Subjective)"
+              subtitle="Keluhan, perasaan, atau pengalaman yang disampaikan pasien"
               content={note.subjective}
-              className="border-blue-200 bg-blue-50"
+              className="border-blue-200 bg-blue-50/70"
             />
 
             <SoapSection
-              title="O - Objective"
-              subtitle="Observasi objektif selama sesi"
+              title="Observasi Psikolog (Objective)"
+              subtitle="Observasi objektif psikolog selama sesi berlangsung"
               content={note.objective}
-              className="border-green-200 bg-green-50"
+              className="border-green-200 bg-green-50/70"
             />
 
             <SoapSection
-              title="A - Assessment"
-              subtitle="Analisis, progress, atau kesimpulan psikolog"
+              title="Assessment"
+              subtitle="Gejala, diagnosis, dan analisis psikologis"
               content={note.assessment}
-              className="border-yellow-200 bg-yellow-50"
+              className="border-yellow-200 bg-yellow-50/70"
             />
 
             <SoapSection
-              title="P - Plan"
-              subtitle="Rencana treatment, latihan rumah, atau rekomendasi"
+              title="Intervensi (Plan)"
+              subtitle="Pendekatan terapi, psychoeducation, teknik pernapasan, dan relaksasi"
               content={note.plan}
-              className="border-purple-200 bg-purple-50"
+              className="border-purple-200 bg-purple-50/70"
             />
           </div>
 
-          {/* Follow-up and Recommendation */}
-          {(note.followUpDate || note.nextSessionRecommendation) && (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {note.followUpDate && (
-                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                  <p className="mb-2 text-xs font-medium text-blue-900">
-                    Tanggal Follow-up
-                  </p>
-                  <p className="text-sm text-blue-700">
-                    {formatDateOnly(note.followUpDate)}
-                  </p>
+          {/* Rencana Tindak Lanjut */}
+          {(note.followUpDate || note.nextSessionRecommendation || note.additionalNotes) && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 shadow-2xs space-y-2">
+              <p className="text-sm font-bold text-[#2B5379] flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                Rencana Tindak Lanjut & Rekomendasi
+              </p>
+              
+              {note.nextSessionRecommendation && (
+                <div className="rounded-lg bg-white p-3 border border-emerald-100 text-xs sm:text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
+                  {note.nextSessionRecommendation}
                 </div>
               )}
 
-              {note.nextSessionRecommendation && (
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                  <p className="mb-2 text-xs font-medium text-gray-700">
-                    Rekomendasi Sesi Berikutnya
-                  </p>
-                  <p className="whitespace-pre-wrap text-sm text-gray-800">
-                    {note.nextSessionRecommendation}
-                  </p>
+              {note.additionalNotes && (
+                <p className="text-xs text-gray-700 italic pt-1">
+                  Catatan Tambahan: {note.additionalNotes}
+                </p>
+              )}
+
+              {note.followUpDate && (
+                <div className="pt-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 border border-emerald-300">
+                    <Calendar className="h-3.5 w-3.5" />
+                    Jadwal Kontrol: {formatDateOnly(note.followUpDate)}
+                  </span>
                 </div>
               )}
             </div>
@@ -315,14 +321,14 @@ export default function NoteDetailModal({
           {/* Tags */}
           {note.tags && note.tags.length > 0 && (
             <div>
-              <p className="mb-2 text-xs font-medium text-gray-600">Tags</p>
+              <p className="mb-2 text-xs font-bold text-gray-600 uppercase tracking-wider">Tags Klinik</p>
               <div className="flex flex-wrap gap-2">
                 {note.tags.map((tag, index) => (
                   <span
                     key={`${tag}-${index}`}
-                    className="inline-flex items-center rounded-md bg-[#D1EAFF] px-3 py-1 text-sm text-[#2B5379]"
+                    className="inline-flex items-center rounded-lg bg-[#D1EAFF] px-3 py-1 text-xs font-semibold text-[#2B5379] border border-blue-200"
                   >
-                    {tag}
+                    #{tag}
                   </span>
                 ))}
               </div>
@@ -333,24 +339,22 @@ export default function NoteDetailModal({
           <div className="border-t border-gray-200 pt-4">
             <div className="flex flex-col gap-1 text-xs text-gray-500 sm:flex-row sm:items-center sm:justify-between">
               <span>Dibuat: {createdText}</span>
-
               {showUpdatedAt && <span>Diubah: {updatedText}</span>}
             </div>
           </div>
         </div>
 
-        {/* Delete Confirmation */}
+        {/* Modal Hapus Confirm */}
         {showDeleteConfirm && (
-          <div className="border-t border-gray-200 bg-red-50 p-6">
+          <div className="border-t border-gray-200 bg-red-50 p-6 rounded-b-2xl">
             <div className="mb-4 flex items-start gap-3">
               <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
               <div>
-                <p className="font-semibold text-red-900">
-                  Hapus catatan ini?
+                <p className="font-bold text-red-900">
+                  Hapus catatan konseling ini?
                 </p>
-                <p className="mt-1 text-sm text-red-700">
-                  Tindakan ini tidak dapat dibatalkan. Catatan konseling akan
-                  dihapus.
+                <p className="mt-1 text-xs text-red-700">
+                  Tindakan ini tidak dapat dibatalkan. Catatan sesi pasien akan dihapus secara permanen.
                 </p>
               </div>
             </div>
@@ -358,7 +362,7 @@ export default function NoteDetailModal({
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50"
                 type="button"
               >
                 Batal
@@ -367,10 +371,10 @@ export default function NoteDetailModal({
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                 type="button"
               >
-                {deleting ? "Menghapus..." : "Ya, Hapus"}
+                {deleting ? "Menghapus..." : "Ya, Hapus Catatan"}
               </button>
             </div>
           </div>

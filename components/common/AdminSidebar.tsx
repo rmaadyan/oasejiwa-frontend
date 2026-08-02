@@ -4,9 +4,11 @@ import {
   BarChart3,
   Briefcase,
   CalendarCheck,
+  ClipboardList,
   FileText,
   LayoutDashboard,
   LogOut,
+  Star,
   UserCog,
   Users,
 } from "lucide-react";
@@ -38,6 +40,11 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
       href: "/admin/analytics",
     },
     {
+      icon: ClipboardList,
+      label: "Rekam Medis Digital",
+      href: "/admin/rekam-medis",
+    },
+    {
       icon: Users,
       label: "Manajemen Psikolog",
       href: "/admin/psikologmanagement",
@@ -61,6 +68,11 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
       icon: FileText,
       label: "Manajemen Tes",
       href: "/admin/manajemen-tes",
+    },
+    {
+      icon: Star,
+      label: "Google Reviews",
+      href: "/admin/google-reviews",
     },
   ];
 
