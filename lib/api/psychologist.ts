@@ -155,38 +155,68 @@ export async function getPsychologistDashboard(): Promise<any> {
     });
 
     if (!res.ok) {
-      return {
-        psychologistName: "Okta",
-        todaySessionsCount: 0,
-        weeklySessionsCount: 0,
-        totalPatients: 0,
-        todaySessions: [],
-        upcomingSessions: [],
-      };
+      return { data: null };
     }
 
-    const result = await res.json();
-    const data = result.data || result;
-
-    return {
-      psychologistName: data.psychologistName || "Okta",
-      todaySessionsCount: data.todaySessionsCount ?? 0,
-      weeklySessionsCount: data.weeklySessionsCount ?? 0,
-      totalPatients: data.totalPatients ?? 0,
-      todaySessions: data.todaySessions || [],
-      upcomingSessions: data.upcomingSessions || [],
-    };
+    return await res.json();
   } catch (error) {
     console.error("Dashboard error fallback:", error);
-    return {
-      psychologistName: "Okta",
-      todaySessionsCount: 0,
-      weeklySessionsCount: 0,
-      totalPatients: 0,
-      todaySessions: [],
-      upcomingSessions: [],
-    };
+    return { data: null };
   }
+}
+
+// 🟢 PERBAIKAN ENDPOINT COMPLETED KE PATCH /psychologist/sessions/:id/status
+export async function markSessionCompleted(
+  sessionId: number | string
+): Promise<Session> {
+  const res = await fetch(
+    `${API_BASE_URL}/psychologist/sessions/${sessionId}/status`,
+    {
+      method: "PATCH",
+      cache: "no-store",
+      credentials: "include",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ status: "COMPLETED" }),
+    }
+  );
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(
+      `Failed to mark session as completed: ${res.status} ${errorText}`
+    );
+  }
+
+  return res.json();
+}
+
+// 🟢 PERBAIKAN ENDPOINT CANCEL KE PATCH /psychologist/sessions/:id/status
+export async function cancelSession(
+  sessionId: number | string,
+  payload: SessionActionPayload
+): Promise<Session> {
+  const res = await fetch(
+    `${API_BASE_URL}/psychologist/sessions/${sessionId}/status`,
+    {
+      method: "PATCH",
+      cache: "no-store",
+      credentials: "include",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        status: "CANCELLED",
+        reason: payload.reason,
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(
+      `Failed to cancel session: ${res.status} ${errorText}`
+    );
+  }
+
+  return res.json();
 }
 
 export async function getTodaySessions(): Promise<Session[]> {
@@ -246,57 +276,6 @@ export async function getSessionDetails(
     const errorText = await res.text();
     throw new Error(
       `Failed to fetch session details: ${res.status} ${errorText}`
-    );
-  }
-
-  return res.json();
-}
-
-export async function markSessionCompleted(
-  sessionId: number | string
-): Promise<Session> {
-  const res = await fetch(
-    `${API_BASE_URL}/psychologist/sessions/${sessionId}/complete`,
-    {
-      method: "PATCH",
-      cache: "no-store",
-      credentials: "include",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({}),
-    }
-  );
-
-  if (!res.ok) {
-    const errorText = await res.text();
-    throw new Error(
-      `Failed to mark session as completed: ${res.status} ${errorText}`
-    );
-  }
-
-  return res.json();
-}
-
-export async function cancelSession(
-  sessionId: number | string,
-  payload: SessionActionPayload
-): Promise<Session> {
-  const res = await fetch(
-    `${API_BASE_URL}/psychologist/sessions/${sessionId}/cancel`,
-    {
-      method: "PATCH",
-      cache: "no-store",
-      credentials: "include",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({
-        reason: payload.reason,
-      }),
-    }
-  );
-
-  if (!res.ok) {
-    const errorText = await res.text();
-    throw new Error(
-      `Failed to cancel session: ${res.status} ${errorText}`
     );
   }
 

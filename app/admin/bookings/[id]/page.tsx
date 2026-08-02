@@ -12,6 +12,26 @@ import {
   confirmFullPayment,
 } from "@/lib/api/booking";
 
+// ─── HELPER UNTUK URL GAMBAR BACKEND DENGAN .ENV ─────────────────────────────
+const getImageUrl = (path?: string | null): string => {
+  if (!path) return "";
+
+  // 1. Jika sudah berupa URL lengkap atau Base64, kembalikan langsung
+  if (
+    path.startsWith("http://") || 
+    path.startsWith("https://") || 
+    path.startsWith("data:image/")
+  ) {
+    return path;
+  }
+
+  // 2. Ambil dari .env ATAU langsung fallback ke URL Backend (port 3000)
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+
+  return `${backendUrl}${cleanPath}`;
+};
+
 // ─── Konstanta Status Backend ──────────────────────────────────────────────────
 const statusUIMap: Record<
   string,
@@ -107,7 +127,8 @@ function mapApiToBooking(data: any): BookingData {
       amount: p.amount,
       method: p.method ?? "-",
       status: p.status,
-      proofImageUrl: p.paymentProofUrl ?? null,
+      // 🟢 FIX: Memastikan gambar mengambil baik dari paymentProofUrl maupun proofImageUrl
+      proofImageUrl: p.paymentProofUrl ?? p.proofImageUrl ?? null,
       orderId: p.orderId ?? "",
       expiredAt: p.expiredAt ?? null,
       createdAt: p.createdAt ?? "",
@@ -179,15 +200,15 @@ function BookingDetailContent({ id }: { id: string }) {
       prev.includes(key) ? prev.filter((s) => s !== key) : [...prev, key],
     );
 
-const handleContactClient = () => {
-  if (booking.user.phone) {
-    const phone = booking.user.phone.replace(/[^0-9]/g, "");
-    const intlPhone = phone.startsWith("0") ? "62" + phone.slice(1) : phone;
-    window.open(`https://wa.me/${intlPhone}`, "_blank");
-  } else {
-    showToast("Nomor telepon klien tidak tersedia", "error");
-  }
-};
+  const handleContactClient = () => {
+    if (booking.user.phone) {
+      const phone = booking.user.phone.replace(/[^0-9]/g, "");
+      const intlPhone = phone.startsWith("0") ? "62" + phone.slice(1) : phone;
+      window.open(`https://wa.me/${intlPhone}`, "_blank");
+    } else {
+      showToast("Nomor telepon klien tidak tersedia", "error");
+    }
+  };
 
   const handleApproveDP = async () => {
     try {
@@ -428,17 +449,16 @@ const handleContactClient = () => {
               <div className="flex items-start gap-4 mb-6">
                 <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-[#D6E6F2] flex-shrink-0 flex items-center justify-center">
                   {booking.psychologist.avatarUrl ? (
-                    <Image
-                      src={booking.psychologist.avatarUrl}
-                      alt={booking.psychologist.fullName}
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <span className="text-xl font-bold text-[#2B5379]">
-                      {booking.psychologist.fullName.charAt(0)}
-                    </span>
-                  )}
+  <img
+    src={getImageUrl(booking.psychologist.avatarUrl)}
+    alt={booking.psychologist.fullName}
+    className="w-full h-full object-cover"
+  />
+) : (
+  <span className="text-xl font-bold text-[#2B5379]">
+    {booking.psychologist.fullName.charAt(0)}
+  </span>
+)}
                 </div>
                 <div>
                   <p className="font-semibold text-[#234463]">
@@ -736,7 +756,6 @@ const handleContactClient = () => {
                   )}
                 </div>
               </Card>
-
             )}
 
             {booking.payments.length > 0 && (
@@ -785,17 +804,17 @@ const handleContactClient = () => {
       <ImageModal
         isOpen={showDpImageModal}
         onClose={() => setShowDpImageModal(false)}
-        imageSrc={
-          getPayment(booking.payments, "DOWN_PAYMENT")?.proofImageUrl ?? ""
-        }
+        imageSrc={getImageUrl(
+          getPayment(booking.payments, "DOWN_PAYMENT")?.proofImageUrl,
+        )}
         alt="Bukti Pembayaran DP"
       />
       <ImageModal
         isOpen={showFullImageModal}
         onClose={() => setShowFullImageModal(false)}
-        imageSrc={
-          getPayment(booking.payments, "FULL_PAYMENT")?.proofImageUrl ?? ""
-        }
+        imageSrc={getImageUrl(
+          getPayment(booking.payments, "FULL_PAYMENT")?.proofImageUrl,
+        )}
         alt="Bukti Pelunasan"
       />
 
@@ -912,7 +931,7 @@ export default function BookingDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = use(params); // ✅ unwrap Promise di Next.js 15
+  const { id } = use(params);
   return (
     <ToastProvider>
       <BookingDetailContent id={id} />
@@ -954,6 +973,7 @@ function PaymentRow({
   );
 }
 
+// 🟢 FIX: Menggunakan tag <img> HTML standar dengan URL Backend utuh
 function ProofImage({
   src,
   alt,
@@ -968,13 +988,12 @@ function ProofImage({
       <p className="text-sm text-[#4B4B4B] mb-2">{alt}</p>
       <div
         onClick={onClick}
-        className="relative w-full h-40 rounded-xl overflow-hidden cursor-pointer group"
+        className="relative w-full h-40 rounded-xl overflow-hidden cursor-pointer group border border-[#D6E6F2]"
       >
-        <Image
-          src={src}
+        <img
+          src={getImageUrl(src)}
           alt={alt}
-          fill
-          className="object-cover group-hover:scale-105 transition-transform duration-300"
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
           <svg

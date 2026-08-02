@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { getPsychologistDashboard } from "@/lib/api/psychologist";
 
-// 🟢 Helper Fungsi Sapaan Dinamis Berdasarkan Waktu
 function getGreeting() {
   const hour = new Date().getHours();
   if (hour >= 3 && hour < 11) return "Selamat Pagi";
@@ -20,7 +19,7 @@ export default function PsychologistDashboardPage() {
     async function loadData() {
       try {
         const res = await getPsychologistDashboard();
-        setData(res);
+        setData(res?.data || res);
       } catch (err) {
         console.error(err);
       } finally {
@@ -43,18 +42,43 @@ export default function PsychologistDashboardPage() {
     year: "numeric",
   });
 
-  const todaySessions = data?.todaySessions || [];
-  const upcomingSessions = data?.upcomingSessions || [];
+  // BACA DATA STATISTIK
+  const stats = data?.stats || {};
+  const todaySessionsCount = stats?.sesiHariIni ?? 0;
+  const weeklySessionsCount = stats?.sesiMingguIni ?? 0;
+  const totalPatients = stats?.totalPasien ?? 0;
+
+  // BACA LIST SESI HARI INI & MENDATANG
+  const rawTodaySessions = data?.jadwalHariIni || [];
+  const rawUpcomingSessions = data?.jadwalMendatang || [];
+
+  const todaySessions = rawTodaySessions.map((session: any) => ({
+    id: session.id,
+    patientName: session.user?.userProfile?.fullName || "Pasien",
+    serviceName: session.service?.nama || "Konseling Psikologi",
+    time: session.scheduledTime || "17:10",
+    status: session.status || "PENDING",
+  }));
+
+  const upcomingSessions = rawUpcomingSessions.map((session: any) => ({
+    id: session.id,
+    patientName: session.user?.userProfile?.fullName || "Pasien",
+    serviceName: session.service?.nama || "Konseling Psikologi",
+    date: session.scheduledDate
+      ? new Date(session.scheduledDate).toLocaleDateString("id-ID", { day: "numeric", month: "short" })
+      : "-",
+    time: session.scheduledTime || "17:10",
+    status: session.status || "APPROVED",
+  }));
 
   return (
     <div className="p-6 space-y-6 font-poppins text-xs max-w-6xl">
-      {/* Header Title */}
       <div>
         <h1 className="text-lg font-bold text-slate-800">Dashboard</h1>
         <p className="text-slate-500">Overview aktivitas dan jadwal Anda</p>
       </div>
 
-      {/* 🟢 BANNER SAPAAN BIRU MUDA */}
+      {/* BANNER SAPAAN */}
       <div className="bg-[#D9EBFC] p-6 rounded-2xl border-2 border-slate-500 space-y-1">
         <h2 className="text-sm font-bold text-[#1F415F]">
           {greetingText}, {data?.psychologistName || "Okta"}
@@ -63,31 +87,28 @@ export default function PsychologistDashboardPage() {
         <p className="text-slate-400 text-[11px] pt-1">{todayDateFormatted}</p>
       </div>
 
-      {/* 🟢 3 CARD STATISTIK (DENGAN BORDER-2 BORDER-SLATE-500 RATA KIRI) */}
+      {/* 3 CARD STATISTIK */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Card 1: Sesi Hari Ini */}
         <div className="bg-white p-5 rounded-2xl border-2 border-slate-500 shadow-xs space-y-2">
           <p className="text-slate-500 font-medium">Sesi hari ini</p>
-          <p className="text-2xl font-bold text-slate-800">{data?.todaySessionsCount || 0}</p>
-          <p className="text-slate-400 text-[11px]">{data?.todaySessionsCount || 0} Sesi</p>
+          <p className="text-2xl font-bold text-slate-800">{todaySessionsCount}</p>
+          <p className="text-slate-400 text-[11px]">{todaySessionsCount} Sesi</p>
         </div>
 
-        {/* Card 2: Sesi Minggu Ini */}
         <div className="bg-white p-5 rounded-2xl border-2 border-slate-500 shadow-xs space-y-2">
           <p className="text-slate-500 font-medium">Sesi Minggu ini</p>
-          <p className="text-2xl font-bold text-slate-800">{data?.weeklySessionsCount || 0}</p>
+          <p className="text-2xl font-bold text-slate-800">{weeklySessionsCount}</p>
           <p className="text-slate-400 text-[11px]">Total minggu ini</p>
         </div>
 
-        {/* Card 3: Total Pasien */}
         <div className="bg-white p-5 rounded-2xl border-2 border-slate-500 shadow-xs space-y-2">
-          <p className="text-slate-500 font-medium">Total Pasien</p>
-          <p className="text-2xl font-bold text-slate-800">{data?.totalPatients || 0}</p>
-          <p className="text-slate-400 text-[11px]">Di bulan ini</p>
+          <p className="text-slate-500 font-medium">Total Pasien (Selesai)</p>
+          <p className="text-2xl font-bold text-slate-800">{totalPatients}</p>
+          <p className="text-slate-400 text-[11px]">Pasien yang telah selesai konseling</p>
         </div>
       </div>
 
-      {/* 🟢 CARD JADWAL HARI INI */}
+      {/* JADWAL HARI INI */}
       <div className="bg-white p-5 rounded-2xl border-2 border-slate-500 shadow-xs space-y-2">
         <h3 className="font-bold text-slate-800 text-sm">Jadwal Sesi Hari Ini</h3>
         {todaySessions.length === 0 ? (
@@ -105,7 +126,11 @@ export default function PsychologistDashboardPage() {
                 </div>
                 <div className="text-right">
                   <p className="font-semibold text-[#234463]">{session.time} WIB</p>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-medium uppercase">
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium uppercase ${
+                    session.status === 'CANCELLED' || session.status === 'REJECTED'
+                      ? 'bg-red-100 text-red-800'
+                      : 'bg-blue-100 text-blue-800'
+                  }`}>
                     {session.status}
                   </span>
                 </div>
@@ -115,7 +140,7 @@ export default function PsychologistDashboardPage() {
         )}
       </div>
 
-      {/* 🟢 CARD JADWAL MENDATANG */}
+      {/* JADWAL MENDATANG */}
       <div className="bg-white p-6 rounded-2xl border-2 border-slate-500 shadow-xs space-y-3">
         <h3 className="font-bold text-slate-800 text-sm">Jadwal Sesi Mendatang</h3>
         {upcomingSessions.length === 0 ? (
