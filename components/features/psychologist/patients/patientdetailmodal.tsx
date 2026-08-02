@@ -893,7 +893,7 @@ export default function PatientDetailModal({
                 </div>
               )}
 
-              {/* 3 & 4. Riwayat Sesi */}
+              {/* Riwayat Sesi - 🟢 PERBAIKAN TAMPILAN STATUS DI SINI */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="font-semibold text-[#2B5379] flex items-center gap-2 text-base">
@@ -901,53 +901,68 @@ export default function PatientDetailModal({
                     Riwayat Sesi
                   </h4>
 
-                  <p className="text-xs font-medium text-gray-500">
-                    Minimal {sessionHistory.length} sesi tercatat
+                  <p className="text-xs text-gray-500 font-medium">
+                    {sessionHistory.length} sesi tercatat
                   </p>
                 </div>
 
                 {sessionHistory.length > 0 ? (
-                  <div className="space-y-3">
-                    {sessionHistory.map((session, index) => {
-                      const isCompleted = session.status === "completed";
+                  <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+                    {sessionHistory.map((session) => {
+                      const canOpenNote =
+                        Boolean(session.hasNotes) && Boolean(session.noteId);
+
+                      const statusUpper = String(session.status || "").toUpperCase();
 
                       return (
-                        <div
-                          key={session.id || index}
-                          className="flex flex-col sm:flex-row sm:items-center justify-between rounded-xl border border-gray-200 bg-gray-50/60 p-4 gap-3 transition-all hover:bg-white hover:border-blue-200 hover:shadow-sm"
+                        <button
+                          key={session.id}
+                          onClick={() => {
+                            if (canOpenNote) {
+                              handleViewNote(String(session.noteId));
+                            }
+                          }}
+                          disabled={!canOpenNote || loadingNote}
+                          className={`flex w-full items-center justify-between rounded-xl border p-3.5 transition-all shadow-xs ${
+                            canOpenNote
+                              ? "cursor-pointer border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/50"
+                              : "cursor-not-allowed border-gray-200 bg-gray-50/80"
+                          } ${loadingNote ? "cursor-wait opacity-50" : ""}`}
+                          type="button"
                         >
-                          <div className="flex items-start gap-3">
-                            <div
-                              className={`mt-1 h-3 w-3 shrink-0 rounded-full ${
-                                isCompleted ? "bg-emerald-500" : "bg-blue-500"
-                              }`}
-                            />
+                          <div className="flex items-center gap-3">
+                            <div className="text-left space-y-1">
+                              <p className="text-sm font-bold text-gray-900">
+                                {session.service}
+                              </p>
 
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <p className="text-sm font-bold text-gray-900">
-                                  {session.service || "Konseling Individu"}
-                                </p>
-                                <span
-                                  className={`px-2 py-0.5 rounded-md text-[11px] font-semibold border ${
-                                    isCompleted
-                                      ? "bg-emerald-100 text-emerald-800 border-emerald-200"
-                                      : "bg-blue-100 text-blue-800 border-blue-200"
-                                  }`}
-                                >
-                                  {isCompleted ? "Selesai" : "Terjadwal"}
-                                </span>
-                              </div>
-
-                              <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-gray-600 font-medium">
-                                <span className="flex items-center gap-1">
-                                  <Calendar className="h-3.5 w-3.5 text-gray-400" />
+                              <div className="flex flex-wrap items-center gap-2 text-xs">
+                                <span className="flex items-center gap-1 font-semibold text-slate-700">
+                                  <Calendar className="h-3.5 w-3.5 text-[#2B5379]" />
                                   {formatDate(session.date)}
                                 </span>
-                                <span>•</span>
-                                <span className="flex items-center gap-1">
-                                  <Clock className="h-3.5 w-3.5 text-gray-400" />
-                                  {session.time || "09.00"}
+                                <span className="text-slate-300">•</span>
+                                <span className="flex items-center gap-1 font-semibold text-[#2B5379]">
+                                  <Clock className="h-3.5 w-3.5" />
+                                  {session.time || "-"}
+                                </span>
+                                <span className="text-slate-300">•</span>
+
+                                {/* 🟢 BADGE STATUS JELAS DAN TEBAL */}
+                                <span
+                                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                                    statusUpper === "COMPLETED" || statusUpper === "SELESAI"
+                                      ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                                      : statusUpper === "CANCELLED" || statusUpper === "REJECTED" || statusUpper === "DIBATALKAN"
+                                      ? "bg-rose-100 text-rose-800 border border-rose-200"
+                                      : "bg-blue-100 text-blue-800 border border-blue-200"
+                                  }`}
+                                >
+                                  {statusUpper === "COMPLETED" || statusUpper === "SELESAI"
+                                    ? "Selesai"
+                                    : statusUpper === "CANCELLED" || statusUpper === "REJECTED" || statusUpper === "DIBATALKAN"
+                                    ? "Dibatalkan"
+                                    : "Terjadwal"}
                                 </span>
                               </div>
 
@@ -960,47 +975,18 @@ export default function PatientDetailModal({
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2 self-end sm:self-center">
-                            {isCompleted ? (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => handleViewNote(session.noteId || "note-sesi-2")}
-                                  disabled={loadingNote}
-                                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#2B5379] bg-white px-3 py-1.5 text-xs font-semibold text-[#2B5379] hover:bg-[#F0F7FF] transition"
-                                >
-                                  <Eye className="h-3.5 w-3.5" />
-                                  Lihat
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => setIsCreateNoteOpen(true)}
-                                  className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-600 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 transition"
-                                >
-                                  <Edit className="h-3.5 w-3.5" />
-                                  Edit
-                                </button>
-                              </>
+                          <div className="flex shrink-0 items-center gap-1.5 pl-2">
+                            {canOpenNote ? (
+                              <div className="flex items-center gap-1.5 rounded-lg bg-blue-50 px-2.5 py-1 text-[#2B5379]">
+                                <FileText className="h-4 w-4" />
+                                <span className="text-xs font-semibold">
+                                  Lihat Catatan
+                                </span>
+                              </div>
                             ) : (
-                              <>
-                                <button
-                                  disabled
-                                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-400 cursor-not-allowed opacity-60"
-                                  title="Belum ada catatan karena sesi belum selesai"
-                                >
-                                  <Eye className="h-3.5 w-3.5" />
-                                  Lihat
-                                </button>
-                                <button
-                                  disabled
-                                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-400 cursor-not-allowed opacity-60"
-                                  title="Belum dapat diedit karena sesi belum selesai"
-                                >
-                                  <Edit className="h-3.5 w-3.5" />
-                                  Edit
-                                </button>
-                              </>
+                              <span className="text-xs font-medium text-gray-400">
+                                Tidak ada catatan
+                              </span>
                             )}
                           </div>
                         </div>
