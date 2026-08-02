@@ -1,5 +1,5 @@
-import PsychologistDashboard from "@/app/psychologist/dashboard";
+import { redirect } from "next/navigation";
 
 export default function PsychologistRoot() {
-  return <PsychologistDashboard />;
+  redirect("/psychologist/profile");
 }

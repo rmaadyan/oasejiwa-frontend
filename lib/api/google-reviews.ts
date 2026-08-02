@@ -64,3 +64,22 @@ export async function getAdminGoogleReviews(): Promise<GoogleReviewsData | null>
     return getGoogleReviews();
   }
 }
+
+export async function syncAdminGoogleReviews(): Promise<GoogleReviewsData | null> {
+  try {
+    const token = getAuthToken();
+    const res = await fetch(`${API_BASE_URL}/google-reviews/sync`, {
+      method: "POST",
+      cache: "no-store",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+    if (!res.ok) return getAdminGoogleReviews();
+    return await res.json();
+  } catch (err) {
+    console.error("Error syncing Google Reviews:", err);
+    return getAdminGoogleReviews();
+  }
+}

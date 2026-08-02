@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 
 interface PaymentDetailsCardProps {
   bank: string;
@@ -14,6 +15,8 @@ export default function PaymentDetailsCard({
   amount,
 }: PaymentDetailsCardProps) {
   const [copied, setCopied] = useState(false);
+
+  const isQris = bank.toLowerCase().includes("qris");
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("id-ID", {
@@ -47,72 +50,98 @@ export default function PaymentDetailsCard({
         </p>
       </div>
 
-      {/* Bank Info */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-          <div>
-            <p className="text-sm text-[#4B4B4B]">Bank Tujuan</p>
-            <p className="font-semibold text-[#234463]">{bank}</p>
-          </div>
-        </div>
+      {isQris ? (
+        /* QRIS View */
+        <div className="space-y-4 text-center">
+          <div className="p-4 bg-gray-50 rounded-xl flex flex-col items-center">
+            <p className="text-sm text-[#4B4B4B] mb-1">Metode Pembayaran</p>
+            <p className="font-bold text-lg text-[#234463] mb-3">QRIS Standar Pembayaran Nasional</p>
+            
+            <div className="relative w-64 h-80 bg-white p-2 rounded-xl border border-slate-200 shadow-md my-2">
+              <Image
+                src="/assets/qris-oasejiwa.png"
+                alt="QRIS Oase Jiwa Klinik"
+                fill
+                className="object-contain"
+              />
+            </div>
 
-        {/* Virtual Account */}
-        <div className="p-4 bg-gray-50 rounded-xl">
-          <p className="text-sm text-[#4B4B4B] mb-2">Nomor Pembayaran (an. CV. sinergi jiwa harmoni)</p>
-          <div className="flex items-center justify-between">
-            <p className="text-xl font-mono font-bold text-[#234463] tracking-wider">
-              {virtualAccount}
+            <div className="mt-3 bg-slate-100 px-4 py-2 rounded-lg text-xs font-mono text-slate-700">
+              NMID: ID2026480037624 (OASE JIWA KLINIK)
+            </div>
+            <p className="text-xs text-slate-500 mt-2">
+              Scan barcode di atas menggunakan GoPay, OVO, Dana, ShopeePay, BCA Mobile, Livin, atau M-Banking lainnya.
             </p>
-            <button
-              onClick={() => handleCopy(virtualAccount)}
-              className={`
-                flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
-                ${
-                  copied
-                    ? "bg-[#22C55E] text-white"
-                    : "bg-[#2B5379] text-white hover:bg-[#234463]"
-                }
-              `}
-            >
-              {copied ? (
-                <>
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  Tersalin
-                </>
-              ) : (
-                <>
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                    />
-                  </svg>
-                  Salin
-                </>
-              )}
-            </button>
           </div>
         </div>
-      </div>
+      ) : (
+        /* Bank Info */
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+            <div>
+              <p className="text-sm text-[#4B4B4B]">Bank Tujuan</p>
+              <p className="font-semibold text-[#234463]">{bank}</p>
+            </div>
+          </div>
+
+          {/* Virtual Account */}
+          <div className="p-4 bg-gray-50 rounded-xl">
+            <p className="text-sm text-[#4B4B4B] mb-2">Nomor Pembayaran (an. CV. sinergi jiwa harmoni)</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xl font-mono font-bold text-[#234463] tracking-wider">
+                {virtualAccount}
+              </p>
+              <button
+                onClick={() => handleCopy(virtualAccount)}
+                className={`
+                  flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
+                  ${
+                    copied
+                      ? "bg-[#22C55E] text-white"
+                      : "bg-[#2B5379] text-white hover:bg-[#234463]"
+                  }
+                `}
+              >
+                {copied ? (
+                  <>
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                    Tersalin
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                      />
+                    </svg>
+                    Salin
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

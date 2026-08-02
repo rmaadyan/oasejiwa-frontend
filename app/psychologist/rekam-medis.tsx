@@ -11,12 +11,11 @@ import {
   Filter,
   UserCheck,
   AlertTriangle,
-  CheckCircle2,
   Clock,
-  ChevronRight,
   Trash2,
+  Sparkles,
 } from "lucide-react";
-import { getAllPatients, getPatientDetail } from "@/lib/api/psychologist";
+import { getAllPatients, getPatientDetail, deletePatient } from "@/lib/api/psychologist";
 import PatientDetailModal from "@/components/features/psychologist/patients/patientdetailmodal";
 import MedicalRecordPdfModal from "@/components/features/psychologist/patients/MedicalRecordPdfModal";
 import CreateNoteModal from "@/components/features/psychologist/notes/createnotemodal";
@@ -24,42 +23,12 @@ import CreatePatientModal from "@/components/features/psychologist/patients/crea
 import type {
   PsychologistPatient,
   PsychologistPatientDetail,
+  SessionNote,
 } from "@/lib/types/psychologist";
-
-const DEFAULT_PATIENTS: PsychologistPatient[] = [
-  {
-    id: "1",
-    name: "Budi Santoso",
-    email: "budi.santoso@example.com",
-    phone: "0812-3456-7890",
-    totalSessions: 2,
-    firstSessionDate: "2026-07-15",
-    lastSessionDate: "2026-07-29",
-    latestRiskLevel: "medium",
-    latestTesName: "Skala Kecemasan (DASS-21)",
-    latestTesCategory: "Kecemasan",
-    latestTesScore: "10 (48%)",
-    hasSessionNotes: true,
-  },
-  {
-    id: "2",
-    name: "Siti Rahmawati",
-    email: "siti.rahmawati@example.com",
-    phone: "0821-9876-5432",
-    totalSessions: 3,
-    firstSessionDate: "2026-07-05",
-    lastSessionDate: "2026-07-20",
-    latestRiskLevel: "medium",
-    latestTesName: "Skala Depresi (DASS-21)",
-    latestTesCategory: "Depresi",
-    latestTesScore: "12 (55%)",
-    hasSessionNotes: true,
-  },
-];
 
 export default function PsychologistRekamMedisPage() {
   const [loading, setLoading] = useState(true);
-  const [patients, setPatients] = useState<PsychologistPatient[]>(DEFAULT_PATIENTS);
+  const [patients, setPatients] = useState<PsychologistPatient[]>([]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -73,6 +42,7 @@ export default function PsychologistRekamMedisPage() {
   const [isPdfOpen, setIsPdfOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isCreatePatientOpen, setIsCreatePatientOpen] = useState(false);
+  const [editingNote, setEditingNote] = useState<SessionNote | null>(null);
 
   const fetchPatients = async () => {
     setLoading(true);
@@ -81,37 +51,7 @@ export default function PsychologistRekamMedisPage() {
         search: searchTerm,
       });
 
-      const list = data.patients || [];
-
-      const combinedMap = new Map<string, PsychologistPatient>();
-
-      // Key by lowercased name to merge duplicate Budi Santoso entries
-      DEFAULT_PATIENTS.forEach((p) => {
-        const key = p.name.toLowerCase().trim();
-        combinedMap.set(key, p);
-      });
-
-      list.forEach((p) => {
-        const nameKey = (p.name || "budi santoso").toLowerCase().trim();
-        const existing = combinedMap.get(nameKey);
-
-        combinedMap.set(nameKey, {
-          id: existing?.id || p.id || "1",
-          name: p.name || existing?.name || "Budi Santoso",
-          email: existing?.email || p.email || "budi.santoso@example.com",
-          phone: p.phone || existing?.phone || "0812-3456-7890",
-          latestTesName: p.latestTesName || existing?.latestTesName || "Skala Kecemasan (DASS-21)",
-          latestTesCategory: p.latestTesCategory || existing?.latestTesCategory || "Kecemasan",
-          latestTesScore: p.latestTesScore || existing?.latestTesScore || "10 (48%)",
-          latestRiskLevel: p.latestRiskLevel || existing?.latestRiskLevel || "medium",
-          totalSessions: Math.max(p.totalSessions || 0, existing?.totalSessions || 2),
-          firstSessionDate: p.firstSessionDate || existing?.firstSessionDate || "2026-07-15",
-          lastSessionDate: p.lastSessionDate || existing?.lastSessionDate || "2026-07-29",
-          hasSessionNotes: p.hasSessionNotes ?? existing?.hasSessionNotes ?? true,
-        });
-      });
-
-      let resultList = Array.from(combinedMap.values());
+      let resultList = data.patients || [];
 
       if (searchTerm.trim()) {
         const s = searchTerm.toLowerCase();
@@ -122,18 +62,27 @@ export default function PsychologistRekamMedisPage() {
         );
       }
 
+      if (riskFilter !== "all") {
+        resultList = resultList.filter((p) => p.latestRiskLevel === riskFilter);
+      }
+
       setPatients(resultList);
     } catch (error) {
       console.error("Gagal mengambil data rekam medis pasien:", error);
-      setPatients(DEFAULT_PATIENTS);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeletePatient = (patientId: string) => {
+  const handleDeletePatient = async (patientId: string) => {
     if (confirm("Apakah Anda yakin ingin menghapus data pasien ini dari rekam medis?")) {
-      setPatients((prev) => prev.filter((p) => p.id !== patientId));
+      try {
+        await deletePatient(patientId);
+        await fetchPatients();
+      } catch (err: any) {
+        console.error("Gagal menghapus pasien:", err);
+        alert(err.message || "Gagal menghapus data pasien.");
+      }
     }
   };
 
@@ -147,18 +96,50 @@ export default function PsychologistRekamMedisPage() {
   };
 
   const handleOpenPdf = async (patientId: string) => {
+    setSelectedPatientId(patientId);
+    setLoading(true);
+
     try {
       const detail = await getPatientDetail(patientId);
       setSelectedPatientDetail(detail);
+      if (!detail?.sessionNotesList?.length && !detail?.totalSessions) {
+        alert("Pasien ini belum memiliki rekam medis digital (0 Sesi). Rekam Medis PDF akan tersedia secara otomatis setelah Sesi Konseling / Rekam Medis pertama dibuat.");
+        return;
+      }
       setIsPdfOpen(true);
     } catch (err) {
-      console.error("Gagal load detail PDF pasien:", err);
+      console.error("Gagal memuat detail pasien untuk PDF:", err);
+      alert("Gagal memuat dokumen rekam medis untuk preview PDF.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleCreateNoteSuccess = () => {
-    setIsCreateOpen(false);
-    fetchPatients();
+  const handleCreateNoteSuccess = async () => {
+    await fetchPatients();
+    if (selectedPatientId) {
+      try {
+        const detail = await getPatientDetail(selectedPatientId);
+        setSelectedPatientDetail(detail);
+      } catch (err) {
+        console.error("Gagal memuat ulang detail pasien:", err);
+      }
+    }
+  };
+
+  const handleEditMedicalRecord = async (patient: PsychologistPatient) => {
+    try {
+      const detail = await getPatientDetail(patient.id);
+      const noteToEdit = detail?.sessionNotesList?.[0] || (detail as any)?.notes?.[0];
+      if (noteToEdit && noteToEdit.id && String(noteToEdit.id).trim() !== "") {
+        setEditingNote(noteToEdit);
+      } else {
+        setEditingNote(null);
+      }
+    } catch {
+      setEditingNote(null);
+    }
+    setIsCreateOpen(true);
   };
 
   // Stats calculation
@@ -166,13 +147,8 @@ export default function PsychologistRekamMedisPage() {
   const highRiskCount = patients.filter((p) => p.latestRiskLevel === "high").length;
   const withRecordCount = patients.filter((p) => p.hasSessionNotes).length;
 
-  const filteredPatients = patients.filter((patient) => {
-    if (statusFilter === "all") return true;
-    return true; // Filters applied
-  });
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-poppins text-xs">
       {/* Title & Banner */}
       <div className="bg-gradient-to-r from-[#234463] to-[#2B5379] text-white p-6 rounded-2xl shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -193,17 +169,20 @@ export default function PsychologistRekamMedisPage() {
           <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
             <button
               onClick={() => setIsCreatePatientOpen(true)}
-              className="flex items-center justify-center gap-2 bg-emerald-600 text-white hover:bg-emerald-500 font-semibold px-4 py-2.5 rounded-xl transition-all shadow-sm"
+              className="flex items-center justify-center gap-2 bg-emerald-600 text-white hover:bg-emerald-500 font-semibold px-4 py-2.5 rounded-xl transition-all shadow-sm cursor-pointer"
             >
               <Plus className="w-5 h-5" />
               <span>Tambah Pasien Baru</span>
             </button>
 
             <button
-              onClick={() => setIsCreateOpen(true)}
-              className="flex items-center justify-center gap-2 bg-[#F0F7FF] text-[#234463] hover:bg-white font-semibold px-4 py-2.5 rounded-xl transition-all shadow-sm"
+              onClick={() => {
+                setEditingNote(null);
+                setIsCreateOpen(true);
+              }}
+              className="flex items-center justify-center gap-2 bg-[#1F415F] text-white hover:bg-[#163047] font-semibold px-4 py-2.5 rounded-xl transition-all shadow-sm border border-white/20 cursor-pointer"
             >
-              <Plus className="w-5 h-5" />
+              <Sparkles className="w-5 h-5 text-amber-300" />
               <span>Tambah Rekam Medis</span>
             </button>
           </div>
@@ -223,7 +202,7 @@ export default function PsychologistRekamMedisPage() {
         </div>
 
         <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-emerald-50 text-emerald-6-0 rounded-xl">
+          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
             <ClipboardList className="w-6 h-6 text-emerald-600" />
           </div>
           <div>
@@ -264,10 +243,10 @@ export default function PsychologistRekamMedisPage() {
           <select
             value={riskFilter}
             onChange={(e) => setRiskFilter(e.target.value)}
-            className="text-xs border border-gray-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-[#2B5379] focus:outline-none"
+            className="text-xs border border-gray-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-[#2B5379] focus:outline-none cursor-pointer"
           >
             <option value="all">Semua Risiko</option>
-            <option value="high font-semibold text-red-600">Risiko Tinggi (High)</option>
+            <option value="high">Risiko Tinggi (High)</option>
             <option value="medium">Risiko Sedang (Medium)</option>
             <option value="low">Risiko Rendah (Low)</option>
           </select>
@@ -281,7 +260,7 @@ export default function PsychologistRekamMedisPage() {
             <div className="w-10 h-10 border-4 border-[#2B5379] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
             <p className="text-gray-500 text-sm">Memuat rekam medis digital...</p>
           </div>
-        ) : filteredPatients.length === 0 ? (
+        ) : patients.length === 0 ? (
           <div className="p-12 text-center">
             <ClipboardList className="w-12 h-12 text-gray-300 mx-auto mb-3" />
             <h3 className="text-base font-semibold text-gray-700">Belum Ada Rekam Medis Pasien</h3>
@@ -302,7 +281,7 @@ export default function PsychologistRekamMedisPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredPatients.map((patient) => (
+                {patients.map((patient) => (
                   <tr key={patient.id} className="hover:bg-blue-50/40 transition-colors">
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-3">
@@ -353,52 +332,62 @@ export default function PsychologistRekamMedisPage() {
                     </td>
 
                     <td className="py-4 px-4">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                          patient.latestRiskLevel === "high"
-                            ? "bg-red-100 text-red-800 border border-red-200"
-                            : patient.latestRiskLevel === "medium"
-                            ? "bg-amber-100 text-amber-800 border border-amber-200"
-                            : "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                        }`}
-                      >
-                        {patient.latestRiskLevel === "high"
-                          ? "Tinggi (High)"
-                          : patient.latestRiskLevel === "medium"
-                          ? "Sedang (Medium)"
-                          : "Rendah (Low)"}
-                      </span>
+                      {!patient.latestRiskLevel || patient.totalSessions === 0 || !patient.hasSessionNotes ? (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                          Belum Dinilai
+                        </span>
+                      ) : (
+                        <span
+                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                            patient.latestRiskLevel === "very_high" || patient.latestRiskLevel === "sangat_tinggi" || patient.latestRiskLevel === "high" || patient.latestRiskLevel === "tinggi"
+                              ? "bg-red-100 text-red-800 border border-red-200"
+                              : patient.latestRiskLevel === "medium" || patient.latestRiskLevel === "sedang"
+                              ? "bg-amber-100 text-amber-800 border border-amber-200"
+                              : "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                          }`}
+                        >
+                          {patient.latestRiskLevel === "very_high" || patient.latestRiskLevel === "sangat_tinggi"
+                            ? "Sangat Tinggi (Very High)"
+                            : patient.latestRiskLevel === "high" || patient.latestRiskLevel === "tinggi"
+                            ? "Tinggi (High)"
+                            : patient.latestRiskLevel === "medium" || patient.latestRiskLevel === "sedang"
+                            ? "Sedang (Medium)"
+                            : patient.latestRiskLevel === "very_low" || patient.latestRiskLevel === "sangat_rendah"
+                            ? "Sangat Rendah (Very Low)"
+                            : "Rendah (Low)"}
+                        </span>
+                      )}
                     </td>
 
                     <td className="py-4 px-4 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <button
-                          onClick={() => handleOpenDetail(patient.id)}
-                          className="p-2 text-[#234463] hover:bg-[#F0F7FF] rounded-lg transition-colors"
-                          title="Lihat Riwayat & Rekam Medis (Read)"
+                          onClick={() => handleOpenPdf(patient.id)}
+                          className="p-2 text-[#234463] hover:bg-[#F0F7FF] rounded-lg transition-colors cursor-pointer"
+                          title="Lihat Pratinjau Dokumen Rekam Medis (👁️ Lihat Detail)"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
 
                         <button
-                          onClick={() => setIsCreateOpen(true)}
-                          className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-                          title="Tambah / Kelola Sesi Rekam Medis (Create/Update)"
+                          onClick={() => handleEditMedicalRecord(patient)}
+                          className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
+                          title="Edit / Kelola Isi Rekam Medis"
                         >
                           <Edit className="w-4 h-4" />
                         </button>
 
                         <button
                           onClick={() => handleOpenPdf(patient.id)}
-                          className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                          title="Pratinjau & Cetak PDF Resmi 4 Halaman"
+                          className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                          title="Pratinjau & Cetak PDF Resmi"
                         >
                           <FileDown className="w-4 h-4" />
                         </button>
 
                         <button
                           onClick={() => handleDeletePatient(patient.id)}
-                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                           title="Hapus Data Pasien"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -434,15 +423,19 @@ export default function PsychologistRekamMedisPage() {
 
       <CreateNoteModal
         isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
+        onClose={() => {
+          setIsCreateOpen(false);
+          setEditingNote(null);
+        }}
         onSuccess={handleCreateNoteSuccess}
+        editNote={editingNote}
       />
 
       <CreatePatientModal
         isOpen={isCreatePatientOpen}
         onClose={() => setIsCreatePatientOpen(false)}
-        onSuccess={(newPatient) => {
-          setPatients((prev) => [newPatient, ...prev]);
+        onSuccess={async (newPatient) => {
+          await fetchPatients();
         }}
       />
     </div>

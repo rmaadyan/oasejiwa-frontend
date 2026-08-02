@@ -77,7 +77,7 @@ export default function SignIn() {
             if (role === "PSYCHOLOGIST" && user.isFirstLogin) {
                 router.push("/auth/change-password-psychologist");
             } else if (role === "PSYCHOLOGIST") {
-                router.push("/psychologist/dashboard");
+                router.push("/psychologist/profile");
             } else if (role === "ADMIN") {
                 router.push("/admin");
             } else {

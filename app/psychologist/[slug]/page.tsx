@@ -1,8 +1,7 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import PsychologistDashboard from "@/app/psychologist/dashboard";
 import SchedulePage from "@/app/psychologist/schedule";
 import PatientsPage from "@/app/psychologist/patients";
-import NotesPage from "@/app/psychologist/notes";
 import ProfilePage from "@/app/psychologist/profile";
 import PsychologistRekamMedisPage from "@/app/psychologist/rekam-medis";
 
@@ -24,7 +23,7 @@ export default async function PsychologistSlugPage({ params }: PageProps) {
       return <PatientsPage />;
     
     case "notes":
-      return <NotesPage />;
+      redirect("/psychologist/rekam-medis");
 
     case "rekam-medis":
       return <PsychologistRekamMedisPage />;

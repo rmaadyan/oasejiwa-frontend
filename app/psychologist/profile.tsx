@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import WelcomeBanner from "@/components/features/psychologist/profile/WelcomeBanner";
 import ProfileHeader from "@/components/features/psychologist/profile/profileheader";
 import PersonalInfo from "@/components/features/psychologist/profile/personalinfo";
 import ProfessionalInfo from "@/components/features/psychologist/profile/professionalinfo";
 import AvailabilitySettings from "@/components/features/psychologist/profile/availabilitysettings";
+import DigitalSignatureSection from "@/components/features/psychologist/profile/DigitalSignatureSection";
 import { getPsychologistProfile } from "@/lib/api/psychologist";
 import type { Psychologist } from "@/lib/types/psychologist";
 import { Eye } from "lucide-react";
@@ -14,7 +16,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<Psychologist | null>(null);
 
   const fetchProfile = async () => {
-    setLoading(true);
+    if (!profile) setLoading(true);
     try {
       const data = await getPsychologistProfile();
       setProfile(data);
@@ -48,6 +50,9 @@ export default function ProfilePage() {
     <div className="w-full min-h-screen bg-slate-100/90 p-4 sm:p-6 lg:p-8 font-poppins text-xs">
       <div className="max-w-7xl mx-auto space-y-6">
         
+        {/* 🟢 CARD WELCOME BANNER WITH TYPING EFFECT & QUICK ACTIONS */}
+        <WelcomeBanner psychologist={profile} />
+
         {/* Header Title & Preview Button */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border-2 border-slate-300 shadow-sm">
           <div>
@@ -88,6 +93,8 @@ export default function ProfilePage() {
           <AvailabilitySettings schedules={(profile as any)?.schedules || []} onUpdate={fetchProfile} />
         </div>
 
+        {/* 🟢 CARD 5: Tanda Tangan Digital */}
+        <DigitalSignatureSection psychologist={profile} onUpdate={fetchProfile} />
       </div>
     </div>
   );

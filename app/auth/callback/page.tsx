@@ -21,7 +21,7 @@ function GoogleCallbackContent() {
       if (user.role === "PSYCHOLOGIST" && user.isFirstLogin) {
         router.push("/auth/change-password-psychologist");
       } else if (user.role === "PSYCHOLOGIST") {
-        router.push("/psychologist/dashboard");
+        router.push("/psychologist/profile");
       } else if (user.role === "ADMIN") {
         router.push("/admin");
       } else {
