@@ -16,6 +16,7 @@ export interface UserProfile {
         city: string;
         fullAddress: string;
         phone: string;
+        firstPsychologyVisit?: boolean;
     } | null;
 }
 

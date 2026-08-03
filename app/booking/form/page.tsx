@@ -330,6 +330,14 @@ function ConsultationFormContent() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [selectedDay, setSelectedDay] = useState<string>(dayParam);
+  const [selectedTime, setSelectedTime] = useState<string>(timeParam);
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    if (dateParam && dateParam.length >= 10) return dateParam.split("T")[0];
+    const available = getAvailableDatesForDay(dayParam);
+    return available[0]?.isoDate || new Date().toISOString().split("T")[0];
+  });
+
   const [clientData, setClientData] = useState<ClientFormData>(emptyClientData);
   const [coupleClientData, setCoupleClientData] = useState<CoupleClientFormData>(emptyCoupleClientData);
 

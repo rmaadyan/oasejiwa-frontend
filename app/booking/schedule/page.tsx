@@ -1,7 +1,24 @@
+"use client";
+
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import BookingStepper from "@/components/booking/BookingStepper";
+import { ArrowLeft, Calendar, Clock } from "lucide-react";
 import { ScheduleSelectionContent } from "@/components/features/booking";
 import { PsychologistProfile } from "@/components/features/booking";
 import { deriveUniqueDates, RawSchedule, DateOption } from "@/lib/booking-data";
+import { getPsychologistByIdPublic } from "@/lib/api/psychologist";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+
+export interface Schedule {
+  id: string;
+  startTime: string;
+  duration?: number;
+  day?: string;
+  date?: string;
+  dayName?: string;
+  isAvailable?: boolean;
+}
 
 async function getPsychologistDetail(id: string): Promise<PsychologistProfile | null> {
   try {
@@ -23,8 +40,12 @@ async function getPsychologistDetail(id: string): Promise<PsychologistProfile | 
   } catch {
     return null;
   }
+}
 
-  const cleanStr = valStr.toUpperCase();
+function formatDayName(sch: any) {
+  const valStr = typeof sch === "string" ? sch : sch?.day || sch?.date || sch?.dayName || "";
+  if (!valStr) return "Senin";
+  const cleanStr = String(valStr).toUpperCase();
   const dayMapping: Record<string, string> = {
     SENIN: "Senin",
     SELASA: "Selasa",
@@ -105,7 +126,7 @@ function SchedulePageContent() {
       try {
         setIsLoading(true);
         const result = await getPsychologistByIdPublic(psychologistId);
-        const data = result?.data || result?.psychologist || result;
+        const data = (result as any)?.data || (result as any)?.psychologist || result;
         const rawSchedules: Schedule[] = data?.schedules || data?.schedule || data?.availableSchedules || [];
 
         const map = new Map<string, Schedule[]>();
