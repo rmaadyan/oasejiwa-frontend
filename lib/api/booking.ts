@@ -1,5 +1,5 @@
 // Fallback ke localhost untuk environment dev
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002";
 
 // Helper terpusat — selalu pakai cookie
 const authFetch = (url: string, options: RequestInit = {}) =>
@@ -91,7 +91,7 @@ export async function createBooking(payload: any) {
 }
 
 export async function getUserBookings() {
-  const res = await authFetch(`${API_BASE_URL}/bookings`);
+  const res = await authFetch(`${API_BASE_URL}/bookings/my-bookings`);
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || "Gagal mengambil data booking");

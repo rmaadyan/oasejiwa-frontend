@@ -1,4 +1,15 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002";
+
+/** Helper: parse JSON dengan aman — tidak crash jika response adalah HTML */
+async function safeJson(res: Response) {
+    const text = await res.text();
+    try {
+        return JSON.parse(text);
+    } catch {
+        // Server merespons dengan HTML (mis. 404/502), bukan JSON
+        throw new Error(`Server error (${res.status}): Pastikan backend sudah berjalan di ${API_BASE_URL}`);
+    }
+}
 
 export async function registerUser(data: any) {
     const res = await fetch(`${API_BASE_URL}/auth/register`, {
@@ -10,7 +21,7 @@ export async function registerUser(data: any) {
         body: JSON.stringify(data),
     });
 
-    const result = await res.json();
+    const result = await safeJson(res);
 
     if (!res.ok) {
         const message = Array.isArray(result.message)
@@ -33,7 +44,7 @@ export async function resendVerification(email: string) {
         body: JSON.stringify({ email }),
     });
 
-    const result = await res.json();
+    const result = await safeJson(res);
 
     if (!res.ok) {
         throw new Error(result.message);
@@ -52,7 +63,7 @@ export async function loginUser(data: { email: string; password: string }) {
         body: JSON.stringify(data),
     });
 
-    const result = await res.json();
+    const result = await safeJson(res);
 
     if (!res.ok) {
         const message = Array.isArray(result.message)
