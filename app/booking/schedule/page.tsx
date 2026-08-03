@@ -1,36 +1,27 @@
-"use client";
+import { ScheduleSelectionContent } from "@/components/features/booking";
+import { PsychologistProfile } from "@/components/features/booking";
+import { deriveUniqueDates, RawSchedule, DateOption } from "@/lib/booking-data";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
-import { useState, useEffect, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Calendar, Clock, ArrowLeft } from "lucide-react";
-import BookingStepper from "@/components/booking/BookingStepper";
-import { getPsychologistByIdPublic } from "@/lib/api/psychologists";
-
-type Schedule = {
-  id: string;
-  day?: string;
-  hari?: string;
-  dayOfWeek?: string;
-  startTime: string;
-  duration: number;
-  isAvailable: boolean;
-};
-
-function formatDayName(item: any): string {
-  if (!item) return "Senin";
-  const val = typeof item === "object" 
-    ? (item.day || item.hari || item.dayOfWeek || item.date) 
-    : item;
-
-  if (!val) return "Senin";
-  const valStr = String(val).trim();
-
-  if (valStr.includes("-") || valStr.includes("T")) {
-    const d = new Date(valStr);
-    if (!isNaN(d.getTime())) {
-      const daysID = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-      return daysID[d.getDay()];
-    }
+async function getPsychologistDetail(id: string): Promise<PsychologistProfile | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/psychologists/${id}`, { cache: "no-store" });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const p = json.data;
+    return {
+      id: p.id,
+      name: p.name,
+      avatar: p.avatarUrl ?? "/assets/psychologists/default.jpg",
+      education: p.educations?.map((e: any) => `${e.degree}, ${e.institution}`) ?? [],
+      licenseNumber: p.sipp ?? "-",
+      specialization: p.specializations?.join(", ") ?? "-",
+      bio: p.about ?? "-",
+      expertise: p.expertises ?? [],
+      caseExperience: p.experiences ?? [],
+    };
+  } catch {
+    return null;
   }
 
   const cleanStr = valStr.toUpperCase();
