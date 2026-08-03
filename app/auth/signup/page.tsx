@@ -287,7 +287,7 @@ export default function SignUp() {
             isOpen={showVerifyModal}
             onClose={() => {
                 setShowVerifyModal(false);
-                router.push("/about");
+                router.push("/");
             }}/>
         </div>
     );

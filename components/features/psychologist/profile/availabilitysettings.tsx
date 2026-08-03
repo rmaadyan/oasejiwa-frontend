@@ -1,151 +1,272 @@
 "use client";
 
-import { Calendar, Clock } from "lucide-react";
-import type { PsychologistSchedule } from "@/lib/types/psychologist";
+import { useState, useEffect } from "react";
+import { Plus, Trash2, Save, CalendarDays } from "lucide-react";
+import { updatePsychologistProfile } from "@/lib/api/psychologist";
 
-interface AvailabilitySettingsProps {
-  schedules?: PsychologistSchedule[];
+const DAYS_OF_WEEK = [
+  { label: "Senin", dayIndex: 1 },
+  { label: "Selasa", dayIndex: 2 },
+  { label: "Rabu", dayIndex: 3 },
+  { label: "Kamis", dayIndex: 4 },
+  { label: "Jumat", dayIndex: 5 },
+  { label: "Sabtu", dayIndex: 6 },
+  { label: "Minggu", dayIndex: 0 },
+];
+
+function getNextDateForDay(dayName: string) {
+  const targetDay = DAYS_OF_WEEK.find((d) => d.label === dayName)?.dayIndex ?? 1;
+  const now = new Date();
+  const currentDay = now.getDay();
+
+  let distance = targetDay - currentDay;
+  if (distance < 0) distance += 7;
+
+  const resultDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + distance);
+
+  const year = resultDate.getFullYear();
+  const month = String(resultDate.getMonth() + 1).padStart(2, "0");
+  const day = String(resultDate.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+// 🟢 Helper Hitung Jam Selesai Otomatis (misal 09:00 + 60m = 10:00)
+function calculateEndTime(startTime: string, durationMinutes: number) {
+  if (!startTime || !startTime.includes(":")) return "10:00";
+  const [hours, minutes] = startTime.split(":").map(Number);
+  const totalMinutes = hours * 60 + minutes + (Number(durationMinutes) || 60);
+
+  const endHours = Math.floor(totalMinutes / 60) % 24;
+  const endMins = totalMinutes % 60;
+
+  return `${String(endHours).padStart(2, "0")}:${String(endMins).padStart(2, "0")}`;
 }
 
 export default function AvailabilitySettings({
   schedules = [],
-}: AvailabilitySettingsProps) {
-  /**
-   * Ambil tanggal sebagai date-only.
-   *
-   * Tujuannya supaya tanggal dari backend seperti:
-   * "2026-05-01T17:00:00.000Z"
-   *
-   * tidak berubah jadi tanggal 2 ketika diparse oleh browser dengan timezone lokal.
-   */
-  const getDateKey = (date?: string | Date | null) => {
-    if (!date) return "";
+  onUpdate,
+}: {
+  schedules?: any[];
+  onUpdate?: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [localSchedules, setLocalSchedules] = useState<any[]>([]);
 
-    const rawDate = String(date);
+  useEffect(() => {
+    if (Array.isArray(schedules) && schedules.length > 0) {
+      setLocalSchedules(
+        schedules.map((s) => {
+          let dayName = "Senin";
+          if (s.date) {
+            const parts = String(s.date).split("T")[0].split("-");
+            if (parts.length === 3) {
+              const y = parseInt(parts[0], 10);
+              const m = parseInt(parts[1], 10) - 1;
+              const d = parseInt(parts[2], 10);
+              const dateObj = new Date(y, m, d);
+              dayName =
+                DAYS_OF_WEEK.find((item) => item.dayIndex === dateObj.getDay())?.label || "Senin";
+            }
+          }
 
-    if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
-      return rawDate;
-    }
-
-    if (/^\d{4}-\d{2}-\d{2}T/.test(rawDate)) {
-      return rawDate.slice(0, 10);
-    }
-
-    const parsedDate = new Date(date);
-
-    if (Number.isNaN(parsedDate.getTime())) {
-      return "";
-    }
-
-    const year = parsedDate.getFullYear();
-    const month = String(parsedDate.getMonth() + 1).padStart(2, "0");
-    const day = String(parsedDate.getDate()).padStart(2, "0");
-
-    return `${year}-${month}-${day}`;
-  };
-
-  const formatDate = (date?: string | Date | null) => {
-    const dateKey = getDateKey(date);
-
-    if (!dateKey) return "-";
-
-    const [year, month, day] = dateKey.split("-").map(Number);
-
-    return new Intl.DateTimeFormat("id-ID", {
-      weekday: "long",
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    }).format(new Date(year, month - 1, day));
-  };
-
-  const formatDuration = (duration?: number | null) => {
-    if (!duration) return "-";
-
-    if (duration < 60) {
-      return `${duration} menit`;
-    }
-
-    const hour = Math.floor(duration / 60);
-    const minute = duration % 60;
-
-    if (minute === 0) {
-      return `${hour} jam`;
-    }
-
-    return `${hour} jam ${minute} menit`;
-  };
-
-  const availableSchedules = schedules
-    .filter((schedule) => schedule.isAvailable)
-    .sort((a, b) => {
-      const dateA = getDateKey(a.date);
-      const dateB = getDateKey(b.date);
-
-      if (dateA !== dateB) {
-        return dateA.localeCompare(dateB);
-      }
-
-      return String(a.startTime || "").localeCompare(
-        String(b.startTime || "")
+          return {
+            day: s.day || dayName,
+            startTime: s.startTime || s.time || "09:00",
+            duration: s.duration || 60,
+            isAvailable: s.isAvailable ?? true,
+          };
+        })
       );
-    });
+    } else {
+      setLocalSchedules([]);
+    }
+  }, [schedules]);
+
+  const addSchedule = () => {
+    setLocalSchedules([
+      ...localSchedules,
+      {
+        day: "Senin",
+        startTime: "09:00",
+        duration: 60,
+        isAvailable: true,
+      },
+    ]);
+  };
+
+  // 🟢 HANDLE HAPUS LANGSUNG TERSIMPAN KE DATABASE
+  const handleDeleteSchedule = async (indexToDelete: number) => {
+    const updated = localSchedules.filter((_, idx) => idx !== indexToDelete);
+    setLocalSchedules(updated);
+
+    try {
+      const formattedSchedules = updated.map((sch) => ({
+        date: getNextDateForDay(sch.day),
+        startTime: sch.startTime || "09:00",
+        duration: Number(sch.duration) || 60,
+        isAvailable: Boolean(sch.isAvailable),
+      }));
+
+      await updatePsychologistProfile({ schedules: formattedSchedules });
+      if (onUpdate) await onUpdate();
+    } catch (err: any) {
+      alert("Gagal menghapus jadwal dari database.");
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const formattedSchedules = localSchedules.map((sch) => ({
+        date: getNextDateForDay(sch.day),
+        startTime: sch.startTime || "09:00",
+        duration: Number(sch.duration) || 60,
+        isAvailable: Boolean(sch.isAvailable),
+      }));
+
+      await updatePsychologistProfile({ schedules: formattedSchedules });
+      alert("Jadwal Mingguan Praktik berhasil disimpan!");
+      if (onUpdate) await onUpdate();
+    } catch (err: any) {
+      alert(err.message || "Gagal menyimpan jadwal praktik.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6">
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold text-[#2B5379]">
-          Ketersediaan
-        </h2>
-        <p className="mt-1 text-sm text-gray-600">
-          Jadwal praktik Anda berdasarkan data dari admin
-        </p>
+    <div className="bg-white p-5 rounded-2xl border-2 border-slate-500 shadow-xs space-y-2 font-poppins text-xs">
+      <div className="w-full bg-[#1F415F] text-white py-2 rounded-full text-center font-semibold text-xs tracking-wide mb-5">
+        Jadwal Praktik Mingguan
       </div>
 
-      <div className="space-y-3">
-        {availableSchedules.length > 0 ? (
-          availableSchedules.map((schedule) => (
-            <div
-              key={schedule.id}
-              className="rounded-lg border border-green-200 bg-green-50 p-4"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 font-medium text-green-900">
-                    <Calendar className="h-4 w-4" />
-                    <span>{formatDate(schedule.date)}</span>
+      <form onSubmit={handleSave} className="space-y-4">
+        {localSchedules.length === 0 ? (
+          <div className="text-center py-8 bg-slate-50 border border-dashed border-slate-200 rounded-2xl">
+            <CalendarDays className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+            <p className="text-slate-500 font-medium">Belum ada hari praktik yang ditentukan.</p>
+            <p className="text-slate-400 text-[11px]">Klik "Tambah Hari Praktik" di bawah.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="hidden sm:grid grid-cols-12 gap-3 px-4 py-2 bg-slate-100/80 rounded-xl text-slate-600 font-bold text-[11px] uppercase tracking-wider">
+              <div className="col-span-3">Hari Praktik</div>
+              <div className="col-span-3">Jam Mulai</div>
+              <div className="col-span-3">Jam Selesai</div>
+              <div className="col-span-2 text-center">Durasi</div>
+              <div className="col-span-1 text-center">Aksi</div>
+            </div>
+
+            {localSchedules.map((sch, idx) => {
+              const endTimeCalculated = calculateEndTime(sch.startTime, sch.duration);
+
+              return (
+                <div
+                  key={idx}
+                  className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center p-3 bg-slate-50/70 border border-slate-200/80 rounded-xl"
+                >
+                  {/* Select Hari */}
+                  <div className="sm:col-span-3">
+                    <label className="sm:hidden text-[10px] font-bold text-gray-500 block mb-1">Hari</label>
+                    <select
+                      value={sch.day}
+                      onChange={(e) => {
+                        const updated = [...localSchedules];
+                        updated[idx].day = e.target.value;
+                        setLocalSchedules(updated);
+                      }}
+                      className="w-full p-2 border border-gray-300 rounded-lg outline-none bg-white font-bold text-[#1F415F] cursor-pointer focus:border-[#1F415F]"
+                    >
+                      {DAYS_OF_WEEK.map((d) => (
+                        <option key={d.label} value={d.label}>
+                          {d.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
-                  <div className="flex items-center gap-2 text-sm text-green-700">
-                    <Clock className="h-4 w-4" />
-                    <span>
-                      {schedule.startTime || "-"} •{" "}
-                      {formatDuration(schedule.duration)}
-                    </span>
+                  {/* Jam Mulai */}
+                  <div className="sm:col-span-3">
+                    <label className="sm:hidden text-[10px] font-bold text-gray-500 block mb-1">Jam Mulai</label>
+                    <input
+                      type="time"
+                      value={sch.startTime}
+                      onChange={(e) => {
+                        const updated = [...localSchedules];
+                        updated[idx].startTime = e.target.value;
+                        setLocalSchedules(updated);
+                      }}
+                      className="w-full p-2 border border-gray-300 rounded-lg outline-none bg-white font-bold text-[#1F415F] cursor-pointer focus:border-[#1F415F]"
+                    />
+                  </div>
+
+                  {/* Jam Selesai (Otomatis Terhitung) */}
+                  <div className="sm:col-span-3">
+                    <label className="sm:hidden text-[10px] font-bold text-gray-500 block mb-1">Jam Selesai</label>
+                    <input
+                      type="time"
+                      disabled
+                      value={endTimeCalculated}
+                      className="w-full p-2 border border-gray-200 rounded-lg outline-none bg-slate-100 font-bold text-slate-500 cursor-not-allowed"
+                    />
+                  </div>
+
+                  {/* Durasi */}
+                  <div className="sm:col-span-2 flex items-center justify-center gap-1">
+                    <span className="sm:hidden text-[10px] font-bold text-gray-500">Durasi:</span>
+                    <input
+                      type="number"
+                      value={sch.duration}
+                      onChange={(e) => {
+                        const updated = [...localSchedules];
+                        updated[idx].duration = e.target.value;
+                        setLocalSchedules(updated);
+                      }}
+                      className="w-14 p-2 border border-gray-300 rounded-lg outline-none bg-white text-center font-semibold text-gray-700 focus:border-[#1F415F]"
+                    />
+                    <span className="text-[10px] text-gray-400 font-medium">m</span>
+                  </div>
+
+                  {/* Tombol Hapus (Langsung Terhapus dari DB) */}
+                  <div className="sm:col-span-1 flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteSchedule(idx)}
+                      className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
+                      title="Hapus Sesi"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
-
-                <span className="shrink-0 rounded-full border border-green-200 bg-green-100 px-2 py-1 text-xs font-medium text-green-700">
-                  Tersedia
-                </span>
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-            <p className="text-sm text-gray-600">
-              Belum ada jadwal tersedia.
-            </p>
+              );
+            })}
           </div>
         )}
-      </div>
 
-      <div className="mt-6 rounded-lg border-l-4 border-blue-500 bg-blue-50 p-4">
-        <p className="text-sm text-blue-900">
-          <strong>Info:</strong> Untuk mengubah jadwal ketersediaan, hubungi
-          admin.
-        </p>
-      </div>
+        <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+          <button
+            type="button"
+            onClick={addSchedule}
+            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-[#1F415F] font-semibold rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Tambah Hari Praktik</span>
+          </button>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-5 py-2 bg-[#1F415F] text-white font-semibold rounded-xl hover:bg-[#18334b] transition cursor-pointer flex items-center gap-1.5 shadow-xs"
+          >
+            <Save className="w-4 h-4" />
+            <span>{loading ? "Menyimpan..." : "Simpan Jadwal"}</span>
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

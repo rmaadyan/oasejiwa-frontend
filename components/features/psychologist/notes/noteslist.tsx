@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Plus, ChevronLeft, ChevronRight, Filter } from "lucide-react";
 import { useState } from "react";
 import NoteCard from "./notecard";
 import type { SessionNote } from "@/lib/types/psychologist";
@@ -66,53 +66,57 @@ export default function NotesList({
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <div className="flex flex-col lg:flex-row gap-4">
+      <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+        <div className="flex flex-col lg:flex-row gap-3 items-center justify-between">
           {/* Search */}
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder="Cari nama pasien atau layanan..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#2B5379] focus:border-transparent outline-none"
-              />
-            </div>
+          <div className="relative w-full lg:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Cari nama pasien atau kata kunci..."
+              className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#2B5379] focus:border-transparent outline-none"
+            />
           </div>
 
-          {/* Risk Filter */}
-          <select
-            value={riskFilter}
-            onChange={(e) => onRiskFilterChange(e.target.value as "low" | "medium" | "high" | "all")}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#2B5379] focus:border-transparent outline-none"
-          >
-            <option value="all">Semua Risk Level</option>
-            <option value="high">Risiko Tinggi</option>
-            <option value="medium">Risiko Sedang</option>
-            <option value="low">Risiko Rendah</option>
-          </select>
+          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
+            <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
+              <Filter className="w-3.5 h-3.5" /> Filter:
+            </div>
 
-          {/* Sort */}
-          <select
-            value={sortBy}
-            onChange={(e) => onSortChange(e.target.value as "date" | "patient" | "riskLevel")}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#2B5379] focus:border-transparent outline-none"
-          >
-            <option value="date">Urutkan: Tanggal</option>
-            <option value="patient">Urutkan: Nama Pasien</option>
-            <option value="riskLevel">Urutkan: Risk Level</option>
-          </select>
+            {/* Risk Filter */}
+            <select
+              value={riskFilter}
+              onChange={(e) => onRiskFilterChange(e.target.value as "low" | "medium" | "high" | "all")}
+              className="text-xs border border-gray-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-[#2B5379] focus:border-transparent outline-none font-medium"
+            >
+              <option value="all">Semua Risk Level</option>
+              <option value="high">Risiko Tinggi (High)</option>
+              <option value="medium">Risiko Sedang (Medium)</option>
+              <option value="low">Risiko Rendah (Low)</option>
+            </select>
 
-          {/* Create Button */}
-          <button
-            onClick={onCreateNote}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#2B5379] text-white rounded-lg hover:bg-[#2B5379]/90 transition-colors shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            Buat Catatan
-          </button>
+            {/* Sort */}
+            <select
+              value={sortBy}
+              onChange={(e) => onSortChange(e.target.value as "date" | "patient" | "riskLevel")}
+              className="text-xs border border-gray-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-[#2B5379] focus:border-transparent outline-none font-medium"
+            >
+              <option value="date">Urutkan: Tanggal Terbaru</option>
+              <option value="patient">Urutkan: Nama Pasien</option>
+              <option value="riskLevel">Urutkan: Risk Level</option>
+            </select>
+
+            {/* Create Button */}
+            <button
+              onClick={onCreateNote}
+              className="inline-flex items-center gap-2 px-3.5 py-2 bg-[#2B5379] text-white rounded-lg hover:bg-[#2B5379]/90 text-xs font-semibold transition-colors shrink-0 shadow-xs"
+            >
+              <Plus className="w-4 h-4" />
+              Buat Catatan Sesi
+            </button>
+          </div>
         </div>
       </div>
 

@@ -68,17 +68,20 @@ export default function SignIn() {
                 return;
             }
             localStorage.setItem("user", JSON.stringify(user));
+            localStorage.setItem("token", token);
+            localStorage.setItem("auth_token", token);
+            localStorage.setItem("accessToken", token);
 
             console.log("Role:", role);
 
             if (role === "PSYCHOLOGIST" && user.isFirstLogin) {
                 router.push("/auth/change-password-psychologist");
             } else if (role === "PSYCHOLOGIST") {
-                router.push("/psychologist/dashboard");
+                router.push("/psychologist/profile");
             } else if (role === "ADMIN") {
                 router.push("/admin");
             } else {
-                router.push("/userprofile");
+                router.push("/");
             }
         } catch (err: any) {
             if (err.message?.includes("EMAIL_NOT_VERIFIED")) {

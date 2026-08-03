@@ -14,8 +14,6 @@ import {
   MapPin,
   Phone,
   Mail,
-  Briefcase,
-  Heart,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -24,19 +22,18 @@ import {
   Shield,
   PenTool,
   Download,
+  Clock,
 } from "lucide-react";
 import { useRequireCompleteProfile } from "@/hooks/use-require-complete-profile";
 
 // Zod validation schema for Step 2
 const consultationFormSchema = z.object({
-  // B. Alasan Konsultasi
   mainReason: z.string().min(10, "Alasan konsultasi minimal 10 karakter"),
-  takingPsychiatricMeds: z.enum(["yes", "no"], "Pilih salah satu opsi"),
-  problemDuration: z.enum(["<1month", "1-3months", "3-6months", ">6months"], "Pilih durasi masalah"),
-  symptomFrequency: z.enum(["daily", "weekly", "monthly", "rarely"], "Pilih frekuensi gejala"),
-  dailyImpact: z.enum(["none", "mild", "moderate", "severe"], "Pilih tingkat dampak"),
+  takingPsychiatricMeds: z.enum(["yes", "no"]),
+  problemDuration: z.enum(["<1month", "1-3months", "3-6months", ">6months"]),
+  symptomFrequency: z.enum(["daily", "weekly", "monthly", "rarely"]),
+  dailyImpact: z.enum(["none", "mild", "moderate", "severe"]),
 
-  // C. Riwayat Psikologis & Kesehatan
   hasSimilarHistory: z.enum(["yes", "no"]),
   similarHistoryDetail: z.string().optional(),
   hasFamilyHistory: z.enum(["yes", "no"]),
@@ -45,19 +42,17 @@ const consultationFormSchema = z.object({
   medicalTreatmentDetail: z.string().optional(),
   hasTraumaticEvent: z.enum(["yes", "no"]),
   traumaticEventDetail: z.string().optional(),
-  sleepQuality: z.enum(["good", "fair", "poor", "disturbed"], "Pilih kualitas tidur"),
-  selfHarmThoughts: z.enum(["never", "sometimes", "frequent"], "Pilih salah satu opsi"),
+  sleepQuality: z.enum(["good", "fair", "poor", "disturbed"]),
+  selfHarmThoughts: z.enum(["never", "sometimes", "frequent"]),
 
-  // D. Kebiasaan & Gaya Hidup
   usesAddictiveSubstances: z.enum(["yes", "no"]),
   addictiveSubstancesDetail: z.string().optional(),
-  eatingPattern: z.enum(["regular", "irregular", "overeating", "undereating"], "Pilih pola makan"),
-  exerciseFrequency: z.enum(["never", "rarely", "sometimes", "regularly"], "Pilih frekuensi olahraga"),
-  stressLevel: z.enum(["low", "moderate", "high", "veryHigh"], "Pilih tingkat stres"),
+  eatingPattern: z.enum(["regular", "irregular", "overeating", "undereating"]),
+  exerciseFrequency: z.enum(["never", "rarely", "sometimes", "regularly"]),
+  stressLevel: z.enum(["low", "moderate", "high", "veryHigh"]),
 
-  // E. Tujuan Konsultasi
   consultationGoals: z.array(z.string()).min(1, "Pilih minimal satu tujuan"),
-  therapyPreference: z.enum(["directive", "collaborative", "noPreference"], "Pilih preferensi pendekatan terapi"),
+  therapyPreference: z.enum(["directive", "collaborative", "noPreference"]),
 });
 
 type ConsultationFormData = z.infer<typeof consultationFormSchema>;
@@ -242,14 +237,57 @@ function calculateAge(birthday: string): number {
   return age;
 }
 
+// 🟢 Helper Generator 4 Tanggal Mendatang Sesuai Hari Praktik
+function getAvailableDatesForDay(dayName: string, count = 4) {
+  const daysMap: Record<string, number> = {
+    Minggu: 0, MINGGU: 0, SUNDAY: 0,
+    Senin: 1, SENIN: 1, MONDAY: 1,
+    Selasa: 2, SELASA: 2, TUESDAY: 2,
+    Rabu: 3, RABU: 3, WEDNESDAY: 3,
+    Kamis: 4, KAMIS: 4, THURSDAY: 4,
+    Jumat: 5, JUMAT: 5, FRIDAY: 5,
+    Sabtu: 6, SABTU: 6, SATURDAY: 6,
+  };
+
+  const targetDay = daysMap[dayName] ?? 6;
+  const resultDates: { isoDate: string; label: string }[] = [];
+
+  const today = new Date();
+  const currentDay = today.getDay();
+
+  let distance = targetDay - currentDay;
+  if (distance <= 0) distance += 7;
+
+  const baseDate = new Date(today);
+  baseDate.setDate(today.getDate() + distance);
+
+  for (let i = 0; i < count; i++) {
+    const nextDate = new Date(baseDate);
+    nextDate.setDate(baseDate.getDate() + i * 7);
+
+    const isoDate = nextDate.toISOString().split("T")[0];
+    const label = nextDate.toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+
+    resultDates.push({ isoDate, label });
+  }
+
+  return resultDates;
+}
+
 function ConsultationFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const serviceId = searchParams.get("service");
   const psychologistId = searchParams.get("psychologist");
-  const date = searchParams.get("date");
+  const dateParam = searchParams.get("date");
   const scheduleId = searchParams.get("scheduleId");
-  const time = searchParams.get("time");
+  const timeParam = searchParams.get("time") || "16:10";
+  const dayParam = searchParams.get("day") || "SABTU";
+
   const { user, isLoading: isLoadingUser, isGuest } = useRequireCompleteProfile();
 
   // Deteksi otomatis jenis layanan (individu vs pasangan) berdasarkan `serviceId`
@@ -519,13 +557,13 @@ function ConsultationFormContent() {
           <div className="flex flex-col gap-3">
             <button
               onClick={() => router.push(`/auth/signin?redirect=${encodeURIComponent(window.location.href)}`)}
-              className="w-full py-2 rounded-xl bg-[#2B5379] text-white font-semibold hover:bg-[#234463] transition-colors"
+              className="w-full py-2 rounded-xl bg-[#2B5379] text-white font-semibold hover:bg-[#234463] transition-colors cursor-pointer"
             >
               Login Sekarang
             </button>
             <button
               onClick={() => router.back()}
-              className="w-full py-2 rounded-xl border border-gray-200 text-gray-600 font-medium hover:bg-gray-50 transition-colors"
+              className="w-full py-2 rounded-xl border border-gray-200 text-gray-600 font-medium hover:bg-gray-50 transition-colors cursor-pointer"
             >
               Kembali
             </button>
@@ -667,7 +705,19 @@ function ConsultationFormContent() {
     return true;
   };
 
+  const toValidIsoDateString = (inputDateStr: string): string => {
+    if (!inputDateStr) return new Date().toISOString();
+    const cleanDate = inputDateStr.split("T")[0];
+    const d = new Date(`${cleanDate}T00:00:00.000Z`);
+    return !isNaN(d.getTime()) ? d.toISOString() : new Date().toISOString();
+  };
+
   const handleNextFormStep = async () => {
+    if (!selectedDate) {
+      alert("Mohon pilih tanggal sesi konsultasi terlebih dahulu.");
+      return;
+    }
+
     if (formStep === 1) {
       setFormStep(2);
     } else if (formStep === 2) {
@@ -728,11 +778,15 @@ function ConsultationFormContent() {
                   consultationData.therapyPreference?.toUpperCase(),
               };
 
-          const payload = {
+          const validScheduledDate = toValidIsoDateString(selectedDate);
+          const validConsentDate = toValidIsoDateString(consentData.consentDate!);
+
+          const payload: any = {
             serviceId: Number(serviceId),
-            psychologistId: psychologistId,
-            scheduledDate: date,
-            scheduledTime: time,
+            psychologistId: psychologistId || "",
+            scheduleId: scheduleId || undefined,
+            scheduledDate: validScheduledDate,
+            scheduledTime: selectedTime,
             consultationForm: mappedConsultation,
             consentForm: {
               consentDate: consentData.consentDate,
@@ -748,7 +802,9 @@ function ConsultationFormContent() {
           router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
         } catch (error: any) {
           console.error(error);
-          alert(error.message || "Gagal membuat booking");
+          alert(
+            error instanceof Error ? error.message : "Gagal membuat booking"
+          );
         } finally {
           setIsSubmitting(false);
         }
@@ -3453,10 +3509,8 @@ function ConsultationFormContent() {
 
   return (
     <main className="min-h-screen bg-[#f5f7fb] font-[var(--font-poppins)] no-print-main">
-      {/* Hidden PDF content for html2canvas capture */}
       {renderPrintableForm()}
 
-      {/* Hero Section */}
       <section className="relative pt-24 pb-12 px-6 lg:px-16 bg-gradient-to-b from-[#E8F6FF] to-[#f5f7fb] no-print">
         <div className="max-w-5xl mx-auto text-center">
           <h1 className="text-[40px] md:text-[48px] font-semibold mb-4 animate-fade-in-up">

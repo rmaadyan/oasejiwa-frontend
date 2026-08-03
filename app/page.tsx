@@ -9,21 +9,23 @@ import HeroSection from "@/components/features/landingpage/herosection";
 import ServicesSection from "@/components/features/landingpage/servicessection";
 import TestimonialsSection from "@/components/features/landingpage/testimonialssection";
 
-// Analytics/admin UI was accidentally merged into this file.
-// Keep this file as the main Home page. Admin analytics should live
-// in a separate route (e.g., /app/admin/analytics). Removing the
-// analytics imports and component to restore a single default export.
-
 export default function Home() {
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen bg-white font-poppins overflow-x-hidden">
       <Navbar />
+      
+      {/* Hero Section */}
       <HeroSection />
-      <AboutSection />
-      <ServicesSection />
-      <TestimonialsSection />
-      <FAQSection />
-      <CTASection />
+
+      {/* Main Sections dengan spacing yang lega & simetris */}
+      <div className="w-full space-y-12 sm:space-y-20">
+        <AboutSection />
+        <ServicesSection />
+        <TestimonialsSection />
+        <FAQSection />
+        <CTASection />
+      </div>
+
       <Footer />
     </main>
   );

@@ -5,11 +5,13 @@ import PatientStats from "@/components/features/psychologist/patients/patientsta
 import PatientsList from "@/components/features/psychologist/patients/patientslist";
 import PatientDetailModal from "@/components/features/psychologist/patients/patientdetailmodal";
 import { getAllPatients } from "@/lib/api/psychologist";
-import type { PsychologistPatient, PatientsResponse } from "@/lib/types/psychologist";
+import type { PsychologistPatient } from "@/lib/types/psychologist";
 
 export default function PatientsPage() {
   const [loading, setLoading] = useState(true);
-  const [patientsData, setPatientsData] = useState<PatientsResponse | null>(null);
+  const [patientsList, setPatientsList] = useState<PsychologistPatient[]>([]);
+  const [totalCount, setTotalCount] = useState<number>(0);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "lastSession" | "totalSessions">("name");
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
@@ -18,13 +20,25 @@ export default function PatientsPage() {
   const fetchPatients = async () => {
     setLoading(true);
     try {
-      const data = await getAllPatients({
+      const res: any = await getAllPatients({
         search: searchTerm,
-        sortBy: sortBy
+        sortBy: sortBy,
       });
-      setPatientsData(data);
+
+      const extractedPatients = Array.isArray(res)
+        ? res
+        : Array.isArray(res?.patients)
+        ? res.patients
+        : Array.isArray(res?.data)
+        ? res.data
+        : [];
+
+      setPatientsList(extractedPatients);
+      setTotalCount(res?.total ?? extractedPatients.length ?? 0);
     } catch (error) {
       console.error("Failed to fetch patients:", error);
+      setPatientsList([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -32,57 +46,45 @@ export default function PatientsPage() {
 
   useEffect(() => {
     fetchPatients();
-  }, [searchTerm, sortBy]);
+  }, [sortBy, searchTerm]); // Trigger ulang API saat sorting berubah atau pencarian berubah
 
   const handleViewDetails = (patient: PsychologistPatient) => {
     setSelectedPatientId(patient.id);
     setIsModalOpen(true);
   };
 
-  const handleSearchChange = (search: string) => {
-    setSearchTerm(search);
-  };
-
-  const handleSortChange = (sort: "name" | "lastSession" | "totalSessions") => {
-    setSortBy(sort);
-  };
-
-  if (loading && !patientsData) {
+  if (loading && patientsList.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex items-center justify-center min-h-[60vh] font-poppins text-xs">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-[#2B5379] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Memuat data pasien...</p>
+          <div className="w-10 h-10 border-4 border-[#2B5379] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-gray-600 font-medium">Memuat data pasien...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-poppins">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-[#2B5379]">Pasien Saya</h1>
-        <p className="text-gray-600 mt-1">Kelola dan lihat informasi pasien Anda</p>
+        <h1 className="text-2xl font-bold text-[#2B5379]">Pasien Saya</h1>
+        <p className="text-gray-600 mt-1 text-xs">Kelola dan lihat informasi pasien Anda</p>
       </div>
 
-      {/* Stats */}
-      {patientsData && (
-        <PatientStats total={patientsData.total} />
-      )}
+      {/* Stats Card */}
+      <PatientStats total={totalCount} />
 
-      {/* Patients List */}
-      {patientsData && (
-        <PatientsList
-          patients={patientsData.patients}
-          onViewDetails={handleViewDetails}
-          onSearchChange={handleSearchChange}
-          onSortChange={handleSortChange}
-          sortBy={sortBy}
-        />
-      )}
+      {/* Daftar Pasien dengan Fitur Search Real-time */}
+      <PatientsList
+        patients={patientsList}
+        onViewDetails={handleViewDetails}
+        onSearchChange={(s) => setSearchTerm(s)}
+        onSortChange={(s) => setSortBy(s)}
+        sortBy={sortBy}
+      />
 
-      {/* Patient Detail Modal */}
+      {/* Modal Detail Pasien */}
       <PatientDetailModal
         isOpen={isModalOpen}
         onClose={() => {

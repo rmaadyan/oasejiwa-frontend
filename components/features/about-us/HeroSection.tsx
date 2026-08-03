@@ -1,5 +1,9 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import StatCard from "@/components/ui/StatCard";
+import { getPublicStatistics, type PublicStatisticsData } from "@/lib/api/statistics";
 
 // Icons for Stats
 const UserIcon = () => (
@@ -9,7 +13,7 @@ const UserIcon = () => (
     viewBox="0 0 24 24"
     strokeWidth={1.5}
     stroke="currentColor"
-    className="w-10 h-10"
+    className="w-10 h-10 text-[#234463]"
   >
     <path
       strokeLinecap="round"
@@ -24,7 +28,7 @@ const StarIcon = () => (
     xmlns="http://www.w3.org/2000/svg"
     fill="currentColor"
     viewBox="0 0 24 24"
-    className="w-10 h-10"
+    className="w-10 h-10 text-[#E7A14A]"
   >
     <path
       fillRule="evenodd"
@@ -41,7 +45,7 @@ const UsersIcon = () => (
     viewBox="0 0 24 24"
     strokeWidth={1.5}
     stroke="currentColor"
-    className="w-10 h-10"
+    className="w-10 h-10 text-[#234463]"
   >
     <path
       strokeLinecap="round"
@@ -52,48 +56,71 @@ const UsersIcon = () => (
 );
 
 export default function HeroSection() {
+  const [stats, setStats] = useState<PublicStatisticsData>({
+    totalClients: 0,
+    totalPsychologists: 1,
+    averageRating: 4.9,
+    totalReviews: 157,
+    lastUpdated: new Date().toISOString(),
+  });
+
+  useEffect(() => {
+    async function loadStats() {
+      const data = await getPublicStatistics();
+      if (data) {
+        setStats(data);
+      }
+    }
+    loadStats();
+  }, []);
+
   return (
-    <section className="relative">
+    <section className="relative w-full">
       {/* Hero Title */}
-      <div className="pt-36 pb-8 px-6 lg:px-16 text-center">
-        <h1 className="text-[40px] md:text-[48px] font-semibold animate-fade-in-up">
-          <span className="text-[#000000]">About </span>
+      <div className="pt-28 pb-6 px-4 text-center max-w-4xl mx-auto">
+        <h1 className="text-3xl md:text-4xl font-bold animate-fade-in-up">
+          <span className="text-slate-900">About </span>
           <span className="text-[#234463]">Us</span>
         </h1>
       </div>
 
       {/* Hero Image */}
-      <div className="relative w-full h-[300px] md:h-[400px] lg:h-[500px]">
-        <Image
-          src="/assets/about-us/aboutus1.JPG"
-          alt="About Us Hero"
-          fill
-          className="object-cover"
-          priority
-        />
-        {/* Dark Overlay */}
-        <div className="absolute inset-0 bg-black/30" />
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <div className="relative w-full h-[280px] md:h-[380px] rounded-3xl overflow-hidden shadow-lg">
+          <Image
+            src="/assets/about-us/aboutus1.JPG"
+            alt="About Us Hero"
+            fill
+            className="object-cover"
+            priority
+          />
+          <div className="absolute inset-0 bg-black/20" />
+        </div>
       </div>
 
       {/* Stats Floating Card */}
-      <div className="relative z-10 -mt-16 md:-mt-20 px-4 md:px-6 lg:px-16">
+      <div className="relative z-10 -mt-12 md:-mt-16 px-4 md:px-6 lg:px-16">
         <div className="max-w-[829px] mx-auto bg-white rounded-[23px] shadow-[0_4px_20px_rgba(0,0,0,0.25)] p-6 md:p-8 animate-fade-in-up hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)] transition-shadow duration-300">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
             <div className="flex justify-center">
               <StatCard
                 icon={<UserIcon />}
-                value="50+"
-                label="Jumlah orang terbantu"
+                value={`${stats.totalClients}+`}
+                label="Klien Terlayani"
               />
             </div>
             <div className="flex justify-center md:border-x md:border-gray-200 md:px-8">
-              <StatCard icon={<StarIcon />} value="30+" label="Jumlah rating" />
+              <StatCard
+                icon={<StarIcon />}
+                value={`${stats.averageRating.toFixed(1)} / 5`}
+                label={`Berdasarkan ${stats.totalReviews}+ Review Google`}
+              />
             </div>
             <div className="flex justify-center">
               <StatCard
                 icon={<UsersIcon />}
-                value="3+"
-                label="Jumlah psikolog"
+                value={`${stats.totalPsychologists}+`}
+                label="Psikolog Profesional"
               />
             </div>
           </div>

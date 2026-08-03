@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { changePassword } from "@/lib/api/psychologist";
+import { changePasswordPsychologist } from "@/lib/api/auth";
 
 export default function SecuritySettings() {
   const [showPasswords, setShowPasswords] = useState({
@@ -42,7 +42,10 @@ export default function SecuritySettings() {
 
     setLoading(true);
     try {
-      await changePassword(formData.currentPassword, formData.newPassword);
+      await changePasswordPsychologist({
+        oldPassword: formData.currentPassword,
+        newPassword: formData.newPassword,
+      });
       alert("Password berhasil diubah");
       setFormData({ currentPassword: "", newPassword: "", confirmPassword: "" });
     } catch (error) {

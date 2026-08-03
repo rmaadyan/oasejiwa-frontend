@@ -10,24 +10,41 @@ import {
 
 export default function AboutPage() {
   return (
-    <main className="min-h-screen bg-white font-[var(--font-poppins)]">
-      {/* Navbar */}
-      <Navbar />
+    <main className="min-h-screen bg-slate-50/30 font-[var(--font-poppins)] flex flex-col justify-between overflow-x-hidden">
+      {/* Sticky Navbar */}
+      <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-md shadow-xs border-b border-slate-100">
+        <Navbar />
+      </div>
 
-      {/* Hero Section */}
-      <HeroSection />
+      {/* Main Container - Diberi Max Width & Padding Rapi */}
+      <div className="flex-1 w-full space-y-16 sm:space-y-24 pb-20">
+        
+        {/* 1. Hero Section */}
+        <section className="w-full">
+          <HeroSection />
+        </section>
 
-      {/* Vision & Mission Section */}
-      <VisionMissionSection />
+        {/* 2. Vision & Mission */}
+        <section className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <VisionMissionSection />
+        </section>
 
-      {/* CEO Message Section */}
-      <CeoMessageSection />
+        {/* 3. CEO Message */}
+        <section className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <CeoMessageSection />
+        </section>
 
-      {/* Behind Our Team Section */}
-      <TeamSection />
+        {/* 4. Behind Our Team */}
+        <section className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <TeamSection />
+        </section>
 
-      {/* Location Section */}
-      <LocationSection />
+        {/* 5. Location Section (Google Maps) */}
+        <section className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <LocationSection />
+        </section>
+        
+      </div>
 
       {/* Footer */}
       <Footer />

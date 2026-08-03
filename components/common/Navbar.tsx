@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { Menu, X, User } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -8,11 +8,15 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation"; 
 import { useAuth } from "@/hooks/use-auth";
 
+
 export default function Navbar() {
   const [isSpecialPage, setIsSpecialPage] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const { isLoggedIn, isLoading } = useAuth();
+  
+  // 1. Ambil data 'user' dari useAuth hook
+  const { isLoggedIn, isLoading, user } = useAuth();
+  console.log("ISI DATA USER DI NAVBAR:", user);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -35,7 +39,24 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [pathname]);
 
-  const navItems = [
+  const getRoleDashboardHref = (role?: string) => {
+    if (!role) return "/userprofile";
+    const upperRole = String(role).toUpperCase();
+    switch (upperRole) {
+      case "PSYCHOLOGIST":
+        return "/psychologist/profile";
+      case "ADMIN":
+        return "/admin";
+      case "USER":
+      default:
+        return "/userprofile";
+    }
+  };
+
+  const dashboardHref = isLoggedIn ? getRoleDashboardHref(user?.role) : "/";
+  const authHref = isLoggedIn ? getRoleDashboardHref(user?.role) : "/auth/signin";
+
+  const baseNavItems = [
     { name: "Beranda", href: "/" },
     { name: "Tentang Kami", href: "/about" },
     { name: "Layanan Kami", href: "/layanan" },
@@ -43,8 +64,20 @@ export default function Navbar() {
     { name: "Tes Psikologi", href: "/tes" },
   ];
 
-  const authHref = isLoggedIn ? "/userprofile" : "/auth/signin";
-  const authLabel = isLoggedIn ? "Profile" : "Login";
+  const navItems = isLoggedIn
+    ? [
+        ...baseNavItems,
+        { name: "Dashboard", href: dashboardHref },
+      ]
+    : baseNavItems;
+
+  const displayName = 
+    user?.fullName || 
+    user?.userProfile?.fullName || 
+    user?.name || 
+    (user?.email ? user.email.split('@')[0] : "Profile");
+
+  const authLabel = isLoggedIn ? displayName : "Login";
 
   const buttonClassName = `transition-all ${
     isScrolled

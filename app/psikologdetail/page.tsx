@@ -2,16 +2,29 @@
 
 import { Suspense, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { BadgeCheck, GraduationCap, Stethoscope, User } from "lucide-react";
+import { BadgeCheck, GraduationCap, Stethoscope, User, Calendar, Clock, ArrowLeft, Briefcase } from "lucide-react";
 import Navbar from "@/components/common/Navbar";
+import Footer from "@/components/common/Footer";
 import { getPsychologistByIdPublic } from "@/lib/api/psychologists";
 
 type Schedule = {
   id: string;
-  date: string;
+  date?: string;
+  day?: string;
+  hari?: string;
+  dayOfWeek?: string;
   startTime: string;
   duration: number;
   isAvailable: boolean;
+};
+
+type EducationItem = {
+  id?: string;
+  degree?: string;
+  institution?: string;
+  city?: string;
+  startYear?: number | string;
+  endYear?: number | string;
 };
 
 type PsikologDetail = {
@@ -21,55 +34,68 @@ type PsikologDetail = {
   about: string;
   sipp: string;
   str: string;
-  educations: {
-    id: string;
-    degree: string;
-    institution: string;
-    city: string;
-    startYear: number;
-    endYear: number;
-  }[];
-  experiences: string[];
-  specializations: string[];
-  expertises: string[];
+  educations?: EducationItem[] | any[];
+  education?: EducationItem[] | any[];
+  experiences?: string[] | any[];
+  specializations?: string[];
+  expertises?: string[];
   schedules: Schedule[];
 };
 
+function formatDayName(item: any): string {
+  if (!item) return "Senin";
+  const val = typeof item === "object" 
+    ? (item.day || item.hari || item.dayOfWeek || item.date) 
+    : item;
+
+  if (!val) return "Senin";
+  const valStr = String(val).trim();
+
+  if (valStr.includes("-") || valStr.includes("T")) {
+    const d = new Date(valStr);
+    if (!isNaN(d.getTime())) {
+      const daysID = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+      return daysID[d.getDay()];
+    }
+  }
+
+  const cleanStr = valStr.toUpperCase();
+  const dayMapping: Record<string, string> = {
+    SENIN: "Senin",
+    SELASA: "Selasa",
+    RABU: "Rabu",
+    KAMIS: "Kamis",
+    JUMAT: "Jumat",
+    SABTU: "Sabtu",
+    MINGGU: "Minggu",
+  };
+
+  return dayMapping[cleanStr] || "Senin";
+}
+
+function formatTimeRange(startTime: string, durationMinutes: number) {
+  if (!startTime) return "09:00 WIB";
+  const [hours, minutes] = startTime.split(":").map(Number);
+  const totalMinutes = hours * 60 + minutes + (Number(durationMinutes) || 60);
+
+  const endHours = Math.floor(totalMinutes / 60) % 24;
+  const endMins = totalMinutes % 60;
+
+  const endTimeStr = `${String(endHours).padStart(2, "0")}:${String(endMins).padStart(2, "0")}`;
+  return `${startTime} - ${endTimeStr} WIB`;
+}
+
 function groupSchedulesByDate(schedules: Schedule[]) {
   const map = new Map<string, Schedule[]>();
+  if (!Array.isArray(schedules) || schedules.length === 0) return [];
 
   schedules.forEach((s) => {
-    const dateKey = s.date.split("T")[0];
-    if (!map.has(dateKey)) map.set(dateKey, []);
-    map.get(dateKey)!.push(s);
+    const dayKey = formatDayName(s);
+    if (!map.has(dayKey)) map.set(dayKey, []);
+    map.get(dayKey)!.push(s);
   });
 
-  return Array.from(map.entries()).map(([date, items]) => ({ date, items }));
-}
-
-function formatDayName(dateStr: string) {
-  const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-  return days[new Date(dateStr).getDay()];
-}
-
-function formatDateShort(dateStr: string) {
-  const d = new Date(dateStr);
-  const months = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "Mei",
-    "Jun",
-    "Jul",
-    "Agu",
-    "Sep",
-    "Okt",
-    "Nov",
-    "Des",
-  ];
-
-  return `${d.getDate()} ${months[d.getMonth()]}`;
+  return Array.from(map.entries()).map(([day, items]) => ({ day, items }));
 }
 
 function PsikologDetailContent() {
@@ -83,15 +109,15 @@ function PsikologDetailContent() {
   const [activeDay, setActiveDay] = useState(0);
 
   useEffect(() => {
-    if (!id) {
-      router.push("/psikolog");
-      return;
-    }
+    if (!id) return;
 
     const fetchData = async () => {
       try {
         const result = await getPsychologistByIdPublic(id);
-        setPsikolog(result.data);
+        const data = result?.data || result?.psychologist || result;
+        const rawSchedules = data?.schedules || data?.schedule || data?.availableSchedules || [];
+
+        setPsikolog({ ...data, schedules: rawSchedules });
       } catch (err: any) {
         setError(err.message || "Gagal memuat data psikolog");
       } finally {
@@ -100,28 +126,34 @@ function PsikologDetailContent() {
     };
 
     fetchData();
-  }, [id, router]);
+  }, [id]);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-slate-50 flex flex-col justify-between font-poppins">
         <Navbar />
         <div className="flex items-center justify-center min-h-[60vh]">
-          <p className="text-gray-500">Memuat data psikolog...</p>
+          <p className="text-slate-500 font-medium animate-pulse">Memuat profil psikolog...</p>
         </div>
+        <Footer />
       </div>
     );
   }
 
   if (error || !psikolog) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-slate-50 flex flex-col justify-between font-poppins">
         <Navbar />
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <p className="text-red-500">
-            {error || "Psikolog tidak ditemukan"}
-          </p>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
+          <p className="text-red-500 font-medium">{error || "Psikolog tidak ditemukan"}</p>
+          <button
+            onClick={() => router.push("/psikolog")}
+            className="flex items-center gap-2 px-4 py-2 bg-[#234463] text-white text-xs font-semibold rounded-xl cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" /> Kembali ke Daftar Psikolog
+          </button>
         </div>
+        <Footer />
       </div>
     );
   }
@@ -129,175 +161,96 @@ function PsikologDetailContent() {
   const groupedSchedules = groupSchedulesByDate(psikolog.schedules);
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center">
+    <div className="min-h-screen bg-slate-50/50 flex flex-col justify-between font-poppins text-xs">
       <Navbar />
-      <h1 className="text-center text-4xl font-bold text-[#234463] mt-16">
-        Our Psikolog
-      </h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 max-w-6xl sm:border bg-white sm:border-gray-200 sm:rounded-2xl sm:shadow-lg sm:p-4 my-8 sm:mx-8">
-        <div className="p-6 md:p-8 space-y-6">
-          <div className="flex flex-col lg:flex-row gap-4 items-center lg:items-start">
-            {psikolog.avatarUrl ? (
-              <img
-                src={psikolog.avatarUrl}
-                alt={psikolog.name}
-                className="w-28 h-28 rounded-full object-cover shrink-0"
-              />
-            ) : (
-              <div className="w-28 h-28 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
-                <User className="w-14 h-14 text-gray-400" />
-              </div>
-            )}
+      <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16">
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-[#234463] transition mb-6 cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" /> Kembali
+        </button>
 
-            <div className="pt-0 lg:pt-2 text-center lg:text-left space-y-2">
-              <h2 className="text-lg font-bold text-[#234463]">
-                {psikolog.name}
-              </h2>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                {psikolog.about}
-              </p>
-            </div>
-          </div>
-
-          {psikolog.specializations.length > 0 && (
-            <div className="flex gap-2 items-start">
-              <Stethoscope className="w-5 h-5 text-[#234463] mt-0.5 shrink-0" />
-              <div>
-                <p className="text-sm font-semibold text-[#234463] mb-1">
-                  Spesialis
-                </p>
-                <p className="text-sm text-gray-600">
-                  {psikolog.specializations.join(", ")}
-                </p>
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex gap-2 items-start">
-              <BadgeCheck className="w-5 h-5 text-[#234463] mt-0.5 shrink-0" />
-              <div>
-                <p className="text-sm font-semibold text-[#234463]">SIPP/SILP</p>
-                <p className="text-sm text-gray-600 break-all">
-                  {psikolog.sipp}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-2 items-start">
-              <BadgeCheck className="w-5 h-5 text-[#234463] mt-0.5 shrink-0" />
-              <div>
-                <p className="text-sm font-semibold text-[#234463]">STR</p>
-                <p className="text-sm text-gray-600 break-all">
-                  {psikolog.str}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {psikolog.educations.length > 0 && (
-            <div className="flex gap-2 items-start">
-              <GraduationCap className="w-5 h-5 text-[#234463] mt-0.5 shrink-0" />
-              <div>
-                <p className="text-sm font-semibold text-[#234463] mb-2">
-                  Pendidikan
-                </p>
-                <ul className="space-y-1 text-sm text-gray-600">
-                  {psikolog.educations.map((edu) => (
-                    <li key={edu.id}>
-                      • {edu.degree} — {edu.institution}, {edu.city} (
-                      {edu.endYear})
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="p-4 md:p-6">
-          <h3 className="text-lg font-semibold text-[#234463] mb-4">
-            Jadwal Praktik
-          </h3>
-
-          {groupedSchedules.length === 0 ? (
-            <p className="text-sm text-gray-500">Belum ada jadwal tersedia</p>
-          ) : (
-            <>
-              <div className="flex gap-4">
-                <div className="grid grid-cols-4 xl:grid-cols-7 gap-3 md:gap-4">
-                  {groupedSchedules.map((group, index) => (
-                    <button
-                      key={group.date}
-                      onClick={() => setActiveDay(index)}
-                      className={`border rounded-md text-center px-2 py-1 cursor-pointer hover:bg-blue-100 transition ${
-                        activeDay === index
-                          ? "bg-blue-100 border-[#234463]"
-                          : "border-gray-300"
-                      }`}
-                    >
-                      <p className="text-sm font-semibold text-[#234463]">
-                        {formatDayName(group.date)}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {formatDateShort(group.date)}
-                      </p>
-                    </button>
-                  ))}
+        <div className="grid grid-cols-1 lg:grid-cols-12 bg-white border border-slate-200/80 rounded-3xl shadow-xs overflow-hidden">
+          
+          <div className="lg:col-span-6 p-6 sm:p-8 space-y-6 border-b lg:border-b-0 lg:border-r border-slate-100">
+            <div className="flex flex-col sm:flex-row gap-5 items-center sm:items-start text-center sm:text-left">
+              {psikolog.avatarUrl ? (
+                <img
+                  src={psikolog.avatarUrl}
+                  alt={psikolog.name}
+                  className="w-24 h-24 rounded-2xl object-cover shrink-0 shadow-md border border-slate-100"
+                />
+              ) : (
+                <div className="w-24 h-24 rounded-2xl bg-blue-50 text-[#234463] flex items-center justify-center shrink-0 border border-blue-100">
+                  <User className="w-10 h-10" />
                 </div>
-              </div>
+              )}
 
-              <div className="flex flex-wrap gap-3 mt-6">
-                {groupedSchedules[activeDay]?.items.map((sch) => (
-                  <div
-                    key={sch.id}
-                    className="border border-[#234463] rounded-md cursor-pointer hover:bg-blue-50 px-4 py-1 text-sm text-[#234463] font-semibold"
-                  >
-                    {sch.startTime} WIB
+              <div className="space-y-1.5">
+                <h1 className="text-xl sm:text-2xl font-bold text-[#234463]">{psikolog.name}</h1>
+                <p className="text-xs text-slate-500 font-medium">Psikolog Klinik Oase Jiwa</p>
+                {psikolog.about && <p className="text-xs text-slate-600 leading-relaxed pt-1">{psikolog.about}</p>}
+              </div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-6 p-6 sm:p-8 space-y-6 bg-slate-50/40 flex flex-col justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-[#234463] mb-1 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-[#234463]" /> Jadwal Konseling Tersedia
+              </h3>
+              <p className="text-[11px] text-slate-500 mb-4">Pilih hari dan jam ketersediaan untuk melakukan sesi</p>
+
+              {groupedSchedules.length === 0 ? (
+                <div className="p-6 bg-white rounded-2xl border border-dashed border-slate-200 text-center">
+                  <p className="text-xs text-slate-400">Belum ada jadwal praktik yang dibuka oleh psikolog ini.</p>
+                </div>
+              ) : (
+                <>
+                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+                    {groupedSchedules.map((group, index) => (
+                      <button
+                        key={group.day || index}
+                        onClick={() => setActiveDay(index)}
+                        className={`border rounded-xl text-center px-4 py-2 transition cursor-pointer font-bold text-xs shrink-0 ${
+                          activeDay === index
+                            ? "bg-[#234463] text-white border-[#234463] shadow-xs"
+                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                        }`}
+                      >
+                        {group.day}
+                      </button>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </>
-          )}
 
-          {psikolog.expertises.length > 0 && (
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold text-[#234463] mb-2">
-                Keahlian
-              </h3>
-              <div className="flex flex-wrap gap-2 mb-6">
-                {psikolog.expertises.map((item, index) => (
-                  <span
-                    key={index}
-                    className="border border-[#234463] rounded-full px-3 py-1 text-sm text-[#234463]"
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
+                  <div className="flex flex-wrap gap-2.5 mt-4">
+                    {groupedSchedules[activeDay]?.items.map((sch, idx) => (
+                      <div
+                        key={sch.id || idx}
+                        onClick={() => {
+                          // 🟢 PINTU NAVIGASI: Ke Halaman Stepper Step 2 (/booking/schedule)
+                          const selectedDayName = groupedSchedules[activeDay]?.day || "Sabtu";
+                          router.push(
+                            `/booking/schedule?service=1&psychologist=${psikolog.id}&scheduleId=${sch.id}&day=${selectedDayName}&time=${sch.startTime}`
+                          );
+                        }}
+                        className="bg-white border border-[#234463] rounded-xl px-3.5 py-2 text-xs text-[#234463] font-semibold hover:bg-blue-50 transition cursor-pointer shadow-2xs flex items-center gap-1.5"
+                      >
+                        <Clock className="w-3.5 h-3.5 text-[#234463]" />
+                        {formatTimeRange(sch.startTime, sch.duration)}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
-          )}
+          </div>
 
-          {psikolog.experiences.length > 0 && (
-            <div className="mt-6">
-              <h3 className="font-semibold text-[#234463] mb-2">
-                Pengalaman
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {psikolog.experiences.map((item, index) => (
-                  <span
-                    key={index}
-                    className="border border-[#234463] rounded-full px-3 py-1 text-sm text-[#234463]"
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
-      </div>
+      </main>
+      <Footer />
     </div>
   );
 }
