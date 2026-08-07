@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { getImageUrl } from "@/lib/utils/getImageUrl"; // Adjust path helper kamu jika berbeda
 
 interface ServiceCardProps {
   id: string;
@@ -23,12 +23,15 @@ export default function ServiceCard({
   isSelected = false,
   onSelect,
 }: ServiceCardProps) {
+  // Olah URL gambar menggunakan getImageUrl()
+  const imageUrl = getImageUrl(image);
+
   return (
     <div
       onClick={() => onSelect(id)}
       className={`
         relative bg-white rounded-2xl overflow-hidden cursor-pointer
-        transition-all duration-300 ease-out
+        transition-all duration-300 ease-out group
         ${
           isSelected
             ? "border-2 border-[#2B5379] shadow-lg shadow-[#2B5379]/20"
@@ -45,17 +48,20 @@ export default function ServiceCard({
         </div>
       )}
 
-      {/* Image */}
-      <div className="relative w-full aspect-[4/3] overflow-hidden">
+      {/* Image Container */}
+      <div className="relative w-full aspect-[4/3] overflow-hidden bg-slate-100">
         {image ? (
-          <Image
-            src={image}
+          <img
+            src={imageUrl}
             alt={title}
-            fill
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            onError={(e) => {
+              // Fallback jika file gambar di server tidak ditemukan / error
+              (e.target as HTMLImageElement).src = "/assets/default-service.png";
+            }}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
+          <div className="w-full h-full flex items-center justify-center bg-slate-100">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-[#2B5379]/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
@@ -78,9 +84,10 @@ export default function ServiceCard({
           Rp {price.toLocaleString("id-ID")}
         </p>
         <button
+          type="button"
           className={`
             w-full py-3 px-6 rounded-xl font-semibold
-            transition-all duration-300 active:scale-95
+            transition-all duration-300 active:scale-95 cursor-pointer
             ${
               isSelected
                 ? "bg-[#2E8B3D] text-white"
