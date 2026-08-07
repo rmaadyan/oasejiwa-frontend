@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Facebook, Instagram, MapPin, Phone } from "lucide-react";
+import { Instagram, Linkedin, MapPin, Phone } from "lucide-react";
 
 // Import custom icons untuk TikTok dan Threads
 function TikTokIcon({ className }: { className?: string }) {
@@ -100,13 +100,13 @@ export default function Footer() {
             <h4 className="text-sm font-semibold text-slate-900">Ikuti Kami</h4>
             <div className="mt-3 space-y-2 text-sm text-slate-700">
               <Link
-                href="https://www.facebook.com/oasejiwa.id"
+                href="https://www.linkedin.com/company/oase-jiwa/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 hover:underline hover:text-[#1877F2] transition-colors"
+                className="flex items-center gap-2 hover:underline hover:text-[#0A66C2] transition-colors"
               >
-                <Facebook className="h-4 w-4" />
-                Facebook
+                <Linkedin className="h-4 w-4" />
+                LinkedIn
               </Link>
               <Link
                 href="https://x.com/psikologmalang?s=21&t=n1mKVJdlxpzgUN2irbkNUg"
