@@ -48,6 +48,7 @@ export default function TeamSection() {
               experience={member.experience}
               linkedinUrl={member.linkedinUrl}
               instagramUrl={member.instagramUrl}
+              facebookUrl={member.facebookUrl}
             />
           ))}
         </div>
