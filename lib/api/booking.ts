@@ -1,5 +1,5 @@
 // Fallback ke localhost untuk environment dev
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 // Helper terpusat — selalu pakai cookie
 const authFetch = (url: string, options: RequestInit = {}) =>
