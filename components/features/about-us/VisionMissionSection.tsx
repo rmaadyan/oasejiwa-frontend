@@ -6,12 +6,13 @@ export default function VisionMissionSection() {
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Image */}
-          <div className="relative w-full max-w-[400px] aspect-square rounded-[30px] overflow-hidden mx-auto lg:mx-0 shadow-xl hover:shadow-2xl transition-shadow duration-300 group">
+          <div className="relative w-full max-w-[400px] rounded-[30px] overflow-hidden mx-auto lg:mx-0 shadow-xl hover:shadow-2xl transition-shadow duration-300 group">
             <Image
-              src="/assets/about-us/IMG_1832.JPG"
+              src="/assets/about-us/PSYCHS007.jpg"
               alt="Vision Mission"
-              fill
-              className="object-cover transition-transform duration-500 group-hover:scale-105"
+              width={800}
+              height={600}
+              className="w-full h-auto object-contain transition-transform duration-500 group-hover:scale-105"
             />
           </div>
 
