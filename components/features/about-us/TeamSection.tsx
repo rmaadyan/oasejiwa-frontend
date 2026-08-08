@@ -2,7 +2,7 @@ import TeamMemberCard from "@/components/ui/TeamMemberCard";
 
 const teamMembers = [
   {
-    imageSrc: "/assets/about-us/founder.jpg",
+    imageSrc: "/assets/about-us/founder.JPG",
     name: "Andi Zainuddin Japeri, M. Psi., Psikolog.",
     role: "CEO (Chief Executive Officer)",
     experience:
@@ -11,7 +11,7 @@ const teamMembers = [
     instagramUrl: "https://www.instagram.com/AndiJaperi",
   },
   {
-    imageSrc: "/assets/about-us/Bilqis.jpg",
+    imageSrc: "/assets/about-us/bilqisty.png",
     name: "Hana Bilqisty",
     role: "CFO (Chief Financial Officer)",
     experience:
@@ -20,7 +20,7 @@ const teamMembers = [
     instagramUrl: "https://www.instagram.com/Hbrwp",
   },
   {
-    imageSrc: "/assets/about-us/Novi.jpg",
+    imageSrc: "/assets/about-us/Famila.png",
     name: "Novi Rachmawati ",
     role: "COO (Chief Operating Officer)",
     experience:
@@ -48,7 +48,6 @@ export default function TeamSection() {
               experience={member.experience}
               linkedinUrl={member.linkedinUrl}
               instagramUrl={member.instagramUrl}
-              facebookUrl={member.facebookUrl}
             />
           ))}
         </div>
