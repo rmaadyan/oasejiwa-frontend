@@ -300,6 +300,14 @@ function ConsultationFormContent() {
   const [layananFetchError, setLayananFetchError] = useState<string | null>(null);
   const isCouple = layananJenis === "KonselingPasangan";
 
+  // Preload logo yang dipakai di header PDF, supaya saat tombol "Download PDF"
+  // diklik pertama kali gambar sudah ada di cache browser (bukan baru mulai
+  // di-fetch), sehingga tinggi elemen sudah pasti benar saat diukur.
+  useEffect(() => {
+    const img = new window.Image();
+    img.src = "/assets/oasejiwalogo.png";
+  }, []);
+
   useEffect(() => {
     if (!serviceId) {
       setIsLoadingLayanan(false);
@@ -869,6 +877,16 @@ function ConsultationFormContent() {
 
   // PDF download handler
   const generatePDF = async () => {
+    // Pastikan bagian F. Pernyataan Persetujuan (nama konfirmasi, tanda tangan,
+    // dan centang persetujuan) sudah lengkap SEBELUM proses download PDF
+    // dimulai. Kalau belum lengkap, tampilkan pesan error di masing-masing
+    // field (lewat validateStep3) dan hentikan proses download.
+    if (!validateStep3()) {
+      const consentSection = document.getElementById("consent-section");
+      consentSection?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
     setIsDownloading(true);
     try {
       const element = document.getElementById("booking-form-pdf-content");
@@ -878,6 +896,26 @@ function ConsultationFormContent() {
         setIsDownloading(false);
         return;
       }
+
+      // 0. Tunggu semua <img> di dalam elemen (mis. logo header) benar-benar
+      // selesai dimuat sebelum diukur/di-capture. Tanpa ini, pada percobaan
+      // download PERTAMA (gambar belum ada di cache browser) tinggi logo
+      // masih 0px saat diukur, sehingga semua perhitungan posisi header &
+      // titik potong halaman jadi salah -> hasil PDF kosong/berantakan.
+      // Download kedua terlihat normal karena gambar sudah ter-cache.
+      const waitForImages = (root: HTMLElement) => {
+        const imgs = Array.from(root.querySelectorAll("img"));
+        return Promise.all(
+          imgs.map((img) => {
+            if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+            return new Promise<void>((resolve) => {
+              img.addEventListener("load", () => resolve(), { once: true });
+              img.addEventListener("error", () => resolve(), { once: true });
+            });
+          })
+        );
+      };
+      await waitForImages(element);
 
       // 1. Ukur posisi elemen SEBELUM di-clone (dalam px DOM asli), supaya kita
       // tahu di mana header berakhir (untuk diulang tiap halaman) dan di mana
@@ -3355,7 +3393,7 @@ function ConsultationFormContent() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-gray-300">
+      <div id="consent-section" className="overflow-hidden rounded-lg border border-gray-300">
         <div className="bg-[#1f3b5b] px-5 py-3 text-sm font-bold text-white">
           F. Pernyataan Persetujuan
         </div>

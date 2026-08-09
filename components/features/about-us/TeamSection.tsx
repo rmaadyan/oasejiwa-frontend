@@ -4,28 +4,29 @@ const teamMembers = [
   {
     imageSrc: "/assets/about-us/founder.JPG",
     name: "Andi Zainuddin Japeri, M. Psi., Psikolog.",
-    role: "Founder",
+    role: "CEO (Chief Executive Officer)",
     experience:
-      "Psikolog klinis dengan pengalaman lebih dari 5 tahun dalam bidang kesehatan mental dan konseling.",
-    linkedinUrl: "https://www.linkedin.com/in/andijaperi/",
-    instagramUrl: "https://www.instagram.com/andijaperi/",
-    facebookUrl: "https://www.facebook.com/andizainuddinjaperi",
+      "Berpraktik kurang dari 2 tahun di bidang psikologi klinis dengan fokus pada pelayanan yang profesional, empatik, dan berorientasi pada kebutuhan klien serta pengembangan layanan kesehatan mental.",
+    linkedinUrl: "https://linkedin.com/in/andijaperi",
+    instagramUrl: "https://www.instagram.com/AndiJaperi",
   },
   {
     imageSrc: "/assets/about-us/bilqisty.png",
     name: "Hana Bilqisty",
-    role: "Head of Internal Affairs & Quality",
+    role: "CFO (Chief Financial Officer)",
     experience:
-      "Mengatur standar kualitas internal dengan pendekatan psikologi lingkungan demi menjamin kenyamanan dan ketenangan setiap pengguna jasa.",
-    linkedinUrl: "https://www.linkedin.com/in/hanabilqisty/",
-    instagramUrl: "https://www.instagram.com/hbrwp/",
+      "Bertanggung jawab atas pengelolaan keuangan, penyusunan anggaran, serta administrasi perusahaan untuk memastikan operasional berjalan secara efisien.",
+    linkedinUrl: "https://linkedin.com/in/hanabilqisty",
+    instagramUrl: "https://www.instagram.com/Hbrwp",
   },
   {
     imageSrc: "/assets/about-us/Famila.png",
-    name: "Famila",
-    role: "Chief Operating Officier",
+    name: "Novi Rachmawati ",
+    role: "COO (Chief Operating Officer)",
     experience:
-      "Mahir dalam psikologi konsumen untuk memastikan komunikasi yang empatik, solutif, dan bebas stress selama proses booking.",
+      "Bertanggung jawab mengelola operasional perusahaan, mengoordinasikan proses layanan, serta memastikan setiap layanan berjalan secara efektif, efisien, dan profesional.",
+    linkedinUrl: "https://linkedin.com/in/novi-rahmawati-667480312",
+    instagramUrl: "https://www.instagram.com/novrhma_",
   },
 ];
 
@@ -47,7 +48,6 @@ export default function TeamSection() {
               experience={member.experience}
               linkedinUrl={member.linkedinUrl}
               instagramUrl={member.instagramUrl}
-              facebookUrl={member.facebookUrl}
             />
           ))}
         </div>
