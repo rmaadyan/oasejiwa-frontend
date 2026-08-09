@@ -1946,8 +1946,11 @@ function ConsultationFormContent() {
             <div>
               <p className="text-sm font-medium text-amber-800">Informasi Penting</p>
               <p className="text-sm text-amber-700">
-                Mohon isi data berikut secara manual dan pastikan datanya benar. Data ini
+                1. Mohon isi data berikut secara manual dan pastikan datanya benar. Data ini
                 akan digunakan psikolog untuk proses konsultasi pasangan Anda.
+              </p>
+              <p className="text-sm text-amber-700">
+                2. Setelah booking berhasil, kami akan mengirimkan email konfirmasi. Silakan cek Inbox atau folder Spam email Anda.
               </p>
             </div>
           </div>
@@ -2201,8 +2204,10 @@ function ConsultationFormContent() {
             <div>
               <p className="text-sm font-medium text-amber-800">Informasi Penting</p>
               <p className="text-sm text-amber-700">
-                Mohon isi data berikut secara manual dan pastikan datanya benar. Data ini
-                akan digunakan psikolog untuk proses konsultasi Anda.
+                1. Mohon isi data berikut secara manual dan pastikan datanya sudah benar untuk kebutuhan sesi konsultasi.
+              </p>
+              <p className="text-sm text-amber-700">
+                2. Setelah booking berhasil, kami akan mengirimkan email konfirmasi. Silakan cek Inbox atau folder Spam email Anda.
               </p>
             </div>
           </div>

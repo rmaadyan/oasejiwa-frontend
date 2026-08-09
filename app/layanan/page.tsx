@@ -71,18 +71,18 @@ export default function LayananLandingPage() {
       <Navbar />
       <div className="bg-white font-poppins">
         {/* HERO */}
-        <section className="pt-32 pb-16 px-6 lg:px-16">
-          <div className="mx-auto flex w-full max-w-7xl flex-col items-center gap-12 md:flex-row md:items-center">
-            {/* Kiri: Teks */}
-            <div className="w-full md:w-1/2 animate-fade-in-left">
-              <h1 className="text-[40px] md:text-[48px] font-semibold leading-[1.15] text-[#000000]">
+        <section className="pt-32 pb-16 px-6 lg:px-12">
+          <div className="mx-auto flex w-full max-w-7xl flex-col items-center gap-8 md:flex-row md:items-center md:justify-between">
+            {/* Kiri: Teks (Diberi porsi 42% agar area kanan punya ruang lebih luas) */}
+            <div className="w-full md:w-[42%] shrink-0 animate-fade-in-left">
+              <h1 className="text-[38px] lg:text-[46px] font-semibold leading-[1.15] text-[#000000]">
                 Sudah memberi{" "}
                 <span className="text-[#234463]">ruang</span>
                 <br />
                 untuk dirimu hari ini?
               </h1>
 
-              <div className="mt-6 max-w-lg space-y-4 text-[16px] md:text-[18px] leading-relaxed text-[#4B4B4B]">
+              <div className="mt-6 max-w-lg space-y-4 text-[15px] lg:text-[17px] leading-relaxed text-[#4B4B4B]">
                 <p>
                   Setiap orang punya cara berbeda untuk pulih dan bertumbuh. Di
                   sini, kamu bisa memilih layanan yang paling sesuai: psikotes,
@@ -103,17 +103,17 @@ export default function LayananLandingPage() {
               </button>
             </div>
 
-            {/* Kanan: Staggered Multi-Column Floating Grid (Presisi 5 Foto) */}
-            <div className="w-full md:w-1/2 animate-fade-in-right py-4">
-              <div className="mx-auto grid w-full max-w-xl grid-cols-4 gap-2.5 sm:gap-3.5 items-center">
+            {/* Kanan: Large Clean Grid (Porsi 58% - Foto Beneran Besar & Keisi) */}
+            <div className="w-full md:w-[58%] animate-fade-in-right py-2">
+              <div className="grid w-full grid-cols-4 gap-3 sm:gap-4 lg:gap-5 items-center">
                 
-                {/* KOLOM 1: Kiri Sendiri Mengambang di Tengah (Foto 1) */}
+                {/* KOLOM 1: Foto 1 (Jabat Tangan) */}
                 <div className="flex items-center justify-center">
-                  <div className="h-44 sm:h-56 w-full overflow-hidden rounded-[24px] bg-slate-100 shadow-md transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                  <div className="aspect-[3/4] w-full overflow-hidden rounded-[26px] bg-slate-100 shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
                     <img
                       src="/assets/foto-1.jpg"
                       alt="Konseling 1"
-                      className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
+                      className="h-full w-full object-cover object-[25%_40%] transition-transform duration-500 hover:scale-105"
                       onError={(e) => {
                         e.currentTarget.onerror = null;
                         e.currentTarget.src = SVG_FALLBACK;
@@ -122,24 +122,42 @@ export default function LayananLandingPage() {
                   </div>
                 </div>
 
-                {/* KOLOM 2: 2 Foto Stacked (Foto 2 & Foto 3) */}
-                <div className="flex flex-col gap-2.5 sm:gap-3.5">
-                  <div className="h-36 sm:h-44 w-full overflow-hidden rounded-[24px] bg-slate-100 shadow-md transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                {/* KOLOM 2: Stacked Foto 2 & Foto 5 */}
+                <div className="flex flex-col justify-center gap-3 sm:gap-4 lg:gap-5">
+                  {/* Foto 2: Pasangan */}
+                  <div className="aspect-[4/3] w-full overflow-hidden rounded-[22px] bg-slate-100 shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
                     <img
                       src="/assets/foto-2.jpg"
-                      alt="Konseling 2"
-                      className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
+                      alt="Konseling Pasangan"
+                      className="h-full w-full object-cover object-[50%_20%] transition-transform duration-500 hover:scale-105"
                       onError={(e) => {
                         e.currentTarget.onerror = null;
                         e.currentTarget.src = SVG_FALLBACK;
                       }}
                     />
                   </div>
-                  <div className="h-40 sm:h-48 w-full overflow-hidden rounded-[24px] bg-slate-100 shadow-md transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+
+                  {/* Foto 5: Konseling Individu */}
+                  <div className="aspect-[4/3] w-full overflow-hidden rounded-[22px] bg-slate-100 shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+                    <img
+                      src="/assets/foto-5.jpg"
+                      alt="Konseling Individu"
+                      className="h-full w-full object-cover object-[25%_20%] transition-transform duration-500 hover:scale-105"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = SVG_FALLBACK;
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* KOLOM 3: Foto 3 (Portrait Utama - Paling Tinggi) */}
+                <div className="flex items-center justify-center">
+                  <div className="aspect-[1/1.9] w-full overflow-hidden rounded-[30px] bg-slate-100 shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
                     <img
                       src="/assets/foto-3.jpg"
-                      alt="Konseling 3"
-                      className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
+                      alt="Psikolog dan Klien"
+                      className="h-full w-full object-cover object-center transition-transform duration-500 hover:scale-105"
                       onError={(e) => {
                         e.currentTarget.onerror = null;
                         e.currentTarget.src = SVG_FALLBACK;
@@ -148,28 +166,13 @@ export default function LayananLandingPage() {
                   </div>
                 </div>
 
-                {/* KOLOM 3: 1 Foto Tinggi Vertikal (Foto 4) */}
-                <div className="flex items-center justify-center -mt-2 sm:-mt-4">
-                  <div className="h-56 sm:h-72 w-full overflow-hidden rounded-[24px] bg-slate-100 shadow-md transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                {/* KOLOM 4: Foto 4 (Anak - Melayang Pas di Tengah) */}
+                <div className="flex items-center justify-center">
+                  <div className="aspect-[3/4] w-full overflow-hidden rounded-[26px] bg-slate-100 shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
                     <img
                       src="/assets/foto-4.jpeg"
-                      alt="Konseling 4"
-                      className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
-                      onError={(e) => {
-                        e.currentTarget.onerror = null;
-                        e.currentTarget.src = SVG_FALLBACK;
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* KOLOM 4: 1 Foto Kanan Mengambang (Foto 5) */}
-                <div className="flex items-center justify-center mt-4 sm:mt-6">
-                  <div className="h-52 sm:h-64 w-full overflow-hidden rounded-[24px] bg-slate-100 shadow-md transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-                    <img
-                      src="/assets/foto-6.jpg"
-                      alt="Konseling 5"
-                      className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
+                      alt="Konseling Anak"
+                      className="h-full w-full object-cover object-[15%_center] transition-transform duration-500 hover:scale-105"
                       onError={(e) => {
                         e.currentTarget.onerror = null;
                         e.currentTarget.src = SVG_FALLBACK;
@@ -182,6 +185,7 @@ export default function LayananLandingPage() {
             </div>
           </div>
         </section>
+           
 
         {/* SECTION PER JENIS */}
         <section ref={jenisRef} className="bg-gradient-to-b from-white to-[#E8F6FF]/20 pb-20 pt-8">
