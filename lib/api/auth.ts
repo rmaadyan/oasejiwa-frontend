@@ -156,10 +156,15 @@ export async function getAuthMe() {
         credentials: "include",
     });
 
-    const result = await res.json();
+    // Jika 401 (belum login), kembalikan null agar tidak crash/throw error
+    if (res.status === 401) {
+        return null;
+    }
+
+    const result = await safeJson(res);
 
     if (!res.ok) {
-        throw new Error(result.message || "Unauthorized");
+        throw new Error(result.message || "Gagal mengambil data user");
     }
 
     return result;
