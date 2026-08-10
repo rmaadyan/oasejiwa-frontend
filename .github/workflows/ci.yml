@@ -1,4 +1,4 @@
-name: Deploy Frontend to VPS (Docker)
+name: Deploy Frontend to VPS (SSH)
 
 on:
   push:
@@ -27,7 +27,14 @@ jobs:
           build-args: |
             NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
 
-      # Trigger Webhook Portainer untuk Auto Deploy
-      - name: Deploy via Portainer Webhook
-        run: |
-          curl -X POST "${{ secrets.PORTAINER_WEBHOOK_FRONTEND }}"
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          script: |
+            docker pull oasejiwa/oasejiwa-frontend:latest
+            docker stop oasejiwa-frontend || true
+            docker rm oasejiwa-frontend || true
+            docker run -d --name oasejiwa-frontend --restart always -p 3000:3000 oasejiwa/oasejiwa-frontend:latest
