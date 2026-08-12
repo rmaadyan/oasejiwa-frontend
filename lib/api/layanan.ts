@@ -97,11 +97,26 @@ export async function uploadGambarLayanan(file: File): Promise<string> {
   return result.url;
 }
 
-export async function deleteLayanan(id: string) {
-  const res = await fetch(`${API_BASE_URL}/layanan/${id}`, {
+// src/lib/api/layanan.ts
+
+export async function deleteLayanan(id: number) {
+  // Ambil token JWT Admin dari localStorage/cookie
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+  // 🟢 GUNAKAN API_BASE_URL (Port 3001 / sesuai env)
+  const response = await fetch(`${API_BASE_URL}/layanan/${id}`, {
     method: "DELETE",
     credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
   });
-  if (!res.ok) throw new Error("Gagal hapus layanan");
-  return res.json();
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `Gagal hapus layanan (Status: ${response.status})`);
+  }
+
+  return response.json();
 }
