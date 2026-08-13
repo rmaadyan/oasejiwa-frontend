@@ -76,10 +76,10 @@ export default function LayananLandingPage() {
             {/* Kiri: Teks */}
             <div className="w-full md:w-[42%] shrink-0 animate-fade-in-left">
               <h1 className="text-[38px] lg:text-[46px] font-semibold leading-[1.15] text-[#000000]">
-                Sudah memberi{" "}
-                <span className="text-[#234463]">ruang</span>
+                Apakah{" "}
+                <span className="text-[#234463]">kamu</span>
                 <br />
-                untuk dirimu hari ini?
+                baik-baik saja hari ini?
               </h1>
 
               <div className="mt-6 max-w-lg space-y-4 text-[15px] lg:text-[17px] leading-relaxed text-[#4B4B4B]">

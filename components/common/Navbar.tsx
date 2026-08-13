@@ -1,13 +1,12 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { Menu, X, User } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation"; 
 import { useAuth } from "@/hooks/use-auth";
-
 
 export default function Navbar() {
   const [isSpecialPage, setIsSpecialPage] = useState(false);
@@ -122,25 +121,44 @@ export default function Navbar() {
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center gap-8">
-            {navItems.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`font-medium transition-colors duration-300 select-none ${
-                  isScrolled
-                    ? "text-[#2B5379] hover:text-blue-600"
-                    : isSpecialPage
-                      ? "text-[#234463] hover:text-[#234463]/80"
-                      : "text-white hover:text-white/80"
-                } active:text-white`}
-                style={{
-                  WebkitUserSelect: "none",
-                  userSelect: "none",
-                }}
-              >
-                {item.name}
-              </Link>
-            ))}
+            {navItems.map((item) => {
+              // 🟢 CEK APAKAH ROUTE SAAT INI ADALAH MENU AKTIF
+              const isActive =
+                item.href === "/"
+                  ? pathname === "/"
+                  : pathname.startsWith(item.href);
+
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`relative py-1 font-medium transition-colors duration-300 select-none ${
+                    isActive
+                      ? "font-bold text-blue-600" // Warna saat aktif
+                      : isScrolled
+                        ? "text-[#2B5379] hover:text-blue-600"
+                        : isSpecialPage
+                          ? "text-[#234463] hover:text-[#234463]/80"
+                          : "text-white hover:text-white/80"
+                  }`}
+                  style={{
+                    WebkitUserSelect: "none",
+                    userSelect: "none",
+                  }}
+                >
+                  {item.name}
+
+                  {/* 🟢 GARIS INDIKATOR AKTIF DI BAWAH TEKS */}
+                  {isActive && (
+                    <span
+                      className={`absolute bottom-0 left-0 w-full h-[2.5px] rounded-full transition-all duration-300 ${
+                        isScrolled || isSpecialPage ? "bg-blue-600" : "bg-white"
+                      }`}
+                    />
+                  )}
+                </Link>
+              );
+            })}
 
             {!isLoading && (
               <Link href={authHref}>
@@ -178,22 +196,31 @@ export default function Navbar() {
                   : "bg-black/50"
             }`}
           >
-            {navItems.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`block py-3 px-4 font-medium transition-colors ${
-                  isScrolled
-                    ? "text-[#2B5379] hover:text-blue-600"
-                    : isSpecialPage
-                      ? "text-[#234463] hover:text-[#234463]/80"
-                      : "text-white hover:text-white/80"
-                }`}
-                onClick={() => setIsOpen(false)}
-              >
-                {item.name}
-              </Link>
-            ))}
+            {navItems.map((item) => {
+              const isActive =
+                item.href === "/"
+                  ? pathname === "/"
+                  : pathname.startsWith(item.href);
+
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`block py-3 px-4 font-medium transition-colors ${
+                    isActive
+                      ? "font-bold text-blue-600 border-l-4 border-blue-600 bg-blue-50/50"
+                      : isScrolled
+                        ? "text-[#2B5379] hover:text-blue-600"
+                        : isSpecialPage
+                          ? "text-[#234463] hover:text-[#234463]/80"
+                          : "text-white hover:text-white/80"
+                  }`}
+                  onClick={() => setIsOpen(false)}
+                >
+                  {item.name}
+                </Link>
+              );
+            })}
 
             <div className="px-4 pt-2">
               {!isLoading && (
