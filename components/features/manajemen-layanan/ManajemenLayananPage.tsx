@@ -69,7 +69,7 @@ export default function ManajemenLayananPage() {
   const confirmDelete = async () => {
     if (deleteId === null) return;
     try {
-      await deleteLayanan(String(deleteId));
+      await deleteLayanan(Number(deleteId));
       await fetchData();
     } catch (err) {
       setErrorMsg("Gagal menghapus layanan.");
