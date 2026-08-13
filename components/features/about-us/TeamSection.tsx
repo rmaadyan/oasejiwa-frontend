@@ -11,7 +11,7 @@ const teamMembers = [
     instagramUrl: "https://www.instagram.com/AndiJaperi",
   },
   {
-    imageSrc: "/assets/about-us/bilqisty.png",
+    imageSrc: "/assets/about-us/Bilqis.jpg",
     name: "Hana Bilqisty",
     role: "CFO (Chief Financial Officer)",
     experience:
@@ -20,7 +20,7 @@ const teamMembers = [
     instagramUrl: "https://www.instagram.com/Hbrwp",
   },
   {
-    imageSrc: "/assets/about-us/Famila.png",
+    imageSrc: "/assets/about-us/Novi.jpg",
     name: "Novi Rachmawati ",
     role: "COO (Chief Operating Officer)",
     experience:
