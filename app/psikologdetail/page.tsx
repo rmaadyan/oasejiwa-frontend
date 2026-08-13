@@ -114,7 +114,7 @@ function PsikologDetailContent() {
     const fetchData = async () => {
       try {
         const result = await getPsychologistByIdPublic(id);
-        const data = result?.data || result?.psychologist || result;
+        const data = result?.data || (result as any)?.psychologist || result;
         const rawSchedules = data?.schedules || data?.schedule || data?.availableSchedules || [];
 
         setPsikolog({ ...data, schedules: rawSchedules });
