@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Search, UserCheck, Mail, Lock, X, CheckCircle2, Pencil, Trash2, AlertTriangle, Clock, Eye } from "lucide-react";
 import Link from "next/link";
+import { getAllPsychologistsAdmin, API_BASE_URL } from "@/lib/api/psychologist";
 
 export default function PsikologManagementPage() {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -13,30 +14,29 @@ export default function PsikologManagementPage() {
     const [loadingFetch, setLoadingFetch] = useState(true);
     const [sendingReminderId, setSendingReminderId] = useState<string | null>(null);
 
+    // 🟢 MENGGUNAKAN HELPER API KHUSUS ADMIN DENGAN FALLBACK & AUTH TOKEN
     const fetchPsikologs = async () => {
         setLoadingFetch(true);
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/admin/psychologist`, {
-                credentials: "include",
-            });
-            const data = await res.json();
-            if (res.ok) {
-                const formatted = (Array.isArray(data) ? data : data.data || []).map((item: any) => {
-                    const sippVal = item.sipp || "";
-                    const isComplete = sippVal !== "" && sippVal !== "-";
+            const res = await getAllPsychologistsAdmin();
+            const rawData = res.data || [];
 
-                    return {
-                        id: item.id,
-                        fullName: item.fullName,
-                        email: item.user?.email || item.email || "",
-                        phoneNumber: item.phoneNumber || item.user?.userProfile?.phone || item.user?.phoneNumber || "",
-                        sipp: item.sipp,
-                        str: item.str,
-                        isProfileComplete: item.user?.isProfileComplete ?? isComplete,
-                    };
-                });
-                setPsikologList(formatted);
-            }
+            const formatted = rawData.map((item: any) => {
+                const sippVal = item.sipp || "";
+                const isComplete = sippVal !== "" && sippVal !== "-";
+
+                return {
+                    id: item.id,
+                    fullName: item.fullName || item.name,
+                    email: item.user?.email || item.email || "-",
+                    phoneNumber: item.phoneNumber || item.phone || item.user?.phoneNumber || "-",
+                    sipp: item.sipp || "-",
+                    str: item.str || "-",
+                    isProfileComplete: item.user?.isProfileComplete ?? isComplete,
+                };
+            });
+
+            setPsikologList(formatted);
         } catch (err) {
             console.error("Gagal mengambil data psikolog:", err);
         } finally {
@@ -61,9 +61,14 @@ export default function PsikologManagementPage() {
 
     const handleSendReminder = async (psikologId: string, email: string) => {
         setSendingReminderId(psikologId);
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/admin/psychologist/${psikologId}/send-reminder`, {
+            const res = await fetch(`${API_BASE_URL}/admin/psychologist/${psikologId}/send-reminder`, {
                 method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
                 credentials: "include",
             });
 
@@ -80,10 +85,15 @@ export default function PsikologManagementPage() {
 
     const ConfirmDelete = async () => {
         if (!deletingId) return;
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
 
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/admin/psychologist/${deletingId}`, {
+            const res = await fetch(`${API_BASE_URL}/psychologists/${deletingId}`, {
                 method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
                 credentials: "include",
             });
 
@@ -110,7 +120,6 @@ export default function PsikologManagementPage() {
 
     return (
         <div className="w-full p-6 sm:p-8 font-poppins space-y-6">
-            
             {/* HEADER SECTION */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-5">
                 <div>
@@ -327,12 +336,14 @@ function AddPsychologistModal({ onClose, onSuccess }: { onClose: () => void; onS
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
 
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/admin/psychologist`, {
+            const res = await fetch(`${API_BASE_URL}/psychologists`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
                 },
                 credentials: "include",
                 body: JSON.stringify({
@@ -452,12 +463,14 @@ function EditPsychologistModal({ initialData, onClose, onSuccess }: { initialDat
 
     const handleUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
 
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/admin/psychologist/${formData.id}`, {
+            const res = await fetch(`${API_BASE_URL}/psychologists/${formData.id}`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
                 },
                 credentials: "include",
                 body: JSON.stringify({

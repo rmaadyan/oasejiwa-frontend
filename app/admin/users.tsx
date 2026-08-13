@@ -7,6 +7,7 @@ import UserDetailsModal from "@/components/features/admin/users/userdetailsmodal
 import UserFilterBar from "@/components/features/admin/users/userfilterbar";
 import Pagination from "@/components/features/admin/users/pagination";
 import { getUsers, updateUser } from "@/lib/api/usersAdminSide";
+import { API_BASE_URL } from "@/lib/api/psychologist";
 import { downloadToCSV } from "@/lib/utils/csv-export";
 import type { User, UserFormData, SortOption } from "@/lib/types/users";
 
@@ -55,15 +56,15 @@ export default function UsersPage() {
   };
 
   const formatRole = (role?: string | null) => {
-    if (role === "admin") return "Admin";
+    if (role === "admin" || role === "ADMIN") return "Admin";
     if (role === "psychologist" || role === "PSYCHOLOGIST") return "Psikolog";
-    if (role === "user" || role === "patient" || role === "PATIENT") return "Pasien";
+    if (role === "user" || role === "patient" || role === "PATIENT" || role === "PASIEN") return "Pasien";
     return role || "";
   };
 
   const formatStatus = (status?: string | null) => {
-    if (status === "active") return "Aktif";
-    if (status === "inactive") return "Nonaktif";
+    if (status === "active" || status === "Aktif") return "Aktif";
+    if (status === "inactive" || status === "Nonaktif") return "Nonaktif";
     return status || "";
   };
 
@@ -83,15 +84,16 @@ export default function UsersPage() {
         search: searchQuery,
       });
 
-      setUsers(response.users);
-      setTotalPages(response.totalPages);
-      setTotalUsers(response.total);
+      const fetchedList = response.users || [];
+      setUsers(fetchedList);
+      setTotalPages(response.totalPages || 1);
+      setTotalUsers(response.total || fetchedList.length);
 
       setUserStats({
-        totalUsers: response.meta?.totalUsers ?? response.total ?? 0,
-        totalPatients: response.meta?.totalPatients ?? 0,
-        totalPsychologists: response.meta?.totalPsychologists ?? 0,
-        totalAdmins: response.meta?.totalAdmins ?? 0,
+        totalUsers: response.meta?.totalUsers ?? response.total ?? fetchedList.length,
+        totalPatients: response.meta?.totalPatients ?? fetchedList.filter((u: any) => ["PATIENT", "PASIEN", "USER", "user"].includes(String(u.role).toUpperCase())).length,
+        totalPsychologists: response.meta?.totalPsychologists ?? fetchedList.filter((u: any) => ["PSYCHOLOGIST", "PSIKOLOG"].includes(String(u.role).toUpperCase())).length,
+        totalAdmins: response.meta?.totalAdmins ?? fetchedList.filter((u: any) => ["ADMIN"].includes(String(u.role).toUpperCase())).length,
       });
     } catch (error) {
       console.error("Failed to fetch users:", error);
@@ -127,7 +129,7 @@ export default function UsersPage() {
     return true;
   });
 
-  // Export CSV yang tersaring sesuai Tab Aktif
+  // Export CSV
   const handleExport = async () => {
     try {
       const targetUsers = filteredUsers;
@@ -151,7 +153,7 @@ export default function UsersPage() {
           Email: user.email || "-",
           Role: formatRole(user.role),
           Status: formatStatus(user.status),
-          Telepon: formatPhoneForCsv(user.phone),
+          Telepon: formatPhoneForCsv(user.phone || user.phoneNumber),
           "Tanggal Bergabung": formatDateForCsv(user.registeredAt || user.createdAt),
         };
 
@@ -189,13 +191,14 @@ export default function UsersPage() {
     setIsModalOpen(true);
   };
 
+  // 🟢 FIX FETCH DETAIL USER TANPA LOCALHOST:5000 & DENGAN TOKEN AUTH
   const openDetailsModal = async (user: User) => {
     setSelectedUser(user);
     setIsDetailsModalOpen(true);
 
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("token") : "";
-      const res = await fetch(`http://localhost:5000/admin/users/${user.id}`, {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") || localStorage.getItem("accessToken") || "" : "";
+      const res = await fetch(`${API_BASE_URL}/users/${user.id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -204,7 +207,7 @@ export default function UsersPage() {
 
       if (res.ok) {
         const fullDetailData = await res.json();
-        setSelectedUser(fullDetailData);
+        setSelectedUser(fullDetailData.data || fullDetailData);
       }
     } catch (err) {
       console.warn("Gagal mengambil detail user lengkap:", err);

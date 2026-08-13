@@ -727,6 +727,7 @@ export async function deletePatient(patientId: string): Promise<void> {
 }
 
 // 🟢 FUNGSI KHUSUS FETCH PSIKOLOG UNTUK ADMIN (AMUNISI ULTIMATE + FALLBACK)
+// 🟢 FUNGSI ULTIMATE FETCH PSIKOLOG ADMIN (BISA BACA SEMUA STRUKTUR BACKEND)
 export async function getAllPsychologistsAdmin() {
   const API_URL = (
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"
@@ -740,6 +741,7 @@ export async function getAllPsychologistsAdmin() {
       : "";
 
   try {
+    // 1. Tembak endpoint terproteksi admin /psychologists
     let res = await fetch(`${API_URL}/psychologists`, {
       cache: "no-store",
       headers: {
@@ -748,10 +750,20 @@ export async function getAllPsychologistsAdmin() {
       },
     });
 
+    // 2. Jika gagal, coba fallback ke endpoint /users?role=PSYCHOLOGIST
     if (!res.ok) {
-      res = await fetch(`${API_URL}/psychologists/public`, {
+      res = await fetch(`${API_URL}/users?role=PSYCHOLOGIST`, {
         cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
+    }
+
+    // 3. Jika masih gagal, fallback ke endpoint publik /psychologists/public
+    if (!res.ok) {
+      res = await fetch(`${API_URL}/psychologists/public`, { cache: "no-store" });
     }
 
     if (!res.ok) return { data: [] };
@@ -761,18 +773,25 @@ export async function getAllPsychologistsAdmin() {
 
     const result = JSON.parse(text);
 
+    // Buka pembungkus data dari berbagai versi response NestJS
     const rawList =
-      result.data ||
-      result.psychologists ||
+      result?.data?.data ||
+      result?.data ||
+      result?.psychologists ||
+      result?.users ||
       (Array.isArray(result) ? result : []);
 
     const cleanData = (Array.isArray(rawList) ? rawList : []).map((p: any) => ({
       ...p,
-      name: p.fullName || p.name || "Psikolog",
-      avatarUrl: p.avatarUrl && p.avatarUrl.trim() !== "" ? p.avatarUrl : null,
-      sipp: p.sipp || "-",
-      str: p.str || "-",
-      specializations: p.specializations || [],
+      id: p.id || p.userId || String(Math.random()),
+      name: p.fullName || p.name || p.user?.fullName || "Psikolog",
+      email: p.email || p.user?.email || "-",
+      phone: p.phoneNumber || p.phone || p.user?.phoneNumber || "-",
+      avatarUrl: p.avatarUrl || p.photo || p.user?.avatarUrl || null,
+      sipp: p.sipp && p.sipp.trim() !== "" ? p.sipp : "-",
+      str: p.str && p.str.trim() !== "" ? p.str : "-",
+      specializations: p.specializations || p.specialization || [],
+      status: p.status || "Aktif",
     }));
 
     return { data: cleanData };
