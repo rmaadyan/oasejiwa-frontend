@@ -101,6 +101,14 @@ const defaultBooking = {
 type BookingData = typeof defaultBooking;
 
 function mapApiToBooking(data: any): BookingData {
+  // Helper internal sanitasi string URL
+  const sanitizeUrl = (url?: string | null) => {
+    if (!url) return null;
+    return url
+      .replace(/http:\/\/localhost:\d+/, "https://api.oasejiwa.id")
+      .replace("http://", "https://");
+  };
+
   return {
     id: data.id,
     bookingCode: data.bookingCode ?? String(data.id),
@@ -131,18 +139,21 @@ function mapApiToBooking(data: any): BookingData {
       jenis: data.service?.jenis ?? "-",
       harga: data.service?.harga ?? data.totalPrice ?? 0,
     },
-    payments: (data.payments ?? []).map((p: any) => ({
-      id: p.id,
-      type: p.type,
-      amount: p.amount,
-      method: p.method ?? "-",
-      status: p.status,
-      // 🟢 FIX: Memastikan gambar mengambil baik dari paymentProofUrl maupun proofImageUrl
-      proofImageUrl: p.paymentProofUrl ?? p.proofImageUrl ?? null,
-      orderId: p.orderId ?? "",
-      expiredAt: p.expiredAt ?? null,
-      createdAt: p.createdAt ?? "",
-    })),
+    payments: (data.payments ?? []).map((p: any) => {
+      const rawUrl = p.paymentProofUrl ?? p.proofImageUrl ?? p.proofUrl ?? null;
+      return {
+        id: p.id,
+        type: p.type,
+        amount: p.amount,
+        method: p.method ?? "-",
+        status: p.status,
+        // 🟢 SANITASI LANGSUNG DI LEVEL DATA / STATE:
+        proofImageUrl: sanitizeUrl(rawUrl),
+        orderId: p.orderId ?? "",
+        expiredAt: p.expiredAt ?? null,
+        createdAt: p.createdAt ?? "",
+      };
+    }),
     consultationForm: data.consultationForm ?? null,
     consentForm: data.consentForm ?? null,
   };
