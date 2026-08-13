@@ -725,3 +725,59 @@ export async function deletePatient(patientId: string): Promise<void> {
     throw new Error(`Gagal menghapus data pasien: ${res.status} ${errorText}`);
   }
 }
+
+// 🟢 FUNGSI KHUSUS FETCH PSIKOLOG UNTUK ADMIN (AMUNISI ULTIMATE + FALLBACK)
+export async function getAllPsychologistsAdmin() {
+  const API_URL = (
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"
+  ).replace(/\/$/, "");
+
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem("token") ||
+        localStorage.getItem("accessToken") ||
+        ""
+      : "";
+
+  try {
+    let res = await fetch(`${API_URL}/psychologists`, {
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    if (!res.ok) {
+      res = await fetch(`${API_URL}/psychologists/public`, {
+        cache: "no-store",
+      });
+    }
+
+    if (!res.ok) return { data: [] };
+
+    const text = await res.text();
+    if (!text) return { data: [] };
+
+    const result = JSON.parse(text);
+
+    const rawList =
+      result.data ||
+      result.psychologists ||
+      (Array.isArray(result) ? result : []);
+
+    const cleanData = (Array.isArray(rawList) ? rawList : []).map((p: any) => ({
+      ...p,
+      name: p.fullName || p.name || "Psikolog",
+      avatarUrl: p.avatarUrl && p.avatarUrl.trim() !== "" ? p.avatarUrl : null,
+      sipp: p.sipp || "-",
+      str: p.str || "-",
+      specializations: p.specializations || [],
+    }));
+
+    return { data: cleanData };
+  } catch (error) {
+    console.error("Gagal fetch data psikolog admin:", error);
+    return { data: [] };
+  }
+}
