@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { BadgeCheck, GraduationCap, Stethoscope, User, Calendar, Clock, ArrowLeft, Briefcase } from "lucide-react";
 import Navbar from "@/components/common/Navbar";
 import Footer from "@/components/common/Footer";
-import { getPsychologistByIdPublic } from "@/lib/api/psychologists";
+import { getPsychologistByIdPublic } from "@/lib/api/psychologist";
 
 type Schedule = {
   id: string;
