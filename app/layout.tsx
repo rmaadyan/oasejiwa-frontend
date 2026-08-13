@@ -30,7 +30,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="id">
+    // 🟢 1. Tambahkan translate="no" pada tag html
+    <html lang="id" translate="no">
+      <head>
+        {/* 🟢 2. Tambahkan meta tag notranslate */}
+        <meta name="google" content="notranslate" />
+      </head>
       <body>{children}</body>
     </html>
   );
