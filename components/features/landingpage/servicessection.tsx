@@ -1,7 +1,7 @@
 "use client";
 
 import type { LayananItem } from "@/components/features/manajemen-layanan/types";
-import { getAllLayanan } from "@/lib/api/layanan";
+import { getAllLayanan, getAllLayananPublic } from "@/lib/api/layanan";
 import { getImageUrl } from "@/lib/utils/getImageUrl";
 import { useRouter } from "next/navigation";
 
@@ -24,15 +24,18 @@ export default function ServicesSection() {
   const [loading, setLoading] = useState(true);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
-  const [scrollDirection, setScrollDirection] = useState<
-    "left" | "right" | null
-  >(null);
+  const router = useRouter();
 
   useEffect(() => {
     async function fetchLayanan() {
       try {
-        const data = await getAllLayanan();
-        setServices(data);
+        let data: LayananItem[] = [];
+        try {
+          data = await getAllLayananPublic();
+        } catch {
+          data = await getAllLayanan();
+        }
+        setServices(data || []);
       } catch (err) {
         console.error("Gagal fetch layanan:", err);
       } finally {
@@ -42,9 +45,16 @@ export default function ServicesSection() {
     fetchLayanan();
   }, []);
 
-  const activeServices = services.filter((item) => item.status === "Aktif");
-  const displayedServices = activeServices.slice(0, 5);
-  const router = useRouter();
+  // 🟢 FILTER AMAN: Toleran terhadap variasi huruf kapital status atau data kosong
+  const activeServices = services.filter(
+    (item) => !item.status || item.status.toLowerCase() === "aktif" || item.status === "Draft"
+  );
+
+  // Ambil list data akhir (Fallback ke `services` jika filter kosong)
+  const listData = activeServices.length > 0 ? activeServices : services;
+  
+  // Ambil maksimal 3 item untuk beranda
+  const displayedServices = listData.slice(0, 3);
 
   const checkScrollPosition = () => {
     const el = scrollerRef.current;
@@ -58,12 +68,8 @@ export default function ServicesSection() {
   const scrollByCard = (dir: "left" | "right") => {
     const el = scrollerRef.current;
     if (!el) return;
-    setScrollDirection(dir);
-    el.scrollBy({ left: dir === "left" ? -420 : 420, behavior: "smooth" });
-    setTimeout(() => {
-      checkScrollPosition();
-      setScrollDirection(null);
-    }, 300);
+    el.scrollBy({ left: dir === "left" ? -350 : 350, behavior: "smooth" });
+    setTimeout(() => checkScrollPosition(), 300);
   };
 
   const formatPrice = (price: number) => `Rp ${(price || 0).toLocaleString("id-ID")}`;
@@ -75,13 +81,13 @@ export default function ServicesSection() {
   if (loading) {
     return (
       <section id="services" className="bg-[#F0F4F8] py-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <h2 className="text-center text-4xl font-semibold text-[#2B5379] md:text-5xl mb-12">
-            Layanan Kami
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-4xl font-bold text-[#1E293B] md:text-5xl mb-8">
+            Layanan <span className="text-[#234463]">Kami</span>
           </h2>
           <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#2B5379]"></div>
-            <span className="ml-3 text-[#2B5379]">Memuat layanan...</span>
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#234463]"></div>
+            <span className="ml-3 text-[#234463] font-medium">Memuat layanan...</span>
           </div>
         </div>
       </section>
@@ -97,6 +103,7 @@ export default function ServicesSection() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
+          viewport={{ once: true }}
         >
           <h2 className="text-center text-4xl font-bold text-[#1E293B] md:text-5xl">
             Layanan <span className="text-[#234463]">Kami</span>
@@ -104,25 +111,20 @@ export default function ServicesSection() {
         </motion.div>
 
         <div className="relative">
+          {/* Tombol Scroll Kiri */}
           <AnimatePresence>
             {canScrollLeft && (
-              <motion.div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-[#F0F4F8] to-transparent z-10" />
-            )}
-          </AnimatePresence>
-
-          <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-[#F0F4F8] to-transparent z-10" />
-
-          <AnimatePresence>
-            {canScrollLeft && (
-              <motion.button
+              <button
+                type="button"
                 onClick={() => scrollByCard("left")}
-                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-20 grid h-12 w-12 place-items-center rounded-full bg-white shadow-lg cursor-pointer"
+                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-20 grid h-12 w-12 place-items-center rounded-full bg-white shadow-lg hover:bg-slate-50 transition-all cursor-pointer"
               >
                 <ChevronLeft className="h-6 w-6 text-[#2B5379]" />
-              </motion.button>
+              </button>
             )}
           </AnimatePresence>
 
+          {/* Scroller Container */}
           <div
             ref={scrollerRef}
             className="flex gap-6 overflow-x-auto scroll-smooth pb-4 px-2"
@@ -135,7 +137,7 @@ export default function ServicesSection() {
                 </p>
               </div>
             ) : (
-              displayedServices.map((item) => {
+              displayedServices.map((item, index) => {
                 const rawImagePath =
                   item.coverUrl ||
                   (item as any).imageUrl ||
@@ -144,14 +146,14 @@ export default function ServicesSection() {
                 const imageSrc = getImageUrl(rawImagePath);
 
                 return (
-                  <motion.div
+                  <div
                     key={item.id}
-                    className="bg-[#DDEEFC] border-2 border-[#B3D7F8] rounded-3xl p-7 shadow-md w-[340px] shrink-0 hover:shadow-xl hover:border-[#234463] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
-                    initial={{
-                      opacity: 0,
-                      x: scrollDirection === "left" ? -50 : 50,
-                    }}
-                    animate={{ opacity: 1, x: 0 }}
+                    /* 🟢 KUNCI ATURAN HP VS LAPTOP:
+                       HP (layar kecil): kartu index 0 & 1 tampil (2 kartu), index 2 hidden.
+                       Laptop (md): kartu index 2 berubah jadi md:flex (3 kartu tampil). */
+                    className={`bg-[#DDEEFC] border-2 border-[#B3D7F8] rounded-3xl p-6 shadow-md hover:shadow-xl hover:border-[#234463] hover:-translate-y-1 transition-all duration-300 flex-col justify-between shrink-0 w-[280px] sm:w-[320px] ${
+                      index === 2 ? "hidden md:flex" : "flex"
+                    }`}
                   >
                     <div className="flex flex-col items-center text-center">
                       {/* GAMBAR FOTO */}
@@ -218,43 +220,44 @@ export default function ServicesSection() {
                     >
                       Lihat Detail
                     </button>
-                  </motion.div>
+                  </div>
                 );
               })
             )}
 
-            {/* Lihat semua */}
+            {/* Tombol Lihat Semua */}
             <div className="flex items-center justify-center w-[200px] shrink-0">
               <Link
                 href="/layanan"
-                className="flex flex-col items-center gap-3 text-[#2B5379]"
+                className="flex flex-col items-center gap-3 text-[#2B5379] hover:text-[#1C364F] transition-colors"
               >
                 <div className="flex items-center gap-2 text-lg font-semibold">
                   Lihat Semua
                   <ArrowRight className="h-5 w-5" />
                 </div>
                 <p className="text-sm text-[#2B5379]/70 text-center">
-                  {activeServices.length} layanan tersedia
+                  {listData.length} layanan tersedia
                 </p>
               </Link>
             </div>
           </div>
 
+          {/* Tombol Scroll Kanan */}
           <AnimatePresence>
             {canScrollRight && (
-              <motion.button
+              <button
+                type="button"
                 onClick={() => scrollByCard("right")}
-                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-20 grid h-12 w-12 place-items-center rounded-full bg-white shadow-lg cursor-pointer"
+                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-20 grid h-12 w-12 place-items-center rounded-full bg-white shadow-lg hover:bg-slate-50 transition-all cursor-pointer"
               >
                 <ChevronRight className="h-6 w-6 text-[#2B5379]" />
-              </motion.button>
+              </button>
             )}
           </AnimatePresence>
         </div>
 
         <p className="mt-6 text-center text-sm text-slate-500">
-          Geser untuk melihat layanan lainnya • {displayedServices.length} dari{" "}
-          {activeServices.length} layanan ditampilkan
+          Geser untuk melihat layanan lainnya
         </p>
       </div>
     </section>

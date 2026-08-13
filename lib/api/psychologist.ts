@@ -22,10 +22,14 @@ import {
   mockSessionNotes,
 } from "@/lib/data/mock-ui-data";
 
-// 🟢 BASE URL (Disanitasi dari trailing slash di akhir)
-const API_BASE_URL = (
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
-).replace(/\/$/, "");
+// 🟢 BASE URL (Disanitasi dari URL cacat & trailing slash)
+let rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+
+if (rawUrl.startsWith("https:/") && !rawUrl.startsWith("https://")) {
+  rawUrl = rawUrl.replace("https:/", "https://");
+}
+
+export const API_BASE_URL = rawUrl.replace(/\/$/, "");
 
 const USE_REAL_NOTES_API = true;
 
@@ -577,10 +581,10 @@ export async function updatePsychologistProfile(
   return formatPsychologistProfile(profileData);
 }
 
-// 🟢 GET ALL PUBLIC (DILENGKAPI SAFE PARSING)
+// 🟢 GET ALL PUBLIC
 export async function getAllPsychologistsPublic() {
   let res = await fetch(`${API_BASE_URL}/psychologists/public`, { cache: "no-store" });
-  
+
   if (!res.ok) {
     res = await fetch(`${API_BASE_URL}/psychologists`, { cache: "no-store" });
   }
@@ -615,7 +619,7 @@ export async function getAllPsychologistsPublic() {
 // 🟢 GET BY ID PUBLIC
 export async function getPsychologistByIdPublic(id: string) {
   let res = await fetch(`${API_BASE_URL}/psychologists/public/${id}`, { cache: "no-store" });
-  
+
   if (!res.ok) {
     res = await fetch(`${API_BASE_URL}/psychologists/${id}`, { cache: "no-store" });
   }

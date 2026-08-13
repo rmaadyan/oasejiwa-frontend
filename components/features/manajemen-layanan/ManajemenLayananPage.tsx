@@ -109,17 +109,17 @@ export default function ManajemenLayananPage() {
       />
 
       {showForm && (
-        <div className="fixed inset-0 z-40 flex items-start justify-center bg-black/30 py-10">
-          <div className="w-full max-w-3xl px-4">
-            <LayananForm
-              mode={formMode}
-              initialData={editingItem}
-              onCancel={() => { setShowForm(false); setEditingItem(null); }}
-              onSubmitLocal={handleSubmitLocal}
-            />
-          </div>
-        </div>
-      )}
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 sm:p-6 overflow-y-auto">
+    <div className="w-full max-w-3xl max-h-[92vh] flex flex-col my-auto">
+      <LayananForm
+        mode={formMode}
+        initialData={editingItem}
+        onCancel={() => { setShowForm(false); setEditingItem(null); }}
+        onSubmitLocal={handleSubmitLocal}
+      />
+    </div>
+  </div>
+)}
 
       <div className="min-h-screen bg-gradient-to-b from-white to-[#E8F6FF]/30 px-6 py-6 font-[var(--font-poppins)]">
         <div className="mx-auto max-w-7xl space-y-6">
