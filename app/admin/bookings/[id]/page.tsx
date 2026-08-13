@@ -13,25 +13,35 @@ import {
 } from "@/lib/api/booking";
 
 // ─── HELPER UNTUK URL GAMBAR BACKEND DENGAN .ENV ─────────────────────────────
+// ─── HELPER UNTUK URL GAMBAR BACKEND DENGAN SANITIZER ─────────────────────────────
 const getImageUrl = (path?: string | null): string => {
   if (!path) return "";
 
-  // 1. Jika sudah berupa URL lengkap atau Base64, kembalikan langsung
-  if (
-    path.startsWith("http://") || 
-    path.startsWith("https://") || 
-    path.startsWith("data:image/")
-  ) {
+  // 🟢 1. Jika data lama di DB tersimpan dengan 'localhost', paksa ganti ke domain HTTPS produksi
+  if (path.includes("localhost")) {
+    return path.replace(/http:\/\/localhost:\d+/, "https://api.oasejiwa.id");
+  }
+
+  // 🟢 2. Jika sudah berupa HTTPS utuh atau Base64, kembalikan langsung
+  if (path.startsWith("https://") || path.startsWith("data:image/")) {
     return path;
   }
 
-  // 2. Ambil dari .env ATAU langsung fallback ke URL Backend (port 3000)
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+  // 🟢 3. Jika HTTP biasa, ubah ke HTTPS agar tidak kena Mixed Content Warning
+  if (path.startsWith("http://")) {
+    return path.replace("http://", "https://");
+  }
+
+  // 🟢 4. Jika relative path (/uploads/...), gabungkan dengan domain API produksi
+  const backendUrl =
+    process.env.NEXT_PUBLIC_API_URL ||
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    "https://api.oasejiwa.id";
+
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
 
   return `${backendUrl}${cleanPath}`;
 };
-
 // ─── Konstanta Status Backend ──────────────────────────────────────────────────
 const statusUIMap: Record<
   string,
