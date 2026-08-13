@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { BadgeCheck, User, Award, GraduationCap, Briefcase, FileText } from "lucide-react"
 import Navbar from "@/components/common/Navbar"
+import Footer from "@/components/common/Footer";
 import { getAllPsychologistsPublic } from "@/lib/api/psychologists"
 
 type Psikolog = {
@@ -232,6 +233,7 @@ export default function PsikologList() {
                     ))}
                 </div>
             </div>
+            <Footer />
         </div>
     )
 }
