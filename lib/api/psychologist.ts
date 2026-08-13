@@ -22,26 +22,25 @@ import {
   mockSessionNotes,
 } from "@/lib/data/mock-ui-data";
 
-// 🟢 BASE URL (Fallback ke localhost:3001 backend NestJS)
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+// 🟢 BASE URL (Disanitasi dari trailing slash di akhir)
+const API_BASE_URL = (
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+).replace(/\/$/, "");
 
 const USE_REAL_NOTES_API = true;
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// 🟢 PERBAIKAN HEADER AUTHENTICATION (MEMBACA TOKEN JWT)
+// 🟢 HEADER AUTHENTICATION (JWT)
 function getAuthHeaders() {
   let token = "";
 
   if (typeof window !== "undefined") {
-    // 1. Ambil dari localStorage
     token =
       localStorage.getItem("token") ||
       localStorage.getItem("accessToken") ||
       "";
 
-    // 2. Jika tidak ada di localStorage, ambil dari cookies
     if (!token) {
       const match = document.cookie.match(new RegExp("(^| )token=([^;]+)"));
       if (match) token = match[2];
@@ -54,7 +53,17 @@ function getAuthHeaders() {
   };
 }
 
-// 🟢 NORMALIZE RISK LEVEL
+// 🟢 HELPER AMAN PARSE RESPONSE JSON / TEXT
+async function safeParseJson(res: Response, fallbackValue: any = null) {
+  const text = await res.text();
+  if (!text || text.trim() === "") return fallbackValue;
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    return fallbackValue;
+  }
+}
+
 function normalizeRiskLevel(
   riskLevel?: string | null
 ): "low" | "medium" | "high" {
@@ -156,7 +165,7 @@ export async function getPsychologistProfile(): Promise<Psychologist> {
     throw new Error(`Failed to fetch profile: ${res.status} ${errorText}`);
   }
 
-  const result = await res.json();
+  const result = await safeParseJson(res, {});
   const data = result.data || result;
 
   return formatPsychologistProfile(data);
@@ -179,7 +188,7 @@ export async function uploadImage(file: File): Promise<string> {
     throw new Error(`Upload failed: ${res.status} ${errText}`);
   }
 
-  const data = await res.json();
+  const data = await safeParseJson(res, {});
   const rawUrl = data.url || data.data?.url || "";
   if (!rawUrl) throw new Error("Upload response missing URL");
 
@@ -194,18 +203,14 @@ export async function getPsychologistDashboard(): Promise<any> {
       headers: getAuthHeaders(),
     });
 
-    if (!res.ok) {
-      return { data: null };
-    }
-
-    return await res.json();
+    if (!res.ok) return { data: null };
+    return await safeParseJson(res, { data: null });
   } catch (error) {
     console.error("Dashboard error fallback:", error);
     return { data: null };
   }
 }
 
-// 🟢 PERBAIKAN ENDPOINT COMPLETED KE PATCH /psychologist/sessions/:id/status
 export async function markSessionCompleted(
   sessionId: number | string
 ): Promise<Session> {
@@ -222,15 +227,12 @@ export async function markSessionCompleted(
 
   if (!res.ok) {
     const errorText = await res.text();
-    throw new Error(
-      `Failed to mark session as completed: ${res.status} ${errorText}`
-    );
+    throw new Error(`Failed to mark session as completed: ${res.status} ${errorText}`);
   }
 
-  return res.json();
+  return await safeParseJson(res, {});
 }
 
-// 🟢 PERBAIKAN ENDPOINT CANCEL KE PATCH /psychologist/sessions/:id/status
 export async function cancelSession(
   sessionId: number | string,
   payload: SessionActionPayload
@@ -251,12 +253,10 @@ export async function cancelSession(
 
   if (!res.ok) {
     const errorText = await res.text();
-    throw new Error(
-      `Failed to cancel session: ${res.status} ${errorText}`
-    );
+    throw new Error(`Failed to cancel session: ${res.status} ${errorText}`);
   }
 
-  return res.json();
+  return await safeParseJson(res, {});
 }
 
 export async function getTodaySessions(): Promise<Session[]> {
@@ -273,7 +273,6 @@ export async function getAllSessions(
   params: ScheduleQueryParams = {}
 ): Promise<ScheduleResponse> {
   const { date, status } = params;
-
   const queryParams = new URLSearchParams();
 
   if (date) queryParams.set("date", date);
@@ -282,9 +281,7 @@ export async function getAllSessions(
   const queryString = queryParams.toString();
 
   const res = await fetch(
-    `${API_BASE_URL}/psychologist/sessions${
-      queryString ? `?${queryString}` : ""
-    }`,
+    `${API_BASE_URL}/psychologist/sessions${queryString ? `?${queryString}` : ""}`,
     {
       cache: "no-store",
       credentials: "include",
@@ -297,7 +294,7 @@ export async function getAllSessions(
     throw new Error(`Failed to fetch sessions: ${res.status} ${errorText}`);
   }
 
-  return res.json();
+  return await safeParseJson(res, { data: [], total: 0 });
 }
 
 export async function getSessionDetails(
@@ -314,19 +311,16 @@ export async function getSessionDetails(
 
   if (!res.ok) {
     const errorText = await res.text();
-    throw new Error(
-      `Failed to fetch session details: ${res.status} ${errorText}`
-    );
+    throw new Error(`Failed to fetch session details: ${res.status} ${errorText}`);
   }
 
-  return res.json();
+  return await safeParseJson(res, null);
 }
 
 export async function getAllPatients(
   params: PatientsQueryParams = {}
 ): Promise<PatientsResponse> {
   const { search, status = "all", sortBy = "name" } = params;
-
   const queryParams = new URLSearchParams();
 
   if (search) queryParams.set("search", search);
@@ -336,9 +330,7 @@ export async function getAllPatients(
   const queryString = queryParams.toString();
 
   const res = await fetch(
-    `${API_BASE_URL}/psychologist/patients${
-      queryString ? `?${queryString}` : ""
-    }`,
+    `${API_BASE_URL}/psychologist/patients${queryString ? `?${queryString}` : ""}`,
     {
       cache: "no-store",
       credentials: "include",
@@ -351,7 +343,7 @@ export async function getAllPatients(
     throw new Error(`Failed to fetch patients: ${res.status} ${errorText}`);
   }
 
-  return res.json();
+  return await safeParseJson(res, { patients: [], total: 0 });
 }
 
 export async function getPatientDetail(
@@ -368,12 +360,10 @@ export async function getPatientDetail(
 
   if (!res.ok) {
     const errorText = await res.text();
-    throw new Error(
-      `Failed to fetch patient detail: ${res.status} ${errorText}`
-    );
+    throw new Error(`Failed to fetch patient detail: ${res.status} ${errorText}`);
   }
 
-  return res.json();
+  return await safeParseJson(res, null);
 }
 
 export async function updatePatientMedicalInfo(
@@ -396,9 +386,7 @@ export async function updatePatientMedicalInfo(
 
   if (!res.ok) {
     const errorText = await res.text();
-    throw new Error(
-      `Failed to update patient medical info: ${res.status} ${errorText}`
-    );
+    throw new Error(`Failed to update patient medical info: ${res.status} ${errorText}`);
   }
 }
 
@@ -419,17 +407,14 @@ export async function getAllNotes(
 
   if (!USE_REAL_NOTES_API) {
     await delay(500);
-
     let filteredNotes = [...mockSessionNotes] as unknown as SessionNote[];
 
     if (search) {
       const searchLower = search.toLowerCase();
-
       filteredNotes = filteredNotes.filter((n: any) => {
         const patientName = n.patientName || "";
         const service = n.service || "";
         const assessment = n.assessment || "";
-
         return (
           patientName.toLowerCase().includes(searchLower) ||
           service.toLowerCase().includes(searchLower) ||
@@ -448,52 +433,20 @@ export async function getAllNotes(
       );
     }
 
-    if (sortBy === "date") {
-      filteredNotes.sort((a: any, b: any) => {
-        const dateA = new Date(a.sessionDate || a.createdAt || 0);
-        const dateB = new Date(b.sessionDate || b.createdAt || 0);
-        return dateB.getTime() - dateA.getTime();
-      });
-    } else if (sortBy === "patient") {
-      filteredNotes.sort((a: any, b: any) =>
-        (a.patientName || "").localeCompare(b.patientName || "")
-      );
-    } else if (sortBy === "riskLevel") {
-      const riskOrder: Record<"low" | "medium" | "high", number> = {
-        high: 3,
-        medium: 2,
-        low: 1,
-      };
-
-      filteredNotes.sort((a: any, b: any) => {
-        const riskA = riskOrder[normalizeRiskLevel(a.riskLevel)];
-        const riskB = riskOrder[normalizeRiskLevel(b.riskLevel)];
-        return riskB - riskA;
-      });
-    }
-
     return {
       notes: filteredNotes,
       total: filteredNotes.length,
-      lowRiskCount: filteredNotes.filter(
-        (n: any) => normalizeRiskLevel(n.riskLevel) === "low"
-      ).length,
-      mediumRiskCount: filteredNotes.filter(
-        (n: any) => normalizeRiskLevel(n.riskLevel) === "medium"
-      ).length,
-      highRiskCount: filteredNotes.filter(
-        (n: any) => normalizeRiskLevel(n.riskLevel) === "high"
-      ).length,
+      lowRiskCount: filteredNotes.filter((n: any) => normalizeRiskLevel(n.riskLevel) === "low").length,
+      mediumRiskCount: filteredNotes.filter((n: any) => normalizeRiskLevel(n.riskLevel) === "medium").length,
+      highRiskCount: filteredNotes.filter((n: any) => normalizeRiskLevel(n.riskLevel) === "high").length,
     };
   }
 
   const queryParams = new URLSearchParams();
-
   if (search) queryParams.set("search", search);
 
   const finalUserId = userId || patientId;
   if (finalUserId) queryParams.set("userId", finalUserId);
-
   if (riskLevel !== "all") queryParams.set("riskLevel", riskLevel);
   if (dateFrom) queryParams.set("dateFrom", dateFrom);
   if (dateTo) queryParams.set("dateTo", dateTo);
@@ -504,9 +457,7 @@ export async function getAllNotes(
   const queryString = queryParams.toString();
 
   const res = await fetch(
-    `${API_BASE_URL}/psychologist/notes${
-      queryString ? `?${queryString}` : ""
-    }`,
+    `${API_BASE_URL}/psychologist/notes${queryString ? `?${queryString}` : ""}`,
     {
       cache: "no-store",
       credentials: "include",
@@ -519,7 +470,7 @@ export async function getAllNotes(
     throw new Error(`Failed to fetch notes: ${res.status} ${errorText}`);
   }
 
-  return res.json();
+  return await safeParseJson(res, { notes: [], total: 0 });
 }
 
 export async function getNoteDetail(scheduleId: string): Promise<SessionNote> {
@@ -537,7 +488,7 @@ export async function getNoteDetail(scheduleId: string): Promise<SessionNote> {
     throw new Error(`Failed to fetch session note: ${res.status} ${errorText}`);
   }
 
-  return res.json();
+  return await safeParseJson(res, null);
 }
 
 export async function getNoteById(noteId: string): Promise<SessionNote> {
@@ -552,7 +503,7 @@ export async function getNoteById(noteId: string): Promise<SessionNote> {
     throw new Error(`Failed to fetch note detail: ${res.status} ${errorText}`);
   }
 
-  return res.json();
+  return await safeParseJson(res, null);
 }
 
 export async function createNote(
@@ -570,7 +521,7 @@ export async function createNote(
     throw new Error(`Failed to create note: ${res.status} ${errorText}`);
   }
 
-  return res.json();
+  return await safeParseJson(res, {});
 }
 
 export async function updateNote(
@@ -589,7 +540,7 @@ export async function updateNote(
     throw new Error(`Failed to update note: ${res.status} ${errorText}`);
   }
 
-  return res.json();
+  return await safeParseJson(res, {});
 }
 
 export async function deleteNote(noteId: string): Promise<void> {
@@ -621,12 +572,12 @@ export async function updatePsychologistProfile(
     throw new Error(`Gagal memperbarui profil: ${res.status} ${errorText}`);
   }
 
-  const result = await res.json();
+  const result = await safeParseJson(res, {});
   const profileData = result.data || result;
   return formatPsychologistProfile(profileData);
 }
 
-// 🟢 FIX 1: GET ALL PUBLIC (PERBAIKAN UTAMA TANPA PERLU DRAFT DB)
+// 🟢 GET ALL PUBLIC (DILENGKAPI SAFE PARSING)
 export async function getAllPsychologistsPublic() {
   let res = await fetch(`${API_BASE_URL}/psychologists/public`, { cache: "no-store" });
   
@@ -635,26 +586,12 @@ export async function getAllPsychologistsPublic() {
   }
 
   if (!res.ok) {
-    throw new Error("Gagal mengambil data psikolog");
-  }
-
-  // 🟢 BACA BODY SEBAGAI TEXT TERLEBIH DAHULU UNTUK MENCEGAH CRASH UNEXPECTED END OF JSON
-  const text = await res.text();
-  if (!text || text.trim() === "") {
     return { data: [] };
   }
 
-  let result: any = {};
-  try {
-    result = JSON.parse(text);
-  } catch (err) {
-    console.error("Gagal parse JSON dari server:", text);
-    return { data: [] };
-  }
-
+  const result = await safeParseJson(res, { data: [] });
   const rawData = result.data || result.psychologists || (Array.isArray(result) ? result : []);
 
-  // 🟢 FILTER OTOMATIS: Saring hanya psikolog yang SUDAH ADA SIPP & NAMA VALID
   const cleanData = (Array.isArray(rawData) ? rawData : [])
     .filter((p: any) => {
       const name = p?.name || p?.fullName;
@@ -675,7 +612,7 @@ export async function getAllPsychologistsPublic() {
   return { data: cleanData };
 }
 
-// 🟢 FIX 2: GET BY ID PUBLIC (BEBAS ERROR "Unexpected end of JSON input")
+// 🟢 GET BY ID PUBLIC
 export async function getPsychologistByIdPublic(id: string) {
   let res = await fetch(`${API_BASE_URL}/psychologists/public/${id}`, { cache: "no-store" });
   
@@ -687,18 +624,8 @@ export async function getPsychologistByIdPublic(id: string) {
     throw new Error("Psikolog tidak ditemukan");
   }
 
-  // 🟢 BACA BODY SEBAGAI TEXT TERLEBIH DAHULU
-  const text = await res.text();
-  if (!text || text.trim() === "") {
-    throw new Error("Response dari server kosong");
-  }
-
-  let result: any = {};
-  try {
-    result = JSON.parse(text);
-  } catch (err) {
-    throw new Error("Response dari server bukan JSON yang valid");
-  }
+  const result = await safeParseJson(res, null);
+  if (!result) throw new Error("Response dari server kosong");
 
   const data = result.data || result.psychologist || result;
   const rawSchedules = data?.schedules || data?.schedule || data?.availableSchedules || [];
@@ -726,7 +653,7 @@ export async function addPsychologistSchedule(payload: { date?: string; day?: st
     throw new Error(`Gagal menambahkan jadwal: ${res.status} ${errorText}`);
   }
 
-  return res.json();
+  return await safeParseJson(res, {});
 }
 
 export async function deletePsychologistSchedule(scheduleId: string) {
@@ -741,10 +668,9 @@ export async function deletePsychologistSchedule(scheduleId: string) {
     throw new Error(`Gagal menghapus jadwal: ${res.status} ${errorText}`);
   }
 
-  return res.json();
+  return await safeParseJson(res, {});
 }
 
-// 🟢 OFFICIAL MEDICAL RECORD API
 export async function createOfficialMedicalRecord(payload: any) {
   const res = await fetch(`${API_BASE_URL}/official-medical-records`, {
     method: "POST",
@@ -758,7 +684,7 @@ export async function createOfficialMedicalRecord(payload: any) {
     throw new Error(`Gagal membuat rekam medis resmi: ${errorText}`);
   }
 
-  return res.json();
+  return await safeParseJson(res, {});
 }
 
 export async function getOfficialMedicalRecords() {
@@ -768,11 +694,8 @@ export async function getOfficialMedicalRecords() {
     headers: getAuthHeaders(),
   });
 
-  if (!res.ok) {
-    return { data: [] };
-  }
-
-  return res.json();
+  if (!res.ok) return { data: [] };
+  return await safeParseJson(res, { data: [] });
 }
 
 export async function getPatientOfficialMedicalRecords(patientId: string) {
@@ -782,11 +705,8 @@ export async function getPatientOfficialMedicalRecords(patientId: string) {
     headers: getAuthHeaders(),
   });
 
-  if (!res.ok) {
-    return { data: [] };
-  }
-
-  return res.json();
+  if (!res.ok) return { data: [] };
+  return await safeParseJson(res, { data: [] });
 }
 
 export async function deletePatient(patientId: string): Promise<void> {

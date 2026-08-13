@@ -1,6 +1,26 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+// 🟢 SANITASI API_BASE_URL (Perbaikan URL cacat, prefix /api, & trailing slash)
+let rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+
+// Perbaiki jika ada URL cacat 'https:/' akibat environment variable
+if (rawUrl.startsWith("https:/") && !rawUrl.startsWith("https://")) {
+  rawUrl = rawUrl.replace("https:/", "https://");
+}
+
+export const API_BASE_URL = rawUrl.replace(/\/$/, "");
+
+// 🟢 HELPER AMAN UNTUK PARSING JSON/TEXT
+async function safeParseJson(res: Response, fallbackValue: any = null) {
+  const text = await res.text();
+  if (!text || text.trim() === "") return fallbackValue;
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    return fallbackValue;
+  }
+}
 
 function mapBackendToLayananItem(raw: any) {
+  if (!raw) return {} as any;
   return {
     id: raw.id,
     nama: raw.nama,
@@ -35,8 +55,8 @@ export async function getAllLayanan() {
     credentials: "include",
   });
   if (!res.ok) throw new Error("Gagal fetch data layanan");
-  const data = await res.json();
-  return data.map(mapBackendToLayananItem);
+  const data = await safeParseJson(res, []);
+  return Array.isArray(data) ? data.map(mapBackendToLayananItem) : [];
 }
 
 export async function getAllLayananPublic() {
@@ -44,8 +64,8 @@ export async function getAllLayananPublic() {
     cache: "no-store",
   });
   if (!res.ok) throw new Error("Gagal fetch data layanan");
-  const data = await res.json();
-  return data.map(mapBackendToLayananItem);
+  const data = await safeParseJson(res, []);
+  return Array.isArray(data) ? data.map(mapBackendToLayananItem) : [];
 }
 
 export async function getLayananById(id: string) {
@@ -54,7 +74,7 @@ export async function getLayananById(id: string) {
     credentials: "include",
   });
   if (!res.ok) throw new Error("Gagal fetch layanan");
-  const data = await res.json();
+  const data = await safeParseJson(res, null);
   return mapBackendToLayananItem(data);
 }
 
@@ -66,11 +86,11 @@ export async function createLayanan(data: any) {
     body: JSON.stringify(mapToBackendPayload(data)),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
+    const err = await safeParseJson(res, {});
     const msg = Array.isArray(err.message) ? err.message.join(", ") : err.message;
     throw new Error(msg || "Gagal create layanan");
   }
-  return res.json();
+  return await safeParseJson(res, {});
 }
 
 export async function updateLayanan(id: string, data: any) {
@@ -81,7 +101,7 @@ export async function updateLayanan(id: string, data: any) {
     body: JSON.stringify(mapToBackendPayload(data)),
   });
   if (!res.ok) throw new Error("Gagal update layanan");
-  return res.json();
+  return await safeParseJson(res, {});
 }
 
 export async function uploadGambarLayanan(file: File): Promise<string> {
@@ -93,17 +113,13 @@ export async function uploadGambarLayanan(file: File): Promise<string> {
     body: formData,
   });
   if (!res.ok) throw new Error("Gagal upload gambar");
-  const result = await res.json();
-  return result.url;
+  const result = await safeParseJson(res, {});
+  return result.url || "";
 }
 
-// src/lib/api/layanan.ts
-
 export async function deleteLayanan(id: number) {
-  // Ambil token JWT Admin dari localStorage/cookie
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-  // 🟢 GUNAKAN API_BASE_URL (Port 3001 / sesuai env)
   const response = await fetch(`${API_BASE_URL}/layanan/${id}`, {
     method: "DELETE",
     credentials: "include",
@@ -114,9 +130,9 @@ export async function deleteLayanan(id: number) {
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
+    const errorData = await safeParseJson(response, {});
     throw new Error(errorData.message || `Gagal hapus layanan (Status: ${response.status})`);
   }
 
-  return response.json();
+  return await safeParseJson(response, {});
 }
