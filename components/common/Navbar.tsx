@@ -15,7 +15,11 @@ export default function Navbar() {
   
   // 1. Ambil data 'user' dari useAuth hook
   const { isLoggedIn, isLoading, user } = useAuth();
-  console.log("ISI DATA USER DI NAVBAR:", user);
+ useEffect(() => {
+  if (user) {
+    console.log("ISI DATA USER DI NAVBAR:", user);
+  }
+}, [user]);
   const pathname = usePathname();
 
   useEffect(() => {

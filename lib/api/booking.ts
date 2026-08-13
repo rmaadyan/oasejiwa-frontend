@@ -1,30 +1,49 @@
-// Fallback ke localhost untuk environment dev
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+// 🟢 1. BASE URL (Otomatis pastikan ada /api di ujung URL)
+let rawUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id/api";
+if (!rawUrl.includes("/api")) {
+  rawUrl = `${rawUrl.replace(/\/$/, "")}/api`;
+}
+export const API_BASE_URL = rawUrl;
 
-// Helper terpusat — selalu pakai cookie
-const authFetch = (url: string, options: RequestInit = {}) =>
-  fetch(url, {
+// Helper Ambil Token JWT
+function getAuthToken(): string {
+  if (typeof window !== "undefined") {
+    return (
+      localStorage.getItem("token") ||
+      localStorage.getItem("accessToken") ||
+      localStorage.getItem("auth_token") ||
+      ""
+    );
+  }
+  return "";
+}
+
+// Helper terpusat — selalu pakai cookie & Token JWT
+const authFetch = (url: string, options: RequestInit = {}) => {
+  const token = getAuthToken();
+  return fetch(url, {
     ...options,
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
   });
+};
 
 // ---------------------------------------------------------
-// HELPER TRANSFORM DATA CONSULTATION FORM
+// HELPER TRANSFORM DATA CONSULTATION FORM & SANITASI PAYLOAD
 // ---------------------------------------------------------
 function sanitizeConsultationForm(rawForm: any) {
   if (!rawForm) return undefined;
 
-  // Buat copy agar tidak merusak state asli
   const form = { ...rawForm };
 
-  // 1. Hapus field yang memicu whitelistValidation jika tidak dipakai di DTO
+  // Hapus field yang memicu whitelistValidation jika tidak dipakai di DTO
   delete form.partnerSleepQuality;
 
-  // 2. Pastikan Boolean murni
+  // Pastikan Boolean murni
   if ("usesAddictiveSubstances" in form) {
     form.usesAddictiveSubstances =
       form.usesAddictiveSubstances === true ||
@@ -32,7 +51,7 @@ function sanitizeConsultationForm(rawForm: any) {
       form.usesAddictiveSubstances === "Ya";
   }
 
-  // 3. Transform Enum ke UPPERCASE (sesuai Enum Prisma/NestJS)
+  // Transform Enum ke UPPERCASE (sesuai Enum Prisma/NestJS)
   const enumFields = [
     "selfHarmThoughts",
     "eatingPattern",
@@ -47,7 +66,7 @@ function sanitizeConsultationForm(rawForm: any) {
     }
   });
 
-  // 4. Pastikan consultationGoals berupa Array of String
+  // Pastikan consultationGoals berupa Array of String
   if (form.consultationGoals) {
     if (!Array.isArray(form.consultationGoals)) {
       form.consultationGoals = [String(form.consultationGoals)];
@@ -64,17 +83,29 @@ function sanitizeConsultationForm(rawForm: any) {
 // ---------------------------------------------------------
 
 export async function createBooking(payload: any) {
-  // Transform consultationForm jika ada di dalam payload
-  const formattedPayload = {
-    ...payload,
-    ...(payload.consultationForm && {
-      consultationForm: sanitizeConsultationForm(payload.consultationForm),
-    }),
+  // 🟢 CLEAN PAYLOAD: Buat salinan data agar scheduleId & notes kosong diabaikan dari DTO whitelist validation
+  const cleanPayload: any = {
+    psychologistId: payload.psychologistId,
+    serviceId: Number(payload.serviceId),
+    scheduledDate: payload.scheduledDate,
+    scheduledTime: payload.scheduledTime,
+    consultationForm: sanitizeConsultationForm(payload.consultationForm),
+    consentForm: payload.consentForm,
   };
+
+  // Hanya sertakan scheduleId jika benar-benar ada nilainya dan bukan null/empty
+  if (payload.scheduleId && String(payload.scheduleId).trim() !== "" && payload.scheduleId !== "null") {
+    cleanPayload.scheduleId = String(payload.scheduleId);
+  }
+
+  // Hanya sertakan notes jika ada nilainya
+  if (payload.notes && String(payload.notes).trim() !== "") {
+    cleanPayload.notes = payload.notes;
+  }
 
   const res = await authFetch(`${API_BASE_URL}/bookings`, {
     method: "POST",
-    body: JSON.stringify(formattedPayload),
+    body: JSON.stringify(cleanPayload),
   });
 
   if (!res.ok) {
