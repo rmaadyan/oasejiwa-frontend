@@ -4,7 +4,7 @@ import Footer from "@/components/common/Footer";
 import Navbar from "@/components/common/Navbar";
 
 import type { LayananItem } from "@/components/features/manajemen-layanan/types";
-import { getAllLayanan } from "@/lib/api/layanan";
+import { getAllLayananPublic } from "@/lib/api/layanan";
 import { getImageUrl } from "@/lib/utils/getImageUrl";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -20,21 +20,22 @@ export default function LayananLandingPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const data = await getAllLayanan();
-        const aktif = data.filter((l: LayananItem) => l.status === "Aktif");
-        setLayananAktif(aktif);
-      } catch (err) {
-        console.error(err);
-        setErrorMsg("Gagal memuat layanan. Silakan coba lagi.");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchData = async () => {
+    try {
+      // 🟢 GUNAKAN getAllLayananPublic()
+      const data = await getAllLayananPublic();
+      const aktif = data.filter((l: LayananItem) => l.status === "Aktif");
+      setLayananAktif(aktif);
+    } catch (err) {
+      console.error(err);
+      setErrorMsg("Gagal memuat layanan. Silakan coba lagi.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchData();
-  }, []);
+  fetchData();
+}, []);
 
   const handleScrollToJenis = () => {
     if (jenisRef.current) {
