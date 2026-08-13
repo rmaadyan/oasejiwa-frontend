@@ -20,7 +20,7 @@ function getTesImage(tes: TesItem): string {
   const jenisLower = (tes.jenis || "").toLowerCase();
 
   if (namaLower.includes("iq") || jenisLower.includes("iq")) {
-    return "/assets/tes/tes iq.jpg";
+    return "/assets/tes/tes_iq.jpg";
   }
   if (
     namaLower.includes("personality") ||
@@ -28,7 +28,7 @@ function getTesImage(tes: TesItem): string {
     namaLower.includes("kepribadian") ||
     jenisLower.includes("kepribadian")
   ) {
-    return "/assets/tes/personalitiy tes.webp";
+    return "/assets/tes/personalitiy_tes.webp";
   }
   if (
     namaLower.includes("koran") ||
@@ -36,13 +36,13 @@ function getTesImage(tes: TesItem): string {
     namaLower.includes("kraepelin") ||
     jenisLower.includes("koran")
   ) {
-    return "/assets/tes/tes koran.png";
+    return "/assets/tes/tes_koran.png";
   }
   if (namaLower.includes("papi") || jenisLower.includes("papi")) {
-    return "/assets/tes/tes papi.png";
+    return "/assets/tes/tes_papi.png";
   }
   if (namaLower.includes("verbal") || jenisLower.includes("verbal")) {
-    return "/assets/tes/tes verbal.webp";
+    return "/assets/tes/tes_ verbal.webp";
   }
 
   return "/assets/layanan-default.png";
@@ -157,7 +157,7 @@ export default function TesPsikologiUserPage() {
                 {/* 1. Personality Test */}
                 <div className="h-64 sm:h-72 rounded-[28px] overflow-hidden">
                   <img
-                    src="/assets/tes/personalitiy tes.webp"
+                    src="/assets/tes/personalitiy_tes.webp"
                     alt="Personality Test"
                     className="w-full h-full object-contain rounded-[24px]"
                   />
@@ -167,14 +167,14 @@ export default function TesPsikologiUserPage() {
                 <div className="flex flex-col gap-3 sm:gap-4">
                   <div className="h-28 sm:h-32 rounded-[22px] overflow-hidden">
                     <img
-                      src="/assets/tes/tes iq.jpg"
+                      src="/assets/tes/tes_iq.jpg"
                       alt="Tes IQ"
                       className="w-full h-full object-contain rounded-[18px]"
                     />
                   </div>
                   <div className="h-28 sm:h-32 rounded-[22px] overflow-hidden">
                     <img
-                      src="/assets/tes/tes papi.png"
+                      src="/assets/tes/tes_papi.png"
                       alt="Tes PAPI"
                       className="w-full h-full object-contain rounded-[18px]"
                     />
@@ -184,7 +184,7 @@ export default function TesPsikologiUserPage() {
                 {/* 3. Tes Verbal */}
                 <div className="h-72 sm:h-80 rounded-[32px] overflow-hidden transform -translate-y-2">
                   <img
-                    src="/assets/tes/tes verbal.webp"
+                    src="/assets/tes/tes_verbal.webp"
                     alt="Tes Verbal"
                     className="w-full h-full object-contain rounded-[28px]"
                   />
@@ -193,7 +193,7 @@ export default function TesPsikologiUserPage() {
                 {/* 4. Tes Koran */}
                 <div className="h-56 sm:h-64 rounded-[28px] overflow-hidden">
                   <img
-                    src="/assets/tes/tes koran.png"
+                    src="/assets/tes/tes_koran.png"
                     alt="Tes Koran"
                     className="w-full h-full object-contain rounded-[24px]"
                   />
