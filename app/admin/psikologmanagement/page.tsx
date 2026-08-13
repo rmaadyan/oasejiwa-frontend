@@ -458,6 +458,7 @@ function AddPsychologistModal({ onClose, onSuccess }: { onClose: () => void; onS
 }
 
 {/* MODAL EDIT */}
+{/* MODAL EDIT */}
 function EditPsychologistModal({ initialData, onClose, onSuccess }: { initialData: any; onClose: () => void; onSuccess: (data: any) => void }) {
     const [formData, setFormData] = useState({ ...initialData });
 
@@ -475,6 +476,7 @@ function EditPsychologistModal({ initialData, onClose, onSuccess }: { initialDat
                 credentials: "include",
                 body: JSON.stringify({
                     fullName: formData.fullName,
+                    email: formData.email, // 🟢 Sertakan email yang baru diedit ke backend
                     phoneNumber: formData.phoneNumber,
                     sipp: formData.sipp,
                     str: formData.str || undefined,
@@ -507,31 +509,38 @@ function EditPsychologistModal({ initialData, onClose, onSuccess }: { initialDat
                 <form onSubmit={handleUpdate} className="space-y-4">
                     <div>
                         <label className="text-xs font-semibold text-slate-700">Nama Lengkap & Gelar</label>
-                        <input type="text" required value={formData.fullName} onChange={(e) => setFormData({ ...formData, fullName: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-xl text-sm mt-1" />
+                        <input type="text" required value={formData.fullName} onChange={(e) => setFormData({ ...formData, fullName: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-xl text-sm mt-1 focus:ring-2 focus:ring-blue-100 outline-none" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="text-xs font-semibold text-slate-700">Email (Read-Only)</label>
-                            <input type="email" disabled value={formData.email} className="w-full px-3.5 py-2.5 bg-slate-100 border rounded-xl text-sm mt-1 cursor-not-allowed" />
+                            {/* 🟢 Label diganti & disabled dihapus */}
+                            <label className="text-xs font-semibold text-slate-700">Email Psikolog *</label>
+                            <input 
+                                type="email" 
+                                required 
+                                value={formData.email || ""} 
+                                onChange={(e) => setFormData({ ...formData, email: e.target.value })} 
+                                className="w-full px-3.5 py-2.5 border rounded-xl text-sm mt-1 focus:ring-2 focus:ring-blue-100 outline-none" 
+                            />
                         </div>
                         <div>
                             <label className="text-xs font-semibold text-slate-700">Nomor HP / WhatsApp</label>
-                            <input type="text" required value={formData.phoneNumber || ""} onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-xl text-sm mt-1" />
+                            <input type="text" required value={formData.phoneNumber || ""} onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-xl text-sm mt-1 focus:ring-2 focus:ring-blue-100 outline-none" />
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="text-xs font-semibold text-slate-700">No. SIPP</label>
-                            <input type="text" required value={formData.sipp} onChange={(e) => setFormData({ ...formData, sipp: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-xl text-sm mt-1" />
+                            <input type="text" required value={formData.sipp} onChange={(e) => setFormData({ ...formData, sipp: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-xl text-sm mt-1 focus:ring-2 focus:ring-blue-100 outline-none" />
                         </div>
                         <div>
                             <label className="text-xs font-semibold text-slate-700">No. STR</label>
-                            <input type="text" value={formData.str || ""} onChange={(e) => setFormData({ ...formData, str: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-xl text-sm mt-1" />
+                            <input type="text" value={formData.str || ""} onChange={(e) => setFormData({ ...formData, str: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-xl text-sm mt-1 focus:ring-2 focus:ring-blue-100 outline-none" />
                         </div>
                     </div>
                     <div className="flex justify-end gap-3 pt-4 border-t">
-                        <button type="button" onClick={onClose} className="px-5 py-2.5 border rounded-xl text-sm cursor-pointer">Batal</button>
-                        <button type="submit" className="px-5 py-2.5 bg-[#234463] text-white rounded-xl text-sm cursor-pointer">Simpan Perubahan</button>
+                        <button type="button" onClick={onClose} className="px-5 py-2.5 border rounded-xl text-sm cursor-pointer hover:bg-slate-50">Batal</button>
+                        <button type="submit" className="px-5 py-2.5 bg-[#234463] text-white rounded-xl text-sm font-medium hover:bg-[#2B5379] transition cursor-pointer">Simpan Perubahan</button>
                     </div>
                 </form>
             </div>
