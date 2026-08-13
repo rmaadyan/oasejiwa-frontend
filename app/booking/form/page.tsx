@@ -795,27 +795,37 @@ function ConsultationFormContent() {
               };
 
           const validScheduledDate = toValidIsoDateString(selectedDate);
-          const validConsentDate = toValidIsoDateString(consentData.consentDate!);
+const validConsentDate = toValidIsoDateString(consentData.consentDate!);
 
-          const payload: any = {
-            serviceId: Number(serviceId),
-            psychologistId: psychologistId || "",
-            scheduleId: scheduleId || undefined,
-            scheduledDate: validScheduledDate,
-            scheduledTime: selectedTime,
-            consultationForm: mappedConsultation,
-            consentForm: {
-              consentDate: consentData.consentDate,
-              clientNameConfirmation: consentData.clientNameConfirmation,
-              signatureData: consentData.signature,
-              signatureType: useTextSignature ? "TEXT" : "DRAWING",
-              agreedToTerms: consentData.agreedToTerms ?? false,
-            },
-          };
+// 🟢 PERBARUI BAGIAN PAYLOAD INI:
+const payload: any = {
+  serviceId: Number(serviceId),
+  psychologistId: psychologistId || "",
+  scheduledDate: validScheduledDate,
+  scheduledTime: selectedTime,
+  consultationForm: mappedConsultation,
+  consentForm: {
+    consentDate: consentData.consentDate,
+    clientNameConfirmation: consentData.clientNameConfirmation,
+    signatureData: consentData.signature,
+    signatureType: useTextSignature ? "TEXT" : "DRAWING",
+    agreedToTerms: consentData.agreedToTerms ?? false,
+  },
+};
 
-          const booking = await createBooking(payload);
-          clearDraft();
-          router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
+// 🟢 Hanya masukkan scheduleId jika nilainya berupa string valid
+if (
+  scheduleId &&
+  scheduleId !== "null" &&
+  scheduleId !== "undefined" &&
+  scheduleId.trim() !== ""
+) {
+  payload.scheduleId = scheduleId;
+}
+
+const booking = await createBooking(payload);
+clearDraft();
+router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
         } catch (error: any) {
           console.error(error);
           alert(

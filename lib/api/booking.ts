@@ -1,11 +1,10 @@
-// 🟢 1. BASE URL (Otomatis pastikan ada /api di ujung URL)
+// 🟢 BASE URL dengan prefix /api
 let rawUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id/api";
 if (!rawUrl.includes("/api")) {
   rawUrl = `${rawUrl.replace(/\/$/, "")}/api`;
 }
 export const API_BASE_URL = rawUrl;
 
-// Helper Ambil Token JWT
 function getAuthToken(): string {
   if (typeof window !== "undefined") {
     return (
@@ -18,7 +17,6 @@ function getAuthToken(): string {
   return "";
 }
 
-// Helper terpusat — selalu pakai cookie & Token JWT
 const authFetch = (url: string, options: RequestInit = {}) => {
   const token = getAuthToken();
   return fetch(url, {
@@ -32,18 +30,10 @@ const authFetch = (url: string, options: RequestInit = {}) => {
   });
 };
 
-// ---------------------------------------------------------
-// HELPER TRANSFORM DATA CONSULTATION FORM & SANITASI PAYLOAD
-// ---------------------------------------------------------
 function sanitizeConsultationForm(rawForm: any) {
   if (!rawForm) return undefined;
-
   const form = { ...rawForm };
 
-  // Hapus field yang memicu whitelistValidation jika tidak dipakai di DTO
-  delete form.partnerSleepQuality;
-
-  // Pastikan Boolean murni
   if ("usesAddictiveSubstances" in form) {
     form.usesAddictiveSubstances =
       form.usesAddictiveSubstances === true ||
@@ -51,7 +41,6 @@ function sanitizeConsultationForm(rawForm: any) {
       form.usesAddictiveSubstances === "Ya";
   }
 
-  // Transform Enum ke UPPERCASE (sesuai Enum Prisma/NestJS)
   const enumFields = [
     "selfHarmThoughts",
     "eatingPattern",
@@ -66,7 +55,6 @@ function sanitizeConsultationForm(rawForm: any) {
     }
   });
 
-  // Pastikan consultationGoals berupa Array of String
   if (form.consultationGoals) {
     if (!Array.isArray(form.consultationGoals)) {
       form.consultationGoals = [String(form.consultationGoals)];
@@ -78,12 +66,8 @@ function sanitizeConsultationForm(rawForm: any) {
   return form;
 }
 
-// ---------------------------------------------------------
-// USER ENDPOINTS
-// ---------------------------------------------------------
-
 export async function createBooking(payload: any) {
-  // 🟢 CLEAN PAYLOAD: Buat salinan data agar scheduleId & notes kosong diabaikan dari DTO whitelist validation
+  // 🟢 Hanya ambil properti wajib
   const cleanPayload: any = {
     psychologistId: payload.psychologistId,
     serviceId: Number(payload.serviceId),
@@ -93,12 +77,16 @@ export async function createBooking(payload: any) {
     consentForm: payload.consentForm,
   };
 
-  // Hanya sertakan scheduleId jika benar-benar ada nilainya dan bukan null/empty
-  if (payload.scheduleId && String(payload.scheduleId).trim() !== "" && payload.scheduleId !== "null") {
+  // 🟢 HANYA sertakan scheduleId jika valid (bukan null, "null", "undefined", atau string kosong)
+  if (
+    payload.scheduleId &&
+    String(payload.scheduleId).trim() !== "" &&
+    payload.scheduleId !== "null" &&
+    payload.scheduleId !== "undefined"
+  ) {
     cleanPayload.scheduleId = String(payload.scheduleId);
   }
 
-  // Hanya sertakan notes jika ada nilainya
   if (payload.notes && String(payload.notes).trim() !== "") {
     cleanPayload.notes = payload.notes;
   }
@@ -110,14 +98,12 @@ export async function createBooking(payload: any) {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-
-    // Tangkap error validasi dari NestJS jika berupa Array of Strings
     const errorMessage = Array.isArray(err.message)
       ? err.message.join("\n• ")
       : err.message || "Gagal membuat booking";
-
     throw new Error(errorMessage);
   }
+
   return res.json();
 }
 
@@ -161,10 +147,6 @@ export async function confirmFullPayment(id: string | number) {
   }
   return res.json();
 }
-
-// ---------------------------------------------------------
-// ADMIN ENDPOINTS
-// ---------------------------------------------------------
 
 export async function getAdminBookings() {
   const res = await authFetch(`${API_BASE_URL}/admin/bookings`);
