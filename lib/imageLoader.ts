@@ -11,9 +11,11 @@ const BGHERO_PATH = "/bghero";
 
 const KNOWN_HERO_IMAGES = [
   "STAFF004.jpg",
-  "ASSESS002.jpg",
+  "new1.jpg",
   "gambar2.jpg",
-  "FACADES015.JPG",
+  "new2.jpg",
+  "new3.jpg",
+  "new4.jpg",
 ];
 
 /**
