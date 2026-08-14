@@ -698,6 +698,25 @@ function ConsultationFormContent() {
     setConsentData((prev) => ({ ...prev, signature: "" }));
   };
 
+  // 🟢 Helper untuk scroll otomatis ke pertanyaan pertama yang error
+  const scrollToFirstError = (newErrors: Record<string, string>) => {
+    const errorKeys = Object.keys(newErrors);
+    if (errorKeys.length === 0) return;
+
+    const firstKey = errorKeys[0];
+    const targetElement =
+      document.getElementById(`field-${firstKey}`) ||
+      document.querySelector(`[name="${firstKey}"]`) ||
+      document.querySelector(`[name="couple${firstKey.charAt(0).toUpperCase() + firstKey.slice(1)}"]`);
+
+    if (targetElement) {
+      targetElement.scrollIntoView({ behavior: "smooth", block: "center" });
+      if ("focus" in targetElement && typeof (targetElement as any).focus === "function") {
+        (targetElement as HTMLElement).focus();
+      }
+    }
+  };
+
   const validateStep2 = (): boolean => {
     const result = consultationFormSchema.safeParse(consultationData);
     if (!result.success) {
@@ -708,6 +727,9 @@ function ConsultationFormContent() {
         newErrors[key] = err.message;
       });
       setErrors(newErrors);
+
+      // 🟢 Auto scroll ke error pertama
+      setTimeout(() => scrollToFirstError(newErrors), 100);
       return false;
     }
     setErrors({});
@@ -724,6 +746,9 @@ function ConsultationFormContent() {
         newErrors[key] = err.message;
       });
       setErrors(newErrors);
+
+      // 🟢 Auto scroll ke error pertama
+      setTimeout(() => scrollToFirstError(newErrors), 100);
       return false;
     }
     setErrors({});

@@ -1,7 +1,23 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { Plus, Search, UserCheck, Mail, Lock, X, CheckCircle2, Pencil, Trash2, AlertTriangle, Clock, Eye, ArrowUp, ArrowDown } from "lucide-react";
+import { 
+    Plus, 
+    Search, 
+    UserCheck, 
+    Mail, 
+    Lock, 
+    X, 
+    CheckCircle2, 
+    Pencil, 
+    Trash2, 
+    AlertTriangle, 
+    Clock, 
+    Eye, 
+    ArrowUp, 
+    ArrowDown,
+    GripVertical
+} from "lucide-react";
 import Link from "next/link";
 import { getAllPsychologistsAdmin, API_BASE_URL } from "@/lib/api/psychologist";
 
@@ -13,6 +29,7 @@ export default function PsikologManagementPage() {
     const [psikologList, setPsikologList] = useState<any[]>([]);
     const [loadingFetch, setLoadingFetch] = useState(true);
     const [sendingReminderId, setSendingReminderId] = useState<string | null>(null);
+    const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
     const fetchPsikologs = async () => {
         setLoadingFetch(true);
@@ -47,7 +64,7 @@ export default function PsikologManagementPage() {
         fetchPsikologs();
     }, []);
 
-    // 🟢 Fitur Mengubah Urutan Tata Letak Psikolog (Naik / Turun)
+    // 🟢 Fitur Tombol Naik / Turun
     const handleMoveOrder = (index: number, direction: "up" | "down") => {
         const targetIndex = direction === "up" ? index - 1 : index + 1;
         if (targetIndex < 0 || targetIndex >= psikologList.length) return;
@@ -58,6 +75,29 @@ export default function PsikologManagementPage() {
         updatedList[targetIndex] = temp;
 
         setPsikologList(updatedList);
+    };
+
+    // 🟢 Fitur Drag & Drop Antar Baris Tabel
+    const handleDragStart = (index: number) => {
+        setDraggedIndex(index);
+    };
+
+    const handleDragOver = (e: React.DragEvent, index: number) => {
+        e.preventDefault();
+        if (draggedIndex === null || draggedIndex === index) return;
+
+        const updatedList = [...psikologList];
+        const itemToMove = updatedList[draggedIndex];
+
+        updatedList.splice(draggedIndex, 1);
+        updatedList.splice(index, 0, itemToMove);
+
+        setDraggedIndex(index);
+        setPsikologList(updatedList);
+    };
+
+    const handleDragEnd = () => {
+        setDraggedIndex(null);
     };
 
     const handleSuccessAdd = () => {
@@ -136,7 +176,7 @@ export default function PsikologManagementPage() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-5">
                 <div>
                     <h1 className="text-2xl sm:text-3xl font-bold text-[#234463]">Manajemen Psikolog</h1>
-                    <p className="text-sm text-slate-500 mt-1">Kelola pendaftaran, pembaruan data, dan akun psikolog resmi Oase Jiwa</p>
+                    <p className="text-sm text-slate-500 mt-1">Kelola pendaftaran, pembaruan data, dan urutan tampilan psikolog</p>
                 </div>
 
                 <button
@@ -165,13 +205,13 @@ export default function PsikologManagementPage() {
                 </div>
             </div>
 
-            {/* TABEL DAFTAR PSIKOLOG */}
+            {/* TABEL DAFTAR PSIKOLOG (MENDUKUNG DRAG & DROP) */}
             <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden w-full">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
+                    <table className="w-full text-left text-sm border-collapse">
                         <thead className="bg-[#F8FAFC] border-b border-slate-200 text-slate-600 font-semibold">
                             <tr>
-                                <th className="p-4 pl-6 w-16 text-center">Urutan</th>
+                                <th className="p-4 pl-6 w-24 text-center">Urutan</th>
                                 <th className="p-4">Psikolog</th>
                                 <th className="p-4">No. HP / WA</th>
                                 <th className="p-4">No. SIPP / STR</th>
@@ -191,28 +231,53 @@ export default function PsikologManagementPage() {
                             ) : (
                                 filteredList.map((item, index) => {
                                     const isComplete = item.sipp && item.sipp !== "-" && item.sipp !== "";
+                                    const isDraggingThis = draggedIndex === index;
 
                                     return (
-                                        <tr key={item.id} className="hover:bg-slate-50/80 transition">
-                                            {/* 🟢 Kolom Tombol Urutan Tata Letak */}
+                                        <tr 
+                                            key={item.id} 
+                                            draggable
+                                            onDragStart={() => handleDragStart(index)}
+                                            onDragOver={(e) => handleDragOver(e, index)}
+                                            onDragEnd={handleDragEnd}
+                                            className={`transition-all ${
+                                                isDraggingThis 
+                                                    ? "bg-blue-50/80 opacity-40 border-2 border-dashed border-[#234463]" 
+                                                    : "hover:bg-slate-50/80"
+                                            }`}
+                                        >
+                                            {/* 🟢 Kolom Drag Grip & Tombol Panah Urutan */}
                                             <td className="p-4 pl-6 text-center">
-                                                <div className="flex items-center justify-center gap-1">
-                                                    <button
-                                                        disabled={index === 0}
-                                                        onClick={() => handleMoveOrder(index, "up")}
-                                                        className="p-1 text-slate-400 hover:text-[#234463] hover:bg-slate-100 rounded-md disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer transition"
-                                                        title="Pindah ke Atas"
+                                                <div className="flex items-center justify-center gap-1.5">
+                                                    <span 
+                                                        title="Tarik & Geser untuk Mengatur Urutan"
+                                                        className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-[#234463] p-1 rounded-md hover:bg-slate-100"
                                                     >
-                                                        <ArrowUp size={15} />
-                                                    </button>
-                                                    <button
-                                                        disabled={index === filteredList.length - 1}
-                                                        onClick={() => handleMoveOrder(index, "down")}
-                                                        className="p-1 text-slate-400 hover:text-[#234463] hover:bg-slate-100 rounded-md disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer transition"
-                                                        title="Pindah ke Bawah"
-                                                    >
-                                                        <ArrowDown size={15} />
-                                                    </button>
+                                                        <GripVertical size={16} />
+                                                    </span>
+
+                                                    <span className="w-5 text-xs font-bold text-slate-600">
+                                                        #{index + 1}
+                                                    </span>
+
+                                                    <div className="flex flex-col gap-0.5 ml-1">
+                                                        <button
+                                                            disabled={index === 0}
+                                                            onClick={() => handleMoveOrder(index, "up")}
+                                                            className="text-slate-400 hover:text-[#234463] disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer"
+                                                            title="Pindah ke Atas"
+                                                        >
+                                                            <ArrowUp size={12} />
+                                                        </button>
+                                                        <button
+                                                            disabled={index === filteredList.length - 1}
+                                                            onClick={() => handleMoveOrder(index, "down")}
+                                                            className="text-slate-400 hover:text-[#234463] disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer"
+                                                            title="Pindah ke Bawah"
+                                                        >
+                                                            <ArrowDown size={12} />
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </td>
 

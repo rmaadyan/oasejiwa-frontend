@@ -81,9 +81,15 @@ export default function Profile() {
     confirmPassword: "",
   });
 
-  useEffect(() => {
+useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setRedirectUrl(params.get("redirect"));
+
+    // 🟢 Cek apakah ada query ?tab=bookings atau ?tab=tes
+    const tabParam = params.get("tab");
+    if (tabParam === "bookings" || tabParam === "tes" || tabParam === "profile") {
+      setActiveTab(tabParam);
+    }
   }, []);
 
   const [profileData, setProfileData] = useState<ProfileData>({

@@ -807,3 +807,24 @@ export async function deletePsychologist(id: string): Promise<any> {
 
   return result;
 }
+
+export async function updatePsychologistsOrder(orderedIds: string[]) {
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
+
+  const res = await fetch(`${API_BASE_URL}/admin/psychologists/reorder`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    credentials: "include",
+    body: JSON.stringify({ orderedIds }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || "Gagal menyimpan urutan psikolog");
+  }
+
+  return res.json();
+}
