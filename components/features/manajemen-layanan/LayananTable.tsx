@@ -20,7 +20,7 @@ type Props = {
   onReorder?: (newOrder: LayananItem[]) => void;
 };
 
-type SortKey = "nama" | "status" | "harga";
+type SortKey = "nama" | "status" | "harga" | "urutan";
 type SortDir = "asc" | "desc";
 
 export default function LayananTable({
@@ -36,7 +36,9 @@ export default function LayananTable({
   manualMode = false,
   onReorder,
 }: Props) {
-  const [sortKey, setSortKey] = useState<SortKey>("nama");
+  // 🟢 Default "urutan": ikuti urutan yang sudah diatur admin / urutan dari backend.
+  // Sort kolom (nama/harga/status) hanya aktif kalau admin klik header-nya.
+  const [sortKey, setSortKey] = useState<SortKey>("urutan");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
@@ -59,6 +61,7 @@ export default function LayananTable({
 
   const sortedData = useMemo(() => {
     if (manualMode) return data; // 🟢 tampilkan sesuai urutan asli (bisa di-drag)
+    if (sortKey === "urutan") return data; // 🟢 data sudah terurut sesuai backend, jangan disortir ulang
 
     const list = [...data];
 
@@ -145,7 +148,15 @@ export default function LayananTable({
           {/* Header Tabel */}
           <div className={`grid ${gridCols} px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-400 border-b border-dashed border-gray-200`}>
             {manualMode && <div />}
-            <div>No</div>
+            <button
+              type="button"
+              className={`flex items-center text-left ${manualMode ? "cursor-default opacity-50" : "cursor-pointer"}`}
+              onClick={() => handleSort("urutan")}
+              title="Klik untuk kembali ke urutan yang diatur admin"
+            >
+              <span>No</span>
+              {renderSortIcon("urutan")}
+            </button>
 
             <button
               type="button"
