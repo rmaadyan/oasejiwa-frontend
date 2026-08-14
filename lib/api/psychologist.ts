@@ -584,7 +584,8 @@ export async function updatePsychologistProfile(
   return formatPsychologistProfile(profileData);
 }
 
-// 🟢 GET ALL PUBLIC
+// 🟢 GET BY ID PUBLIC
+// 🟢 GET ALL PUBLIC (Hanya untuk halaman awal / tampilan publik user)
 export async function getAllPsychologistsPublic() {
   let res = await fetch(`${API_BASE_URL}/psychologists/public`, { cache: "no-store" });
 
@@ -614,7 +615,18 @@ export async function getAllPsychologistsPublic() {
       str: p.str || "-",
       about: p.about || "Psikolog Klinik Oase Jiwa",
       specializations: p.specializations || [],
-    }));
+    }))
+    // 🟢 TAMBAHKAN PENGURUTAN DI SINI SESUAI KEBUTUHAN:
+    .sort((a: any, b: any) => {
+      // 1. Opsi Berdasarkan Nama Abjad (A - Z):
+      return a.name.localeCompare(b.name);
+
+      // 2. ATAU Opsi Berdasarkan Rating Tertinggi (Uncomment jika ingin rating):
+      // return (b.rating || 0) - (a.rating || 0);
+
+      // 3. ATAU Opsi Berdasarkan Jumlah Spesialisasi / Layanan Terbanyak:
+      // return (b.specializations?.length || 0) - (a.specializations?.length || 0);
+    });
 
   return { data: cleanData };
 }
