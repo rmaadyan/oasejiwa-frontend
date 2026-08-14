@@ -2,12 +2,19 @@
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/Alert";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { ArrowUpDown, Check, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import LayananForm from "./LayananForm";
 import LayananTable from "./LayananTable";
 import type { LayananItem } from "./types";
-import { getAllLayanan, createLayanan, updateLayanan, deleteLayanan } from "@/lib/api/layanan";
+import {
+  getAllLayanan,
+  createLayanan,
+  updateLayanan,
+  deleteLayanan,
+  reorderLayanan,
+} from "@/lib/api/layanan";
 
 export default function ManajemenLayananPage() {
   const router = useRouter();
@@ -22,6 +29,12 @@ export default function ManajemenLayananPage() {
   const [editingItem, setEditingItem] = useState<LayananItem | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
+
+  // 🟢 STATE UNTUK MODE URUTAN MANUAL
+  const [manualMode, setManualMode] = useState(false);
+  const [orderChanged, setOrderChanged] = useState(false);
+  const [savingOrder, setSavingOrder] = useState(false);
+  const [originalOrder, setOriginalOrder] = useState<LayananItem[]>([]);
 
   const fetchData = async () => {
     try {
@@ -66,10 +79,52 @@ export default function ManajemenLayananPage() {
   const handleDelete = (item: LayananItem) => { setErrorMsg(null); setDeleteId(item.id); };
   const handleTambah = () => { setFormMode("create"); setEditingItem(null); setShowForm(true); };
 
+  // 🟢 AKTIFKAN / BATALKAN MODE URUTAN MANUAL
+  const handleToggleManualMode = () => {
+    if (!manualMode) {
+      setSearch("");
+      setCurrentPage(1);
+      setOriginalOrder(items); // simpan urutan awal untuk fallback "Batal"
+      setOrderChanged(false);
+      setManualMode(true);
+    } else {
+      // Batal: kembalikan urutan semula tanpa perlu fetch ulang ke server
+      setItems(originalOrder);
+      setOrderChanged(false);
+      setManualMode(false);
+    }
+  };
+
+  // 🟢 SAAT DRAG SELESAI: update state lokal + tandai ada perubahan
+  const handleReorder = (newOrder: LayananItem[]) => {
+    const withUrutan = newOrder.map((item, idx) => ({ ...item, urutan: idx + 1 }));
+    setItems(withUrutan);
+    setOrderChanged(true);
+  };
+
+  // 🟢 SIMPAN URUTAN BARU KE SERVER
+  const handleSaveOrder = async () => {
+    try {
+      setSavingOrder(true);
+      setErrorMsg(null);
+      await reorderLayanan(
+        items.map((item, idx) => ({ id: item.id, urutan: item.urutan ?? idx + 1 }))
+      );
+      setOrderChanged(false);
+      setManualMode(false);
+      await fetchData();
+    } catch (err) {
+      setErrorMsg("Gagal menyimpan urutan layanan. Silakan coba lagi.");
+      console.error(err);
+    } finally {
+      setSavingOrder(false);
+    }
+  };
+
   const confirmDelete = async () => {
     if (deleteId === null) return;
     try {
-      await deleteLayanan(String(deleteId));
+      await deleteLayanan(Number(deleteId));
       await fetchData();
     } catch (err) {
       setErrorMsg("Gagal menghapus layanan.");
@@ -109,17 +164,17 @@ export default function ManajemenLayananPage() {
       />
 
       {showForm && (
-        <div className="fixed inset-0 z-40 flex items-start justify-center bg-black/30 py-10">
-          <div className="w-full max-w-3xl px-4">
-            <LayananForm
-              mode={formMode}
-              initialData={editingItem}
-              onCancel={() => { setShowForm(false); setEditingItem(null); }}
-              onSubmitLocal={handleSubmitLocal}
-            />
-          </div>
-        </div>
-      )}
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 sm:p-6 overflow-y-auto">
+    <div className="w-full max-w-3xl max-h-[92vh] flex flex-col my-auto">
+      <LayananForm
+        mode={formMode}
+        initialData={editingItem}
+        onCancel={() => { setShowForm(false); setEditingItem(null); }}
+        onSubmitLocal={handleSubmitLocal}
+      />
+    </div>
+  </div>
+)}
 
       <div className="min-h-screen bg-gradient-to-b from-white to-[#E8F6FF]/30 px-6 py-6 font-[var(--font-poppins)]">
         <div className="mx-auto max-w-7xl space-y-6">
@@ -176,31 +231,70 @@ export default function ManajemenLayananPage() {
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
               <div>
                 <h2 className="text-xl md:text-2xl font-bold text-secondary-heading">Daftar Layanan</h2>
-                <p className="text-sm text-body-text mt-1">Kelola semua layanan konsultasi Anda di sini</p>
+                <p className="text-sm text-body-text mt-1">
+                  {manualMode
+                    ? "Geser (drag) kartu layanan untuk mengatur urutan tampil di halaman publik."
+                    : "Kelola semua layanan konsultasi Anda di sini"}
+                </p>
               </div>
               <div className="flex flex-col gap-3 md:flex-row md:items-center">
-                <div className="relative w-full max-w-xs group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-body-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
+                {!manualMode && (
+                  <div className="relative w-full max-w-xs group">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-body-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                    <input
+                      type="text" value={search}
+                      onChange={(e) => { setCurrentPage(1); setSearch(e.target.value); }}
+                      placeholder="Cari layanan..."
+                      className="w-full pl-12 pr-4 py-3 bg-[#E8F6FF]/50 border border-secondary-heading/20 rounded-xl text-sm text-secondary-heading placeholder:text-body-text/60 focus:outline-none focus:ring-2 focus:ring-secondary-heading/30 focus:border-secondary-heading focus:bg-[#E8F6FF] transition-all"
+                    />
                   </div>
-                  <input
-                    type="text" value={search}
-                    onChange={(e) => { setCurrentPage(1); setSearch(e.target.value); }}
-                    placeholder="Cari layanan..."
-                    className="w-full pl-12 pr-4 py-3 bg-[#E8F6FF]/50 border border-secondary-heading/20 rounded-xl text-sm text-secondary-heading placeholder:text-body-text/60 focus:outline-none focus:ring-2 focus:ring-secondary-heading/30 focus:border-secondary-heading focus:bg-[#E8F6FF] transition-all"
-                  />
-                </div>
-                <button
-                  onClick={handleTambah}
-                  className="flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white hover:bg-primary/90 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Tambah Layanan
-                </button>
+                )}
+
+                {/* 🟢 TOMBOL MODE URUTAN MANUAL */}
+                {manualMode ? (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleToggleManualMode}
+                      disabled={savingOrder}
+                      className="flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-all disabled:opacity-50"
+                    >
+                      <X size={16} />
+                      Batal
+                    </button>
+                    <button
+                      onClick={handleSaveOrder}
+                      disabled={!orderChanged || savingOrder}
+                      className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700 hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Check size={16} />
+                      {savingOrder ? "Menyimpan..." : "Simpan Urutan"}
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      onClick={handleToggleManualMode}
+                      disabled={items.length < 2}
+                      className="flex items-center justify-center gap-2 rounded-xl border border-secondary-heading/30 px-5 py-3 text-sm font-semibold text-secondary-heading hover:bg-[#E8F6FF] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <ArrowUpDown size={16} />
+                      Atur Urutan
+                    </button>
+                    <button
+                      onClick={handleTambah}
+                      className="flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white hover:bg-primary/90 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Tambah Layanan
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
@@ -211,7 +305,7 @@ export default function ManajemenLayananPage() {
               </div>
             ) : (
               <LayananTable
-                data={pagedItems}
+                data={manualMode ? items : pagedItems}
                 pageSize={pageSize}
                 totalItems={totalItems}
                 currentPage={currentPage}
@@ -220,6 +314,8 @@ export default function ManajemenLayananPage() {
                 onDelete={handleDelete}
                 onSeeAll={handleSeeAll}
                 onPageSizeChange={handlePageSizeChange}
+                manualMode={manualMode}
+                onReorder={handleReorder}
               />
             )}
           </div>
