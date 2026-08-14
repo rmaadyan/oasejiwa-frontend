@@ -110,6 +110,17 @@ useEffect(() => {
       try {
         setIsLoading(true);
         const data = await getMe();
+        
+        // 🟢 CEK ROLE USER: Jika Admin atau Psikolog, arahkan ke dashboard masing-masing
+        const userRole = data.role || data.user?.role;
+        if (userRole === "ADMIN" || userRole === "SUPERADMIN") {
+          router.replace("/admin");
+          return;
+        } else if (userRole === "PSYCHOLOGIST") {
+          router.replace("/psychologist/dashboard");
+          return;
+        }
+
         setProfileData({
           fullName: data.profile?.name ?? data.fullName ?? "",
           gender: data.profile?.gender ?? null,

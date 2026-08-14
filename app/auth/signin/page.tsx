@@ -1,4 +1,5 @@
 'use client'
+
 import React, { useState } from "react";
 import { Mail, Lock } from "lucide-react";
 import FormField from "@/components/common/formField";
@@ -52,11 +53,10 @@ export default function SignIn() {
         try {
             const data = await loginUser({ email, password });
 
-            console.log("Response:", data);
-
             const token = data.accessToken ?? data.token ?? data.data?.accessToken;
             const user = data.user ?? data.data?.user;
-            const role = user?.role;
+            const rawRole = user?.role || "";
+            const role = String(rawRole).toUpperCase();
 
             if (!token) {
                 setError("Token tidak ditemukan, cek response backend");
@@ -67,26 +67,40 @@ export default function SignIn() {
                 setError("Data user tidak ditemukan, cek response backend");
                 return;
             }
+
+            // Simpan Session ke LocalStorage
             localStorage.setItem("user", JSON.stringify(user));
             localStorage.setItem("token", token);
             localStorage.setItem("auth_token", token);
             localStorage.setItem("accessToken", token);
 
-            console.log("Role:", role);
-
+            // Cek Parameter Redirect di URL
             const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
             const redirectUrl = searchParams ? searchParams.get("redirect") : null;
 
-            if (redirectUrl) {
-                router.push(redirectUrl);
-            } else if (role === "PSYCHOLOGIST" && user.isFirstLogin) {
-                router.push("/auth/change-password-psychologist");
+            // 🟢 Navigasi Berdasarkan Role
+            if (role === "ADMIN" || role === "SUPERADMIN") {
+                // Jika Admin, hanya ikuti redirectUrl jika mengarah ke halaman /admin
+                if (redirectUrl && redirectUrl.startsWith("/admin")) {
+                    router.replace(redirectUrl);
+                } else {
+                    router.replace("/admin");
+                }
             } else if (role === "PSYCHOLOGIST") {
-                router.push("/psychologist/profile");
-            } else if (role === "ADMIN") {
-                router.push("/admin");
+                if (user.isFirstLogin) {
+                    router.replace("/auth/change-password-psychologist");
+                } else if (redirectUrl && redirectUrl.startsWith("/psychologist")) {
+                    router.replace(redirectUrl);
+                } else {
+                    router.replace("/psychologist/profile");
+                }
             } else {
-                router.push("/");
+                // Role Pasien / Regular User
+                if (redirectUrl) {
+                    router.replace(redirectUrl);
+                } else {
+                    router.replace("/");
+                }
             }
         } catch (err: any) {
             if (err.message?.includes("EMAIL_NOT_VERIFIED")) {
@@ -117,7 +131,7 @@ export default function SignIn() {
                             value={email}
                             placeholder="your@gmail.com"
                             onChange={setEmail}
-                            icon={<Mail className="h-5 w-5"></Mail>}
+                            icon={<Mail className="h-5 w-5" />}
                             error={emailError}
                             onClearError={() => setEmailError("")}
                         />
@@ -139,7 +153,7 @@ export default function SignIn() {
                         />
 
                         {error && (
-                            <div className="text-red-600 text-sm text-center bg-red-50 py-2 px-3 rounded-lg">
+                            <div className="text-red-600 text-sm text-center bg-red-50 py-2 px-3 rounded-lg w-full max-w-xl">
                                 {error}
                             </div>
                         )}
@@ -150,12 +164,17 @@ export default function SignIn() {
                             </Link>
                             <button
                                 suppressHydrationWarning
-                                className="font-bold text-white bg-[#234463] w-full py-2 border rounded-2xl hover:[#2B5379] hover:shadow cursor-pointer">Sign in</button>
+                                type="submit"
+                                disabled={isLoading}
+                                className="font-bold text-white bg-[#234463] w-full py-2.5 border rounded-2xl hover:bg-[#2B5379] hover:shadow transition-colors cursor-pointer disabled:opacity-50"
+                            >
+                                {isLoading ? "Memproses..." : "Sign in"}
+                            </button>
                         </div>
 
                         <div className="text-center">
                             <span className="text-gray-600 pr-2">Belum punya akun?</span>
-                            <Link href="/auth/signup" className="text-[#234463] font-bold hover:[#2B5379]">Daftar Sekarang</Link>
+                            <Link href="/auth/signup" className="text-[#234463] font-bold hover:text-[#2B5379]">Daftar Sekarang</Link>
                         </div>
                     </div>
                 </form>
@@ -166,14 +185,14 @@ export default function SignIn() {
                             <div className="w-full border-t border-gray-300"></div>
                         </div>
                         <div className="relative flex justify-center mb-6">
-                            <span className="font-light text-center text-[#234463] bg-white">Or login with</span>
+                            <span className="font-light text-center text-[#234463] bg-white px-3">Or login with</span>
                         </div>
                     </div>
                 </div>
 
-
                 <div className="flex justify-center">
-                    <button className="flex justify-center gap-2 mb-10 py-2 md:py-3 px-8 md:px-12 border border-[#234463] rounded-4xl bg-blue-50 text-md font-bold text-[#234463] hover:shadow-md hover:border-blue-900 cursor-pointer"
+                    <button
+                        className="flex justify-center items-center gap-2 mb-10 py-2 md:py-3 px-8 md:px-12 border border-[#234463] rounded-4xl bg-blue-50 text-md font-bold text-[#234463] hover:shadow-md hover:border-blue-900 cursor-pointer transition-all active:scale-95"
                         suppressHydrationWarning
                         type="button"
                         onClick={handleGoogleLogin}
@@ -194,5 +213,5 @@ export default function SignIn() {
                 onClose={() => setShowVerifyModal(false)}
             />
         </div>
-    )
+    );
 }
