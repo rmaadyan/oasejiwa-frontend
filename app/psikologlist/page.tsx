@@ -9,6 +9,7 @@ import { getAllPsychologistsPublic } from "@/lib/api/psychologist";
 
 type Psikolog = {
   id: string;
+  displayOrder?: number;
   name: string;
   avatarUrl: string | null;
   sipp: string;
@@ -29,12 +30,10 @@ export default function PsikologList() {
     const fetchData = async () => {
       try {
         const result = await getAllPsychologistsPublic();
-        
-        // 🟢 Ambil data langsung dari result.data
         const rawData = (result as any)?.data || result || [];
         const rawList = Array.isArray(rawData) ? rawData : [];
 
-        const cleanList = rawList
+        const cleanList: Psikolog[] = rawList
           .filter((p: any) => {
             const name = p?.name || p?.fullName;
             return p?.id && name && name.trim() !== "" && name !== "Psikolog";
@@ -52,8 +51,8 @@ export default function PsikologList() {
             experiences: p.experiences || [],
           }));
 
-        // 🟢 Urutkan sesuai displayOrder yang diatur admin
-        cleanList.sort((a: any, b: any) => a.displayOrder - b.displayOrder);
+        // 🟢 Urutkan secara pasti berdasarkan displayOrder dari admin
+        cleanList.sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
 
         setPsikologList(cleanList);
       } catch (err: any) {
@@ -62,7 +61,7 @@ export default function PsikologList() {
         setIsLoading(false);
       }
     };
-    
+
     fetchData();
   }, []);
 
@@ -133,11 +132,12 @@ export default function PsikologList() {
           {psikologList.map((psikolog) => (
             <div
               key={psikolog.id}
-              className="bg-[#DDEEFC] border-2 border-[#B3D7F8] rounded-3xl p-7 shadow-md hover:shadow-xl hover:border-[#234463] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
+              className="bg-[#DDEEFC] border-2 border-[#B3D7F8] rounded-3xl p-6 sm:p-7 shadow-md hover:shadow-xl hover:border-[#234463] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
             >
-              <div className="flex flex-col items-center text-center space-y-4">
-                {/* FOTO AVATAR */}
-                <div className="relative">
+              {/* BAGIAN ATAS KARTU */}
+              <div className="space-y-4">
+                {/* 1. FOTO AVATAR */}
+                <div className="flex justify-center">
                   {psikolog.avatarUrl ? (
                     <img
                       src={psikolog.avatarUrl}
@@ -151,55 +151,61 @@ export default function PsikologList() {
                   )}
                 </div>
 
-                {/* NAMA & DESKRIPSI SINGKAT */}
-                <div>
-                  <h2 className="text-xl font-bold text-[#1E3A5F] leading-snug">
+                {/* 2. NAMA & DESKRIPSI (TETAP DI TENGAH) */}
+                <div className="text-center">
+                  <h2 className="text-lg sm:text-xl font-bold text-[#1E3A5F] leading-snug">
                     {psikolog.name}
                   </h2>
-                  <p className="text-xs font-medium text-[#234463]/80 mt-1">
+                  <p className="text-xs font-medium text-[#234463]/80 mt-1 max-w-sm mx-auto">
                     {psikolog.about || "Psikolog Klinik Oase Jiwa"}
                   </p>
                 </div>
 
-                <div className="w-full border-t border-[#C3E0FA] my-1"></div>
+                <div className="w-full border-t border-[#C3E0FA] my-1" />
 
-               {/* 🟢 KOTAK NO SIPP & NO STR RESPONSIF PENUH (VERTIKAL STACK) */}
-<div className="w-full bg-white/80 rounded-2xl p-3.5 border border-[#C3E0FA] space-y-2.5 shadow-xs">
-  {/* Baris 1: SIPP */}
-  <div className="flex items-start gap-2.5 text-left">
-    <div className="p-1 rounded-lg bg-blue-50 text-[#234463] shrink-0 mt-0.5">
-      <BadgeCheck className="w-3.5 h-3.5" />
-    </div>
-    <div className="flex-1 min-w-0">
-      <p className="text-[10px] font-bold text-[#1E3A5F] uppercase tracking-wider">No. SIPP / SILP</p>
-      <p className="font-mono text-xs text-[#2B5379] font-medium break-all leading-tight mt-0.5">
-        {psikolog.sipp || "-"}
-      </p>
-    </div>
-  </div>
+                {/* 3. KOTAK SIPP & STR (SEJAJAR DI DESKTOP, VERTIKAL DI HP) */}
+                <div className="w-full bg-white/80 rounded-2xl p-3 border border-[#C3E0FA] grid grid-cols-1 md:grid-cols-2 gap-2.5 shadow-xs items-center">
+                  {/* SIPP */}
+                  <div className="flex items-start gap-2 min-w-0 text-left">
+                    <BadgeCheck className="w-4 h-4 text-[#234463] shrink-0 mt-0.5" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-bold text-[#1E3A5F] uppercase tracking-wider">
+                        No. SIPP/SILP
+                      </p>
+                      <p
+                        title={psikolog.sipp || "-"}
+                        className="font-mono text-[11px] text-[#2B5379] font-medium truncate leading-tight mt-0.5"
+                      >
+                        {psikolog.sipp || "-"}
+                      </p>
+                    </div>
+                  </div>
 
-  {/* Garis Pembatas Tipis */}
-  <div className="border-t border-slate-100/90 w-full" />
+                  {/* STR */}
+                  <div className="flex items-start gap-2 min-w-0 text-left md:border-l md:border-[#C3E0FA] md:pl-2.5 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
+                    <FileText className="w-4 h-4 text-[#234463] shrink-0 mt-0.5" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-bold text-[#1E3A5F] uppercase tracking-wider">
+                        No. STR
+                      </p>
+                      <p
+                        title={psikolog.str || "-"}
+                        className="font-mono text-[11px] text-[#2B5379] font-medium truncate leading-tight mt-0.5"
+                      >
+                        {psikolog.str || "-"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
-  {/* Baris 2: STR */}
-  <div className="flex items-start gap-2.5 text-left">
-    <div className="p-1 rounded-lg bg-blue-50 text-[#234463] shrink-0 mt-0.5">
-      <FileText className="w-3.5 h-3.5" />
-    </div>
-    <div className="flex-1 min-w-0">
-      <p className="text-[10px] font-bold text-[#1E3A5F] uppercase tracking-wider">No. STR</p>
-      <p className="font-mono text-xs text-[#2B5379] font-medium break-all leading-tight mt-0.5">
-        {psikolog.str || "-"}
-      </p>
-    </div>
-  </div>
-
+                {/* 4. DETAIL SPESIALISASI, PENDIDIKAN, & PENGALAMAN (RATA KIRI RAPI) */}
+                <div className="w-full text-left space-y-3 pt-1 text-xs sm:text-sm">
                   {/* SPESIALISASI */}
                   <div className="flex items-start gap-2.5">
                     <Award className="w-4 h-4 text-[#234463] shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="font-semibold text-[#1E3A5F]">Spesialisasi</p>
-                      <p className="text-[#3B597B] mt-0.5 line-clamp-1">
+                    <div className="flex-1 min-w-0 text-left">
+                      <p className="font-bold text-[#1E3A5F] text-xs">Spesialisasi</p>
+                      <p className="text-[#3B597B] text-xs mt-0.5 leading-relaxed">
                         {psikolog.specializations && psikolog.specializations.length > 0
                           ? psikolog.specializations.join(", ")
                           : "-"}
@@ -211,9 +217,11 @@ export default function PsikologList() {
                   {psikolog.latestEducation && (
                     <div className="flex items-start gap-2.5">
                       <GraduationCap className="w-4 h-4 text-[#234463] shrink-0 mt-0.5" />
-                      <div className="flex-1">
-                        <p className="font-semibold text-[#1E3A5F]">Pendidikan</p>
-                        <p className="text-[#3B597B] mt-0.5 line-clamp-1">{psikolog.latestEducation}</p>
+                      <div className="flex-1 min-w-0 text-left">
+                        <p className="font-bold text-[#1E3A5F] text-xs">Pendidikan</p>
+                        <p className="text-[#3B597B] text-xs mt-0.5 leading-relaxed">
+                          {psikolog.latestEducation}
+                        </p>
                       </div>
                     </div>
                   )}
@@ -222,11 +230,14 @@ export default function PsikologList() {
                   {psikolog.experiences && psikolog.experiences.length > 0 && (
                     <div className="flex items-start gap-2.5">
                       <Briefcase className="w-4 h-4 text-[#234463] shrink-0 mt-0.5" />
-                      <div className="flex-1">
-                        <p className="font-semibold text-[#1E3A5F]">Pengalaman Kerja</p>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {psikolog.experiences.slice(0, 2).map((exp, idx) => (
-                            <span key={idx} className="bg-white/80 text-[#1E3A5F] text-[11px] px-2 py-0.5 rounded-md border border-[#C3E0FA] font-medium">
+                      <div className="flex-1 min-w-0 text-left">
+                        <p className="font-bold text-[#1E3A5F] text-xs mb-1">Pengalaman Kerja</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {psikolog.experiences.slice(0, 3).map((exp, idx) => (
+                            <span
+                              key={idx}
+                              className="bg-white/80 text-[#1E3A5F] text-[11px] px-2.5 py-0.5 rounded-lg border border-[#C3E0FA] font-medium shadow-2xs"
+                            >
                               {exp}
                             </span>
                           ))}
@@ -237,7 +248,7 @@ export default function PsikologList() {
                 </div>
               </div>
 
-              {/* TOMBOL LIHAT DETAIL */}
+              {/* 5. TOMBOL LIHAT DETAIL & JADWAL */}
               <button
                 type="button"
                 onClick={() => handleLihatDetail(psikolog.id)}
