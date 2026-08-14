@@ -12,5 +12,6 @@ export type LayananItem = {
   durasiMenit: number;
   harga: number;
   status: StatusLayanan;
-  coverUrl?: string;       
+  coverUrl?: string;
+  urutan?: number; // 🟢 posisi urutan tampil (untuk fitur drag & drop admin)
 };

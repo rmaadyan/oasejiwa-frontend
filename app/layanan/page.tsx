@@ -20,6 +20,7 @@ export default function LayananLandingPage() {
   const router = useRouter();
 
   useEffect(() => {
+<<<<<<< Updated upstream
     const fetchData = async () => {
       try {
         const data = await getAllLayanan();
@@ -32,6 +33,24 @@ export default function LayananLandingPage() {
         setLoading(false);
       }
     };
+=======
+  const fetchData = async () => {
+    try {
+      // 🟢 GUNAKAN getAllLayananPublic()
+      const data = await getAllLayananPublic();
+      const aktif = data
+        .filter((l: LayananItem) => l.status === "Aktif")
+        // 🟢 Jaga-jaga: urutkan lagi di client sesuai field `urutan`
+        .sort((a: LayananItem, b: LayananItem) => (a.urutan ?? 0) - (b.urutan ?? 0));
+      setLayananAktif(aktif);
+    } catch (err) {
+      console.error(err);
+      setErrorMsg("Gagal memuat layanan. Silakan coba lagi.");
+    } finally {
+      setLoading(false);
+    }
+  };
+>>>>>>> Stashed changes
 
     fetchData();
   }, []);
