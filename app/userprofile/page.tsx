@@ -36,7 +36,6 @@ import MyBookings from "@/components/features/user/profileManagement/MyBookings"
 import TestHistoryTab from "@/components/features/user/profileManagement/TestHistoryTab";
 import { logoutUser } from "@/lib/api/auth";
 import { getImageUrl } from "@/lib/utils/getImageUrl";
-import heic2any from "heic2any";
 import AvatarCropperModal from "@/components/features/user/AvatarCropperModal";
 import {
   ProfileProgressBar,
@@ -161,6 +160,7 @@ export default function Profile() {
   };
 
   // 🟢 1. Handler saat memilih file (Mendukung konversi HEIC & buka modal crop)
+  // 🟢 Handler saat memilih file (Dynamic Import heic2any agar tidak crash saat build SSR)
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     let file = e.target.files?.[0];
     if (!file) return;
@@ -173,6 +173,9 @@ export default function Profile() {
       file.name.toLowerCase().endsWith(".heif")
     ) {
       try {
+        // 🟢 Import heic2any hanya saat dijalankan di browser
+        const heic2any = (await import("heic2any")).default;
+        
         const convertedBlob = await heic2any({
           blob: file,
           toType: "image/jpeg",
@@ -192,7 +195,6 @@ export default function Profile() {
     setIsCropperOpen(true);
     e.target.value = "";
   };
-
   // 🟢 2. Handler upload setelah crop (Instan seperti WA, tanpa alert pop-up)
   const handleCroppedPhotoUpload = async (croppedBlob: Blob) => {
     const croppedFile = new File([croppedBlob], "avatar.jpg", { type: "image/jpeg" });
