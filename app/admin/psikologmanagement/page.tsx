@@ -70,6 +70,8 @@ export default function PsikologManagementPage() {
         const token = typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
         const orderedIds = list.map((item) => item.id);
 
+        console.log("Mengirim urutan baru ID:", orderedIds);
+
         try {
             const res = await fetch(`${API_BASE_URL}/admin/psychologists/reorder`, {
                 method: "PATCH",
@@ -81,11 +83,14 @@ export default function PsikologManagementPage() {
                 body: JSON.stringify({ orderedIds }),
             });
 
+            const result = await res.json();
+            console.log("Respon server reorder:", result);
+
             if (!res.ok) {
-                console.error("Gagal menyimpan urutan ke server:", await res.json());
+                alert(result.message || "Gagal menyimpan urutan ke server");
             }
-        } catch (err) {
-            console.error("Error saat menyimpan urutan:", err);
+        } catch (err: any) {
+            console.error("Gagal request reorder:", err);
         }
     };
 
