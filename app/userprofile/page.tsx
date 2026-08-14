@@ -13,7 +13,6 @@ import {
   Phone, 
   User, 
   X, 
-  ShieldCheck,
   Key, 
   Camera, 
   CheckCircle2, 
@@ -28,7 +27,6 @@ import {
   ArrowRight,
   HeartHandshake,
   BrainCircuit,
-  FileText
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -38,10 +36,11 @@ import MyBookings from "@/components/features/user/profileManagement/MyBookings"
 import TestHistoryTab from "@/components/features/user/profileManagement/TestHistoryTab";
 import { logoutUser } from "@/lib/api/auth";
 import { getImageUrl } from "@/lib/utils/getImageUrl";
+import heic2any from "heic2any";
+import AvatarCropperModal from "@/components/features/user/AvatarCropperModal";
 import {
   ProfileProgressBar,
   QuoteOfDay,
-  StatsSection,
   Separator,
 } from "@/components/features/user/modernProfile";
 
@@ -67,10 +66,14 @@ export default function Profile() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
-  const [bookingCount, setBookingCount] = useState(0);
 
-  // State Ubah Password & Upload Foto
+  // State Avatar Crop & Upload
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [rawSelectedImage, setRawSelectedImage] = useState<string | null>(null);
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [imageLoadError, setImageLoadError] = useState(false);
+
+  // State Ubah Password
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [passLoading, setPassLoading] = useState(false);
   const [showCurrentPass, setShowCurrentPass] = useState(false);
@@ -80,17 +83,6 @@ export default function Profile() {
     newPassword: "",
     confirmPassword: "",
   });
-
-useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    setRedirectUrl(params.get("redirect"));
-
-    // 🟢 Cek apakah ada query ?tab=bookings atau ?tab=tes
-    const tabParam = params.get("tab");
-    if (tabParam === "bookings" || tabParam === "tes" || tabParam === "profile") {
-      setActiveTab(tabParam);
-    }
-  }, []);
 
   const [profileData, setProfileData] = useState<ProfileData>({
     fullName: "",
@@ -106,13 +98,23 @@ useEffect(() => {
   });
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setRedirectUrl(params.get("redirect"));
+
+    const tabParam = params.get("tab");
+    if (tabParam === "bookings" || tabParam === "tes" || tabParam === "profile") {
+      setActiveTab(tabParam);
+    }
+  }, []);
+
+  useEffect(() => {
     async function fetchProfile() {
       try {
         setIsLoading(true);
         const data = await getMe();
         
-        // 🟢 CEK ROLE USER: Jika Admin atau Psikolog, arahkan ke dashboard masing-masing
-        const userRole = data.role || data.user?.role;
+        // Cek Role User: Jika Admin atau Psikolog, arahkan ke dashboard masing-masing
+        const userRole = String(data.role || data.user?.role || "").toUpperCase();
         if (userRole === "ADMIN" || userRole === "SUPERADMIN") {
           router.replace("/admin");
           return;
@@ -158,26 +160,57 @@ useEffect(() => {
     return name.slice(0, 2).toUpperCase();
   };
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  // 🟢 1. Handler saat memilih file (Mendukung konversi HEIC & buka modal crop)
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    let file = e.target.files?.[0];
     if (!file) return;
 
-    const previousAvatar = profileData.avatarUrl;
-    const previewUrl = URL.createObjectURL(file);
-    setProfileData((prev) => ({ ...prev, avatarUrl: previewUrl }));
+    // Cek format HEIC dari iPhone
+    if (
+      file.type === "image/heic" ||
+      file.type === "image/heif" ||
+      file.name.toLowerCase().endsWith(".heic") ||
+      file.name.toLowerCase().endsWith(".heif")
+    ) {
+      try {
+        const convertedBlob = await heic2any({
+          blob: file,
+          toType: "image/jpeg",
+          quality: 0.85,
+        });
+        const singleBlob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+        file = new File([singleBlob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
+          type: "image/jpeg",
+        });
+      } catch (err) {
+        console.error("Gagal konversi HEIC:", err);
+      }
+    }
 
+    const previewUrl = URL.createObjectURL(file);
+    setRawSelectedImage(previewUrl);
+    setIsCropperOpen(true);
+    e.target.value = "";
+  };
+
+  // 🟢 2. Handler upload setelah crop (Instan seperti WA, tanpa alert pop-up)
+  const handleCroppedPhotoUpload = async (croppedBlob: Blob) => {
+    const croppedFile = new File([croppedBlob], "avatar.jpg", { type: "image/jpeg" });
+    const localPreviewUrl = URL.createObjectURL(croppedFile);
+
+    // Optimistic UI: langsung ganti tampilan foto profil
+    setImageLoadError(false);
+    setProfileData((prev) => ({ ...prev, avatarUrl: localPreviewUrl }));
     setIsUploadingPhoto(true);
+
     try {
-      const uploadedUrl = await uploadUserAvatar(file);
+      const uploadedUrl = await uploadUserAvatar(croppedFile);
       await updateUserProfile({ avatarUrl: uploadedUrl });
       setProfileData((prev) => ({ ...prev, avatarUrl: uploadedUrl }));
-      alert("Foto profil berhasil diperbarui!");
     } catch (err: any) {
-      setProfileData((prev) => ({ ...prev, avatarUrl: previousAvatar }));
-      alert(err.message || "Gagal mengunggah foto profil.");
+      console.error("Gagal simpan avatar:", err);
     } finally {
       setIsUploadingPhoto(false);
-      URL.revokeObjectURL(previewUrl);
     }
   };
 
@@ -418,7 +451,7 @@ useEffect(() => {
           {/* 🟢 2. KONTEN UTAMA */}
           <main className="lg:col-span-9 space-y-6 w-full">
             
-            {/* PORTAL BANNER HERO HEADER (Gaya Opsi 1) */}
+            {/* PORTAL BANNER HERO HEADER */}
             <div className="bg-gradient-to-r from-[#234463] via-[#2B5379] to-[#3B6E9B] rounded-3xl p-6 sm:p-8 text-white shadow-lg border border-[#1E3B59] relative overflow-hidden">
               <div className="absolute -right-10 -top-10 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none" />
               <div className="absolute right-20 -bottom-10 w-36 h-36 bg-blue-300/20 rounded-full blur-xl pointer-events-none" />
@@ -428,11 +461,14 @@ useEffect(() => {
                 {/* Avatar dengan Camera Badge */}
                 <div className="relative shrink-0 group">
                   <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-white/20 backdrop-blur-md border-2 border-white/50 shadow-inner overflow-hidden flex items-center justify-center text-white font-bold text-3xl">
-                    {profileData.avatarUrl ? (
+                    {profileData.avatarUrl && !imageLoadError ? (
                       <img
                         src={getImageUrl(profileData.avatarUrl)}
                         alt={profileData.fullName}
-                        className="w-full h-full object-cover"
+                        onError={() => setImageLoadError(true)}
+                        className={`w-full h-full object-cover transition-opacity ${
+                          isUploadingPhoto ? "opacity-60 animate-pulse" : "opacity-100"
+                        }`}
                       />
                     ) : (
                       getInitials(profileData.fullName)
@@ -446,9 +482,9 @@ useEffect(() => {
                     <Camera size={15} />
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/*, .heic, .heif"
                       className="hidden"
-                      onChange={handlePhotoUpload}
+                      onChange={handlePhotoSelect}
                       disabled={isUploadingPhoto}
                     />
                   </label>
@@ -486,146 +522,159 @@ useEffect(() => {
             </div>
 
             {/* KONTEN TAB */}
-{activeTab === "profile" ? (
-  <div className="space-y-6">
-    
-    {/* 🟢 1. PROGRESS KELENGKAPAN PROFIL (LEBAR MEMANJANG PENUH) */}
-    <div className="w-full">
-      <ProfileProgressBar {...profileData} />
-    </div>
+            {activeTab === "profile" ? (
+              <div className="space-y-6">
+                
+                {/* 1. PROGRESS KELENGKAPAN PROFIL */}
+                <div className="w-full">
+                  <ProfileProgressBar {...profileData} />
+                </div>
 
-    {/* 🟢 2. REFLEKSI HARI INI (MEMANJANG DI BAWAH PROGRESS BAR) */}
-    <div className="w-full">
-      <QuoteOfDay />
-    </div>
+                {/* 2. REFLEKSI HARI INI */}
+                <div className="w-full">
+                  <QuoteOfDay />
+                </div>
 
-    {/* 🟢 3. CARD ACTION: BUTUH TEMAN CERITA & TES KESEHATAN MENTAL */}
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      
-      {/* Card 1: Butuh Teman Cerita */}
-      <div className="bg-gradient-to-br from-white to-blue-50/50 border border-blue-100 rounded-3xl p-6 shadow-sm flex flex-col justify-between space-y-4 hover:shadow-md transition">
-        <div className="space-y-2.5">
-          <div className="w-10 h-10 rounded-xl bg-blue-100 text-[#234463] flex items-center justify-center">
-            <HeartHandshake size={20} />
-          </div>
-          <h3 className="font-bold text-[#234463] text-base sm:text-lg">Butuh Teman Cerita?</h3>
-          <p className="text-xs text-slate-600 leading-relaxed">
-            Jadwalkan sesi konseling dengan psikolog klinis profesional Oase Jiwa secara daring maupun tatap muka langsung.
-          </p>
-        </div>
-        <div>
-          <Link
-            href="/layanan"
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#234463] text-white rounded-xl text-xs font-semibold hover:bg-[#2B5379] transition shadow-sm active:scale-95"
-          >
-            <span>Lihat Layanan Konseling</span>
-            <ArrowRight size={14} />
-          </Link>
-        </div>
-      </div>
+                {/* 3. CARD ACTION: BUTUH TEMAN CERITA & TES KESEHATAN MENTAL */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  
+                  {/* Card 1: Butuh Teman Cerita */}
+                  <div className="bg-gradient-to-br from-white to-blue-50/50 border border-blue-100 rounded-3xl p-6 shadow-sm flex flex-col justify-between space-y-4 hover:shadow-md transition">
+                    <div className="space-y-2.5">
+                      <div className="w-10 h-10 rounded-xl bg-blue-100 text-[#234463] flex items-center justify-center">
+                        <HeartHandshake size={20} />
+                      </div>
+                      <h3 className="font-bold text-[#234463] text-base sm:text-lg">Butuh Teman Cerita?</h3>
+                      <p className="text-xs text-slate-600 leading-relaxed">
+                        Jadwalkan sesi konseling dengan psikolog klinis profesional Oase Jiwa secara daring maupun tatap muka langsung.
+                      </p>
+                    </div>
+                    <div>
+                      <Link
+                        href="/layanan"
+                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#234463] text-white rounded-xl text-xs font-semibold hover:bg-[#2B5379] transition shadow-sm active:scale-95"
+                      >
+                        <span>Lihat Layanan Konseling</span>
+                        <ArrowRight size={14} />
+                      </Link>
+                    </div>
+                  </div>
 
-      {/* Card 2: Tes Kesehatan Mental */}
-      <div className="bg-gradient-to-br from-white to-sky-50/50 border border-blue-100 rounded-3xl p-6 shadow-sm flex flex-col justify-between space-y-4 hover:shadow-md transition">
-        <div className="space-y-2.5">
-          <div className="w-10 h-10 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center">
-            <BrainCircuit size={20} />
-          </div>
-          <h3 className="font-bold text-[#234463] text-base sm:text-lg">Tes Kesehatan Mental</h3>
-          <p className="text-xs text-slate-600 leading-relaxed">
-            Kenali kondisi stres, kecemasan, dan tingkat depresi Anda dengan instrumen tes psikologi terstandar (DASS-21).
-          </p>
-        </div>
-        <div>
-          <Link
-            href="/tes"
-            className="inline-flex items-center gap-2 px-4 py-2.5 border border-[#234463] text-[#234463] bg-white rounded-xl text-xs font-semibold hover:bg-blue-50 transition shadow-sm active:scale-95"
-          >
-            <span>Mulai Tes Psikologi</span>
-            <ArrowRight size={14} />
-          </Link>
-        </div>
-      </div>
-    </div>
+                  {/* Card 2: Tes Kesehatan Mental */}
+                  <div className="bg-gradient-to-br from-white to-sky-50/50 border border-blue-100 rounded-3xl p-6 shadow-sm flex flex-col justify-between space-y-4 hover:shadow-md transition">
+                    <div className="space-y-2.5">
+                      <div className="w-10 h-10 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center">
+                        <BrainCircuit size={20} />
+                      </div>
+                      <h3 className="font-bold text-[#234463] text-base sm:text-lg">Tes Kesehatan Mental</h3>
+                      <p className="text-xs text-slate-600 leading-relaxed">
+                        Kenali kondisi stres, kecemasan, dan tingkat depresi Anda dengan instrumen tes psikologi terstandar (DASS-21).
+                      </p>
+                    </div>
+                    <div>
+                      <Link
+                        href="/tes"
+                        className="inline-flex items-center gap-2 px-4 py-2.5 border border-[#234463] text-[#234463] bg-white rounded-xl text-xs font-semibold hover:bg-blue-50 transition shadow-sm active:scale-95"
+                      >
+                        <span>Mulai Tes Psikologi</span>
+                        <ArrowRight size={14} />
+                      </Link>
+                    </div>
+                  </div>
+                </div>
 
-    <Separator />
+                <Separator />
 
-    {/* 🟢 4. CARD INFORMASI PRIBADI */}
-    <div className="bg-white border border-blue-100 rounded-2xl shadow-sm hover:shadow-md transition p-6 space-y-5">
-      <div className="flex flex-row justify-between items-center gap-3">
-        <div>
-          <h2 className="font-bold text-[#234463] text-base sm:text-lg flex items-center gap-2">
-            <User size={18} className="text-[#234463]" />
-            Informasi Pribadi
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Kelola identitas diri dan kontak utama Anda
-          </p>
-        </div>
-        <button
-          onClick={() => setIsEditPersonalInformation(true)}
-          className="flex items-center gap-1.5 text-xs bg-[#234463] text-white font-semibold rounded-xl px-4 py-2 hover:bg-[#2B5379] shadow-xs transition cursor-pointer"
-        >
-          <Pencil size={13} />
-          <span>Edit</span>
-        </button>
-      </div>
+                {/* 4. CARD INFORMASI PRIBADI */}
+                <div className="bg-white border border-blue-100 rounded-2xl shadow-sm hover:shadow-md transition p-6 space-y-5">
+                  <div className="flex flex-row justify-between items-center gap-3">
+                    <div>
+                      <h2 className="font-bold text-[#234463] text-base sm:text-lg flex items-center gap-2">
+                        <User size={18} className="text-[#234463]" />
+                        Informasi Pribadi
+                      </h2>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Kelola identitas diri dan kontak utama Anda
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setIsEditPersonalInformation(true)}
+                      className="flex items-center gap-1.5 text-xs bg-[#234463] text-white font-semibold rounded-xl px-4 py-2 hover:bg-[#2B5379] shadow-xs transition cursor-pointer"
+                    >
+                      <Pencil size={13} />
+                      <span>Edit</span>
+                    </button>
+                  </div>
 
-      <div className="border-t border-slate-100" />
+                  <div className="border-t border-slate-100" />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        <ProfileInformation label="Nama Lengkap" value={profileData.fullName || "—"} />
-        <ProfileInformation label="Tanggal Lahir" value={profileData.birthday || "—"} icon={<Calendar size={15} />} />
-        <ProfileInformation label="Jenis Kelamin" value={profileData.gender === "MALE" ? "Laki-laki" : profileData.gender === "FEMALE" ? "Perempuan" : "—"} icon={<User size={15} />} />
-        <ProfileInformation label="Alamat Email" value={profileData.email || "—"} icon={<Mail size={15} />} />
-        <ProfileInformation label="Nomor Telepon / WA" value={profileData.phone || "—"} icon={<Phone size={15} />} />
-      </div>
-    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                    <ProfileInformation label="Nama Lengkap" value={profileData.fullName || "—"} />
+                    <ProfileInformation label="Tanggal Lahir" value={profileData.birthday || "—"} icon={<Calendar size={15} />} />
+                    <ProfileInformation label="Jenis Kelamin" value={profileData.gender === "MALE" ? "Laki-laki" : profileData.gender === "FEMALE" ? "Perempuan" : "—"} icon={<User size={15} />} />
+                    <ProfileInformation label="Alamat Email" value={profileData.email || "—"} icon={<Mail size={15} />} />
+                    <ProfileInformation label="Nomor Telepon / WA" value={profileData.phone || "—"} icon={<Phone size={15} />} />
+                  </div>
+                </div>
 
-    {/* 🟢 5. CARD ALAMAT DOMISILI */}
-    <div className="bg-white border border-blue-100 rounded-2xl shadow-sm hover:shadow-md transition p-6 space-y-5">
-      <div className="flex flex-row justify-between items-center gap-3">
-        <div>
-          <h2 className="font-bold text-[#234463] text-base sm:text-lg flex items-center gap-2">
-            <MapPin size={18} className="text-teal-600" />
-            Alamat Domisili
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Informasi tempat tinggal dan kota domisili Anda
-          </p>
-        </div>
-        <button
-          onClick={() => setIsEditAddress(true)}
-          className="flex items-center gap-1.5 text-xs bg-teal-600 text-white font-semibold rounded-xl px-4 py-2 hover:bg-teal-700 shadow-xs transition cursor-pointer"
-        >
-          <Pencil size={13} />
-          <span>Edit</span>
-        </button>
-      </div>
+                {/* 5. CARD ALAMAT DOMISILI */}
+                <div className="bg-white border border-blue-100 rounded-2xl shadow-sm hover:shadow-md transition p-6 space-y-5">
+                  <div className="flex flex-row justify-between items-center gap-3">
+                    <div>
+                      <h2 className="font-bold text-[#234463] text-base sm:text-lg flex items-center gap-2">
+                        <MapPin size={18} className="text-teal-600" />
+                        Alamat Domisili
+                      </h2>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Informasi tempat tinggal dan kota domisili Anda
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setIsEditAddress(true)}
+                      className="flex items-center gap-1.5 text-xs bg-teal-600 text-white font-semibold rounded-xl px-4 py-2 hover:bg-teal-700 shadow-xs transition cursor-pointer"
+                    >
+                      <Pencil size={13} />
+                      <span>Edit</span>
+                    </button>
+                  </div>
 
-      <div className="border-t border-slate-100" />
+                  <div className="border-t border-slate-100" />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        <ProfileInformation label="Negara" value={profileData.country || "—"} />
-        <ProfileInformation label="Kota / Kabupaten" value={profileData.city || "—"} />
-        <div className="md:col-span-2">
-          <ProfileInformation label="Alamat Lengkap" value={profileData.address || "—"} />
-        </div>
-      </div>
-    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                    <ProfileInformation label="Negara" value={profileData.country || "—"} />
+                    <ProfileInformation label="Kota / Kabupaten" value={profileData.city || "—"} />
+                    <div className="md:col-span-2">
+                      <ProfileInformation label="Alamat Lengkap" value={profileData.address || "—"} />
+                    </div>
+                  </div>
+                </div>
 
-  </div>
-) : activeTab === "bookings" ? (
-  /* TAB MY BOOKINGS */
-  <div className="bg-white border border-blue-100 rounded-2xl shadow-sm p-5 sm:p-6">
-    <MyBookings />
-  </div>
-) : (
-  /* TAB RIWAYAT TES */
-  <TestHistoryTab />
-)}
+              </div>
+            ) : activeTab === "bookings" ? (
+              /* TAB MY BOOKINGS */
+              <div className="bg-white border border-blue-100 rounded-2xl shadow-sm p-5 sm:p-6">
+                <MyBookings />
+              </div>
+            ) : (
+              /* TAB RIWAYAT TES */
+              <TestHistoryTab />
+            )}
 
           </main>
         </div>
+
+        {/* MODAL CROPPER FOTO (WHATSAPP STYLE) */}
+        {rawSelectedImage && (
+          <AvatarCropperModal
+            imageSrc={rawSelectedImage}
+            isOpen={isCropperOpen}
+            onClose={() => {
+              setIsCropperOpen(false);
+              setRawSelectedImage(null);
+            }}
+            onCropCompleteAction={handleCroppedPhotoUpload}
+          />
+        )}
 
         {/* MODAL EDIT PERSONAL INFO */}
         {isEditPersonalInformation && (
