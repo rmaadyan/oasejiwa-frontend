@@ -74,7 +74,12 @@ export default function SignIn() {
 
             console.log("Role:", role);
 
-            if (role === "PSYCHOLOGIST" && user.isFirstLogin) {
+            const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+            const redirectUrl = searchParams ? searchParams.get("redirect") : null;
+
+            if (redirectUrl) {
+                router.push(redirectUrl);
+            } else if (role === "PSYCHOLOGIST" && user.isFirstLogin) {
                 router.push("/auth/change-password-psychologist");
             } else if (role === "PSYCHOLOGIST") {
                 router.push("/psychologist/profile");
