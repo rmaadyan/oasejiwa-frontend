@@ -12,36 +12,49 @@ import {
   confirmFullPayment,
 } from "@/lib/api/booking";
 
-// ─── HELPER UNTUK URL GAMBAR BACKEND DENGAN .ENV ─────────────────────────────
-// ─── HELPER UNTUK URL GAMBAR BACKEND DENGAN SANITIZER ─────────────────────────────
+const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dxmxxw7xh";
+
 const getImageUrl = (path?: string | null): string => {
-  if (!path) return "";
-
-  // 🟢 1. Jika data lama di DB tersimpan dengan 'localhost', paksa ganti ke domain HTTPS produksi
-  if (path.includes("localhost")) {
-    return path.replace(/http:\/\/localhost:\d+/, "https://api.oasejiwa.id");
+  if (!path || path.trim() === "" || path === "null" || path === "undefined") {
+    return "";
   }
 
-  // 🟢 2. Jika sudah berupa HTTPS utuh atau Base64, kembalikan langsung
-  if (path.startsWith("https://") || path.startsWith("data:image/")) {
-    return path;
+  const cleanStr = path.trim();
+
+  // 1. Jika sudah berupa HTTPS utuh atau Base64, kembalikan langsung
+  if (cleanStr.startsWith("https://") || cleanStr.startsWith("data:image/")) {
+    return cleanStr;
   }
 
-  // 🟢 3. Jika HTTP biasa, ubah ke HTTPS agar tidak kena Mixed Content Warning
-  if (path.startsWith("http://")) {
-    return path.replace("http://", "https://");
+  // 2. Jika data lama di DB tersimpan dengan 'localhost' / HTTP biasa
+  if (cleanStr.includes("localhost") || cleanStr.startsWith("http://")) {
+    return cleanStr
+      .replace(/http:\/\/localhost:\d+/, "https://api.oasejiwa.id")
+      .replace("http://", "https://");
   }
 
-  // 🟢 4. Jika relative path (/uploads/...), gabungkan dengan domain API produksi
+  // 3. 🟢 CLOUDINARY: Jika public ID (seperti 'psychologists/rmuolo0...' atau 'rmuolo0...')
+  if (!cleanStr.includes(".") || cleanStr.includes("cloudinary")) {
+    const publicId = cleanStr.replace(/^\/+/, "").replace(/^uploads\//, "");
+    return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${publicId}`;
+  }
+
+  // 4. Relative path file statis lokal backend VPS
   const backendUrl =
     process.env.NEXT_PUBLIC_API_URL ||
     process.env.NEXT_PUBLIC_BACKEND_URL ||
     "https://api.oasejiwa.id";
 
-  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  let cleanPath = cleanStr.replace(/^\/+/, "");
+  if (!cleanPath.startsWith("uploads/")) {
+    cleanPath = `uploads/${cleanPath}`;
+  }
 
-  return `${backendUrl}${cleanPath}`;
+  return `${backendUrl}/${cleanPath}`;
 };
+
+  // 🟢 4. Jika relative path (/uploads/...), gabungkan dengan domain API produksi
+  
 // ─── Konstanta Status Backend ──────────────────────────────────────────────────
 const statusUIMap: Record<
   string,
