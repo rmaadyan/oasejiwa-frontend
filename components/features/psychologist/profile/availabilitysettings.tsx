@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Plus, Trash2, Save, CalendarDays } from "lucide-react";
-import { updatePsychologistProfile } from "@/lib/api/psychologist";
+import { updatePsychologistProfile, deletePsychologistSchedule } from "@/lib/api/psychologist";
 
 const DAYS_OF_WEEK = [
   { label: "Senin", dayIndex: 1 },
@@ -71,6 +71,7 @@ export default function AvailabilitySettings({
           }
 
           return {
+            id: s.id || null,   
             day: s.day || dayName,
             startTime: s.startTime || s.time || "09:00",
             duration: s.duration || 60,
@@ -95,25 +96,23 @@ export default function AvailabilitySettings({
     ]);
   };
 
-  // 🟢 HANDLE HAPUS LANGSUNG TERSIMPAN KE DATABASE
-  const handleDeleteSchedule = async (indexToDelete: number) => {
-    const updated = localSchedules.filter((_, idx) => idx !== indexToDelete);
-    setLocalSchedules(updated);
 
-    try {
-      const formattedSchedules = updated.map((sch) => ({
-        date: getNextDateForDay(sch.day),
-        startTime: sch.startTime || "09:00",
-        duration: Number(sch.duration) || 60,
-        isAvailable: Boolean(sch.isAvailable),
-      }));
+const handleDeleteSchedule = async (indexToDelete: number) => {
+  const scheduleToDelete = localSchedules[indexToDelete];
 
-      await updatePsychologistProfile({ schedules: formattedSchedules });
-      if (onUpdate) await onUpdate();
-    } catch (err: any) {
-      alert("Gagal menghapus jadwal dari database.");
-    }
-  };
+  if (!scheduleToDelete?.id) {
+    setLocalSchedules(localSchedules.filter((_, idx) => idx !== indexToDelete));
+    return;
+  }
+
+  try {
+    await deletePsychologistSchedule(scheduleToDelete.id);
+    setLocalSchedules(localSchedules.filter((_, idx) => idx !== indexToDelete));
+    if (onUpdate) await onUpdate();
+  } catch (err: any) {
+    alert("Gagal menghapus jadwal dari database.");
+  }
+};
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();

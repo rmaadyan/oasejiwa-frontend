@@ -661,7 +661,7 @@ export async function addPsychologistSchedule(payload: { date?: string; day?: st
 }
 
 export async function deletePsychologistSchedule(scheduleId: string) {
-  const res = await fetch(`${API_BASE_URL}/psychologist/schedule/${scheduleId}`, {
+  const res = await fetch(`${API_BASE_URL}/psychologist/weekly-schedules/${scheduleId}`, {
     method: "DELETE",
     credentials: "include",
     headers: getAuthHeaders(),
