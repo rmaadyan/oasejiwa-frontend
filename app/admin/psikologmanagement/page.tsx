@@ -65,7 +65,32 @@ export default function PsikologManagementPage() {
     }, []);
 
     // 🟢 Fitur Tombol Naik / Turun
-    const handleMoveOrder = (index: number, direction: "up" | "down") => {
+    // 🟢 1. Fungsi untuk mengirim urutan baru ke backend
+    const saveOrderToBackend = async (list: any[]) => {
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
+        const orderedIds = list.map((item) => item.id);
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/admin/psychologists/reorder`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                credentials: "include",
+                body: JSON.stringify({ orderedIds }),
+            });
+
+            if (!res.ok) {
+                console.error("Gagal menyimpan urutan ke server:", await res.json());
+            }
+        } catch (err) {
+            console.error("Error saat menyimpan urutan:", err);
+        }
+    };
+
+    // 🟢 2. Tombol Panah Naik / Turun (Sekarang kirim data ke server)
+    const handleMoveOrder = async (index: number, direction: "up" | "down") => {
         const targetIndex = direction === "up" ? index - 1 : index + 1;
         if (targetIndex < 0 || targetIndex >= psikologList.length) return;
 
@@ -74,10 +99,14 @@ export default function PsikologManagementPage() {
         updatedList[index] = updatedList[targetIndex];
         updatedList[targetIndex] = temp;
 
+        // Update tampilan langsung
         setPsikologList(updatedList);
+
+        // 👈 SIMPAN KE DATABASE
+        await saveOrderToBackend(updatedList);
     };
 
-    // 🟢 Fitur Drag & Drop Antar Baris Tabel
+    // 🟢 3. Fitur Drag & Drop (Sekarang kirim data ke server saat dilepas)
     const handleDragStart = (index: number) => {
         setDraggedIndex(index);
     };
@@ -96,8 +125,10 @@ export default function PsikologManagementPage() {
         setPsikologList(updatedList);
     };
 
-    const handleDragEnd = () => {
+    const handleDragEnd = async () => {
         setDraggedIndex(null);
+        // 👈 SIMPAN KE DATABASE SETELAH DRAG SELESAI
+        await saveOrderToBackend(psikologList);
     };
 
     const handleSuccessAdd = () => {
