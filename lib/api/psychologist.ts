@@ -22,8 +22,11 @@ import {
   mockSessionNotes,
 } from "@/lib/data/mock-ui-data";
 
-// 🟢 BASE URL (Disanitasi dari URL cacat & trailing slash)
-let rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+// 🟢 BASE URL (Fallback selalu ke domain produksi https://api.oasejiwa.id tanpa /api)
+let rawUrl =
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  "https://api.oasejiwa.id";
 
 if (rawUrl.startsWith("https:/") && !rawUrl.startsWith("https://")) {
   rawUrl = rawUrl.replace("https:/", "https://");
@@ -726,59 +729,22 @@ export async function deletePatient(patientId: string): Promise<void> {
   }
 }
 
-// 🟢 FUNGSI KHUSUS FETCH PSIKOLOG UNTUK ADMIN (AMUNISI ULTIMATE + FALLBACK)
-// 🟢 FUNGSI ULTIMATE FETCH PSIKOLOG ADMIN (BISA BACA SEMUA STRUKTUR BACKEND)
+// 🟢 1. FUNGSI FETCH SEMUA PSIKOLOG UNTUK ADMIN
 export async function getAllPsychologistsAdmin() {
-  const API_URL = (
-    process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"
-  ).replace(/\/$/, "");
-
-  const token =
-    typeof window !== "undefined"
-      ? localStorage.getItem("token") ||
-        localStorage.getItem("accessToken") ||
-        ""
-      : "";
-
   try {
-    // 1. Tembak endpoint terproteksi admin /psychologists
-    let res = await fetch(`${API_URL}/psychologists`, {
+    const res = await fetch(`${API_BASE_URL}/admin/psychologists`, {
       cache: "no-store",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
+      credentials: "include",
+      headers: getAuthHeaders(),
     });
-
-    // 2. Jika gagal, coba fallback ke endpoint /users?role=PSYCHOLOGIST
-    if (!res.ok) {
-      res = await fetch(`${API_URL}/users?role=PSYCHOLOGIST`, {
-        cache: "no-store",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-    }
-
-    // 3. Jika masih gagal, fallback ke endpoint publik /psychologists/public
-    if (!res.ok) {
-      res = await fetch(`${API_URL}/psychologists/public`, { cache: "no-store" });
-    }
 
     if (!res.ok) return { data: [] };
 
-    const text = await res.text();
-    if (!text) return { data: [] };
-
-    const result = JSON.parse(text);
-
-    // Buka pembungkus data dari berbagai versi response NestJS
+    const result = await safeParseJson(res, { data: [] });
     const rawList =
       result?.data?.data ||
       result?.data ||
       result?.psychologists ||
-      result?.users ||
       (Array.isArray(result) ? result : []);
 
     const cleanData = (Array.isArray(rawList) ? rawList : []).map((p: any) => ({
@@ -799,4 +765,21 @@ export async function getAllPsychologistsAdmin() {
     console.error("Gagal fetch data psikolog admin:", error);
     return { data: [] };
   }
+}
+
+// 🟢 2. FUNGSI HAPUS PSIKOLOG KHUSUS ADMIN (DENGAN PREFIX /admin/psychologists)
+export async function deletePsychologist(id: string): Promise<any> {
+  const res = await fetch(`${API_BASE_URL}/admin/psychologists/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+    headers: getAuthHeaders(),
+  });
+
+  const result = await safeParseJson(res, {});
+
+  if (!res.ok) {
+    throw new Error(result.message || `Gagal menghapus psikolog: ${res.status}`);
+  }
+
+  return result;
 }
