@@ -582,7 +582,6 @@ export async function updatePsychologistProfile(
   return formatPsychologistProfile(profileData);
 }
 
-// 🟢 GET ALL PUBLIC (Halaman awal user)
 export async function getAllPsychologistsPublic() {
   let res = await fetch(`${API_BASE_URL}/psychologists/public`, { cache: "no-store" });
 
@@ -602,7 +601,21 @@ export async function getAllPsychologistsPublic() {
       const name = p?.name || p?.fullName;
       const sipp = p?.sipp;
       const hasValidSipp = sipp && String(sipp).trim() !== "" && String(sipp).trim() !== "-";
-      return p?.id && name && name.trim() !== "" && name !== "Psikolog" && hasValidSipp;
+      
+      // 🟢 Filter status aktif: jika field isActive didefinisikan, wajib true; atau status bukan INACTIVE
+      const isActiveStatus = 
+        p?.isActive === true || 
+        p?.status === "ACTIVE" || 
+        (p?.isActive === undefined && p?.status !== "INACTIVE");
+
+      return (
+        p?.id && 
+        name && 
+        name.trim() !== "" && 
+        name !== "Psikolog" && 
+        hasValidSipp &&
+        isActiveStatus // 👈 Hanya lolos jika aktif
+      );
     })
     .map((p: any) => ({
       ...p,
@@ -613,7 +626,13 @@ export async function getAllPsychologistsPublic() {
       about: p.about || "Psikolog Klinik Oase Jiwa",
       specializations: p.specializations || [],
     }))
-    .sort((a: any, b: any) => a.name.localeCompare(b.name));
+    .sort((a: any, b: any) => {
+      // 🟢 Urutkan berdasarkan field order jika ada, jika sama baru alfabetis
+      if (typeof a.order === "number" && typeof b.order === "number") {
+        return a.order - b.order;
+      }
+      return a.name.localeCompare(b.name);
+    });
 
   return { data: cleanData };
 }

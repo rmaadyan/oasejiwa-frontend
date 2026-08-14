@@ -1,9 +1,6 @@
-// 🟢 BASE URL dengan prefix /api
-let rawUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id/api";
-if (!rawUrl.includes("/api")) {
-  rawUrl = `${rawUrl.replace(/\/$/, "")}/api`;
-}
-export const API_BASE_URL = rawUrl;
+export const API_BASE_URL = (
+  process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id"
+).replace(/\/$/, "");
 
 function getAuthToken(): string {
   if (typeof window !== "undefined") {
