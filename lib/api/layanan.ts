@@ -32,6 +32,7 @@ function mapBackendToLayananItem(raw: any) {
     harga: raw.harga,
     status: raw.status,
     coverUrl: raw.gambar,
+    urutan: raw.urutan ?? 0, // 🟢 posisi urutan dari backend
   };
 }
 
@@ -46,7 +47,18 @@ function mapToBackendPayload(data: any) {
     harga: data.harga,
     status: data.status,
     gambar: data.coverUrl || undefined,
+    ...(data.urutan !== undefined ? { urutan: data.urutan } : {}), // 🟢 ikut dikirim kalau ada
   };
+}
+
+// 🟢 Sort helper: urutkan berdasarkan field urutan, fallback ke id kalau sama/kosong
+function sortByUrutan(list: any[]) {
+  return [...list].sort((a, b) => {
+    const ua = a.urutan ?? 0;
+    const ub = b.urutan ?? 0;
+    if (ua !== ub) return ua - ub;
+    return (a.id ?? 0) - (b.id ?? 0);
+  });
 }
 
 export async function getAllLayanan() {
@@ -56,7 +68,8 @@ export async function getAllLayanan() {
   });
   if (!res.ok) throw new Error("Gagal fetch data layanan");
   const data = await safeParseJson(res, []);
-  return Array.isArray(data) ? data.map(mapBackendToLayananItem) : [];
+  const mapped = Array.isArray(data) ? data.map(mapBackendToLayananItem) : [];
+  return sortByUrutan(mapped);
 }
 
 export async function getAllLayananPublic() {
@@ -65,7 +78,8 @@ export async function getAllLayananPublic() {
   });
   if (!res.ok) throw new Error("Gagal fetch data layanan");
   const data = await safeParseJson(res, []);
-  return Array.isArray(data) ? data.map(mapBackendToLayananItem) : [];
+  const mapped = Array.isArray(data) ? data.map(mapBackendToLayananItem) : [];
+  return sortByUrutan(mapped);
 }
 
 export async function getLayananById(id: string) {
@@ -102,6 +116,25 @@ export async function updateLayanan(id: string, data: any) {
   });
   if (!res.ok) throw new Error("Gagal update layanan");
   return await safeParseJson(res, {});
+}
+
+// 🟢 Simpan urutan baru untuk banyak layanan sekaligus.
+// Karena backend belum punya endpoint bulk-reorder, kita kirim PATCH
+// per-item secara paralel memakai updateLayanan yang sudah ada.
+export async function reorderLayanan(items: { id: number; urutan: number }[]) {
+  await Promise.all(
+    items.map((item) =>
+      fetch(`${API_BASE_URL}/layanan/${item.id}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ urutan: item.urutan }),
+      }).then((res) => {
+        if (!res.ok) throw new Error(`Gagal update urutan layanan id ${item.id}`);
+        return safeParseJson(res, {});
+      })
+    )
+  );
 }
 
 export async function uploadGambarLayanan(file: File): Promise<string> {

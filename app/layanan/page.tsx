@@ -24,7 +24,10 @@ export default function LayananLandingPage() {
     try {
       // 🟢 GUNAKAN getAllLayananPublic()
       const data = await getAllLayananPublic();
-      const aktif = data.filter((l: LayananItem) => l.status === "Aktif");
+      const aktif = data
+        .filter((l: LayananItem) => l.status === "Aktif")
+        // 🟢 Jaga-jaga: urutkan lagi di client sesuai field `urutan`
+        .sort((a: LayananItem, b: LayananItem) => (a.urutan ?? 0) - (b.urutan ?? 0));
       setLayananAktif(aktif);
     } catch (err) {
       console.error(err);

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronUp, Eye, Pencil, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Eye, GripVertical, Pencil, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { LayananItem } from "./types";
 import { getImageUrl } from "@/lib/utils/getImageUrl";
@@ -15,6 +15,9 @@ type Props = {
   onDelete: (item: LayananItem) => void;
   onSeeAll: () => void;
   onPageSizeChange: (pageSize: number) => void;
+  // 🟢 PROPS BARU UNTUK MODE URUTAN MANUAL
+  manualMode?: boolean;
+  onReorder?: (newOrder: LayananItem[]) => void;
 };
 
 type SortKey = "nama" | "status" | "harga";
@@ -30,15 +33,20 @@ export default function LayananTable({
   onDelete,
   onSeeAll,
   onPageSizeChange,
+  manualMode = false,
+  onReorder,
 }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("nama");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [overIndex, setOverIndex] = useState<number | null>(null);
 
   const startIndex = totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const endIndex =
     totalItems === 0 ? 0 : Math.min(currentPage * pageSize, totalItems);
 
   const handleSort = (key: SortKey) => {
+    if (manualMode) return; // 🟢 nonaktifkan sort kolom saat mode urutan manual
     setSortKey((prevKey) => {
       if (prevKey === key) {
         setSortDir((prevDir) => (prevDir === "asc" ? "desc" : "asc"));
@@ -50,6 +58,8 @@ export default function LayananTable({
   };
 
   const sortedData = useMemo(() => {
+    if (manualMode) return data; // 🟢 tampilkan sesuai urutan asli (bisa di-drag)
+
     const list = [...data];
 
     list.sort((a, b) => {
@@ -73,9 +83,10 @@ export default function LayananTable({
     });
 
     return list;
-  }, [data, sortKey, sortDir]);
+  }, [data, sortKey, sortDir, manualMode]);
 
   const renderSortIcon = (key: SortKey) => {
+    if (manualMode) return null;
     if (sortKey !== key) {
       return <span className="ml-1 text-[10px] text-gray-300">↕</span>;
     }
@@ -86,18 +97,59 @@ export default function LayananTable({
     );
   };
 
+  // 🟢 DRAG & DROP HANDLERS
+  const handleDragStart = (index: number) => {
+    if (!manualMode) return;
+    setDragIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    if (!manualMode || dragIndex === null) return;
+    e.preventDefault();
+    if (index !== overIndex) setOverIndex(index);
+  };
+
+  const handleDrop = (index: number) => {
+    if (!manualMode || dragIndex === null || !onReorder) {
+      setDragIndex(null);
+      setOverIndex(null);
+      return;
+    }
+    if (dragIndex === index) {
+      setDragIndex(null);
+      setOverIndex(null);
+      return;
+    }
+    const reordered = [...sortedData];
+    const [moved] = reordered.splice(dragIndex, 1);
+    reordered.splice(index, 0, moved);
+    onReorder(reordered);
+    setDragIndex(null);
+    setOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDragIndex(null);
+    setOverIndex(null);
+  };
+
+  const gridCols = manualMode
+    ? "grid-cols-[40px_50px_2fr_1fr_1fr_100px]"
+    : "grid-cols-[50px_2fr_1fr_1fr_100px]";
+
   return (
     <div className="rounded-2xl bg-white p-4 shadow-sm">
       {/* 🟢 PEMBUNGKUS SCROLL HORIZONTAL UNTUK TAMPILAN HP */}
       <div className="w-full overflow-x-auto">
         <div className="min-w-[650px]">
           {/* Header Tabel */}
-          <div className="grid grid-cols-[50px_2fr_1fr_1fr_100px] px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-400 border-b border-dashed border-gray-200">
+          <div className={`grid ${gridCols} px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-400 border-b border-dashed border-gray-200`}>
+            {manualMode && <div />}
             <div>No</div>
 
             <button
               type="button"
-              className="flex items-center text-left cursor-pointer"
+              className={`flex items-center text-left ${manualMode ? "cursor-default opacity-50" : "cursor-pointer"}`}
               onClick={() => handleSort("nama")}
             >
               <span>Layanan</span>
@@ -106,7 +158,7 @@ export default function LayananTable({
 
             <button
               type="button"
-              className="flex items-center text-left cursor-pointer"
+              className={`flex items-center text-left ${manualMode ? "cursor-default opacity-50" : "cursor-pointer"}`}
               onClick={() => handleSort("harga")}
             >
               <span>Investasi</span>
@@ -115,7 +167,7 @@ export default function LayananTable({
 
             <button
               type="button"
-              className="flex items-center text-left cursor-pointer"
+              className={`flex items-center text-left ${manualMode ? "cursor-default opacity-50" : "cursor-pointer"}`}
               onClick={() => handleSort("status")}
             >
               <span>Status</span>
@@ -146,12 +198,34 @@ export default function LayananTable({
                   (item as any).iconUrl;
 
                 const formattedImageSrc = getImageUrl(rawImagePath);
+                const isDragging = manualMode && dragIndex === index;
+                const isOver = manualMode && overIndex === index && dragIndex !== index;
 
                 return (
                   <div
                     key={item.id}
-                    className="group grid grid-cols-[50px_2fr_1fr_1fr_100px] items-center rounded-2xl border border-gray-100 bg-white px-6 py-4 transition-all duration-300 hover:shadow-lg hover:border-soft-bg hover:-translate-y-0.5"
+                    draggable={manualMode}
+                    onDragStart={() => handleDragStart(index)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDrop={() => handleDrop(index)}
+                    onDragEnd={handleDragEnd}
+                    className={`group grid ${gridCols} items-center rounded-2xl border bg-white px-6 py-4 transition-all duration-200 ${
+                      manualMode
+                        ? "border-gray-100 hover:border-primary/40"
+                        : "border-gray-100 hover:shadow-lg hover:border-soft-bg hover:-translate-y-0.5"
+                    } ${isDragging ? "opacity-40" : ""} ${
+                      isOver ? "ring-2 ring-primary/50 border-primary/50" : ""
+                    }`}
                   >
+                    {manualMode && (
+                      <div
+                        className="flex items-center justify-center text-gray-400 cursor-grab active:cursor-grabbing"
+                        title="Tahan lalu geser untuk mengubah urutan"
+                      >
+                        <GripVertical size={18} />
+                      </div>
+                    )}
+
                     <div className="text-sm font-medium text-gray-400 group-hover:text-primary">
                       {startIndex + index}
                     </div>
@@ -228,23 +302,26 @@ export default function LayananTable({
 
                     <div className="flex justify-end gap-2 text-gray-400 opacity-80 group-hover:opacity-100 transition-opacity">
                       <button
-                        className="p-2 rounded-lg hover:bg-blue-50 hover:text-primary transition-colors cursor-pointer"
+                        className="p-2 rounded-lg hover:bg-blue-50 hover:text-primary transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                         aria-label="Edit"
                         onClick={() => onEdit(item)}
+                        disabled={manualMode}
                       >
                         <Pencil size={16} />
                       </button>
                       <button
-                        className="p-2 rounded-lg hover:bg-gray-50 hover:text-gray-800 transition-colors cursor-pointer"
+                        className="p-2 rounded-lg hover:bg-gray-50 hover:text-gray-800 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                         aria-label="View"
                         onClick={() => onPreview(item)}
+                        disabled={manualMode}
                       >
                         <Eye size={16} />
                       </button>
                       <button
-                        className="p-2 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
+                        className="p-2 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                         aria-label="Delete"
                         onClick={() => onDelete(item)}
+                        disabled={manualMode}
                       >
                         <Trash2 size={16} />
                       </button>
@@ -257,31 +334,33 @@ export default function LayananTable({
         </div>
       </div>
 
-      {/* Footer Pagination */}
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-sm text-gray-500">
-        <span>
-          Showing {startIndex} to {endIndex} of {totalItems} Results
-        </span>
-        <div className="flex items-center gap-2">
-          <button
-            className="rounded-md border px-3 py-1 text-sm cursor-pointer disabled:opacity-50 hover:bg-slate-50"
-            type="button"
-            onClick={onSeeAll}
-            disabled={totalItems === 0}
-          >
-            See all
-          </button>
-          <select
-            className="rounded-md border px-3 py-1 text-sm cursor-pointer"
-            value={pageSize}
-            onChange={(e) => onPageSizeChange(Number(e.target.value) || 5)}
-          >
-            <option value={5}>5 per page</option>
-            <option value={10}>10 per page</option>
-            <option value={20}>20 per page</option>
-          </select>
+      {/* Footer Pagination — disembunyikan saat mode urutan manual aktif */}
+      {!manualMode && (
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-sm text-gray-500">
+          <span>
+            Showing {startIndex} to {endIndex} of {totalItems} Results
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              className="rounded-md border px-3 py-1 text-sm cursor-pointer disabled:opacity-50 hover:bg-slate-50"
+              type="button"
+              onClick={onSeeAll}
+              disabled={totalItems === 0}
+            >
+              See all
+            </button>
+            <select
+              className="rounded-md border px-3 py-1 text-sm cursor-pointer"
+              value={pageSize}
+              onChange={(e) => onPageSizeChange(Number(e.target.value) || 5)}
+            >
+              <option value={5}>5 per page</option>
+              <option value={10}>10 per page</option>
+              <option value={20}>20 per page</option>
+            </select>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
