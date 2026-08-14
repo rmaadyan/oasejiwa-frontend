@@ -17,6 +17,8 @@ import type {
 import type { TesDetail } from "./DetailTesForm";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/Alert";
 import { submitTesResult } from "@/lib/api/tes";
+import { DASS21_QUESTIONS, DASS21_SCALE_OPTIONS } from "@/lib/data/dass21-questions";
+import { calculateDass21Result } from "@/lib/utils/dass21-calculator";
 
 const RESULT_KEY = "tes-last-result";
 
@@ -41,19 +43,61 @@ export default function TestRunner1({ tes, onBack }: Props) {
   const [jawaban, setJawaban] = useState<Jawaban>({});
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const likert = tes.likert as LikertOption[];
+  const isDass21 =
+    (tes.nama || "").toUpperCase().includes("DASS") ||
+    (tes.jenis || "").toUpperCase().includes("DASS") ||
+    tes.id === 1;
+
+  const rawLikert = tes.likert as LikertOption[];
+  const rawPertanyaan = tes.pertanyaan as PertanyaanItem[];
+
+  const likert: LikertOption[] = isDass21
+    ? DASS21_SCALE_OPTIONS.map((opt) => ({
+        id: String(opt.value),
+        label: opt.label,
+        value: opt.value as LikertValue,
+      }))
+    : rawLikert;
+
+  const pertanyaan: PertanyaanItem[] = isDass21
+    ? DASS21_QUESTIONS.map((q) => ({
+        id: String(q.id),
+        teks: q.teks,
+        section: q.dimension,
+        urutan: q.id,
+        arah: "positif" as const,
+      }))
+    : rawPertanyaan;
+
   const kategori = tes.kategori as DiagnosisKategori[];
-  const pertanyaan = tes.pertanyaan as PertanyaanItem[];
   const sectionKategori = tes.sectionKategori as SectionKategoriMap | undefined;
 
   const jumlahSoal = pertanyaan.length;
 
   const skorMaksPerSoal =
-    likert.length > 0 ? Math.max(...likert.map((l) => l.value)) : 5;
+    likert.length > 0 ? Math.max(...likert.map((l) => l.value)) : 3;
 
   const skorMaksTes = jumlahSoal * skorMaksPerSoal;
 
   const questionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+
+  // List of unanswered questions with 1-based question numbers
+  const unansweredQuestions = pertanyaan
+    .map((p, idx) => ({ ...p, number: idx + 1 }))
+    .filter((p) => jawaban[p.id] === undefined);
+
+  const scrollToQuestion = (soalId: string) => {
+    const node = questionRefs.current[soalId];
+    if (node) {
+      node.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+      setHighlightedId(soalId);
+      setTimeout(() => setHighlightedId(null), 2500);
+    }
+  };
 
   const handleJawab = (soalId: string, value: LikertValue) => {
     setJawaban((prev) => ({
@@ -72,22 +116,69 @@ export default function TestRunner1({ tes, onBack }: Props) {
       return;
     }
 
-    const firstUnanswered = pertanyaan.find(
-      (p) => jawaban[p.id] === undefined
-    );
+    if (unansweredQuestions.length > 0) {
+      setErrorMsg(`Masih ada ${unansweredQuestions.length} pertanyaan yang belum dijawab.`);
+      scrollToQuestion(unansweredQuestions[0].id);
+      return;
+    }
 
-    if (firstUnanswered) {
-      setErrorMsg("Masih ada pertanyaan yang belum dijawab.");
+    if (isDass21) {
+      const dassRes = calculateDass21Result(jawaban);
+      const sections: SectionScore[] = [
+        { section: "Depression", total: dassRes.depression.score, maks: 21 },
+        { section: "Anxiety", total: dassRes.anxiety.score, maks: 21 },
+        { section: "Stress", total: dassRes.stress.score, maks: 21 },
+      ];
 
-      const node = questionRefs.current[firstUnanswered.id];
+      const result = {
+        tesId: tes.id ?? 0,
+        namaTes: tes.nama,
+        total: dassRes.totalScore,
+        maks: dassRes.maxTotalScore,
+        persen: Math.round((dassRes.totalScore / dassRes.maxTotalScore) * 100),
+        kategoriNama: dassRes.overallCategory,
+        kategoriList: kategori,
+        sections,
+        answers: jawaban,
+        dassResult: dassRes,
+      };
 
-      if (node) {
-        node.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
+      if (typeof window !== "undefined") {
+        localStorage.setItem(RESULT_KEY, JSON.stringify(result));
       }
 
+      if (tes.id) {
+        try {
+          const submitted = await submitTesResult(tes.id, {
+            namaTes: tes.nama,
+            jenisTes: "DASS-21",
+            totalScore: dassRes.totalScore,
+            maxScore: dassRes.maxTotalScore,
+            percentage: Math.round((dassRes.totalScore / dassRes.maxTotalScore) * 100),
+            kategoriNama: dassRes.overallCategory,
+            diagnosis: dassRes.overallCategory,
+            detailDiagnosis: dassRes.disclaimer,
+            interpretasi: dassRes.interpretation,
+            rekomendasi: [
+              "Melanjutkan sesi konseling secara berkala.",
+              "Latihan relaksasi diafragma dan pengelolaan stres.",
+              "Evaluasi perkembangan pada sesi berikutnya.",
+              "Konsultasi dengan Psikolog Oase Jiwa."
+            ],
+            sectionScores: sections,
+            answers: jawaban,
+          });
+
+          if (submitted?.id && typeof window !== "undefined") {
+            const updatedResult = { ...result, dbResultId: submitted.id };
+            localStorage.setItem(RESULT_KEY, JSON.stringify(updatedResult));
+          }
+        } catch (err) {
+          console.error("Gagal menyimpan hasil tes ke rekam medis:", err);
+        }
+      }
+
+      router.push(`/tes/pre-result/${tes.id ?? 0}`);
       return;
     }
 
@@ -215,18 +306,44 @@ export default function TestRunner1({ tes, onBack }: Props) {
             </p>
           )}
 
-          {/* PETUNJUK */}
-          <div className="mt-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-[#1f3b5b]">
-              Petunjuk pengisian
-            </p>
+          {/* PROGRESS BAR & STATS HEADER */}
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+            <div className="flex items-center justify-between text-xs font-semibold text-slate-700 mb-2">
+              <span>Progress Pengerjaan</span>
+              <span className="font-bold text-[#1f3b5b]">
+                {Object.keys(jawaban).length} / {jumlahSoal} Pertanyaan ({jumlahSoal > 0 ? Math.round((Object.keys(jawaban).length / jumlahSoal) * 100) : 0}%)
+              </span>
+            </div>
+            <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200">
+              <div
+                className="h-full bg-[#1964ae] transition-all duration-300 rounded-full"
+                style={{
+                  width: `${jumlahSoal > 0 ? Math.round((Object.keys(jawaban).length / jumlahSoal) * 100) : 0}%`,
+                }}
+              />
+            </div>
 
-            <ol className="mt-2 space-y-1 text-[11px] text-slate-600 leading-relaxed">
-              <li>1. Jawablah sesuai kondisi 1 minggu terakhir.</li>
-              <li>2. Setiap jawaban memiliki skor.</li>
-              <li>3. Jawaban yang jujur menghasilkan hasil lebih akurat.</li>
-              <li>4. Pastikan semua pertanyaan sudah diisi.</li>
-            </ol>
+            {/* 4 SUMMARY WIDGETS */}
+            <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs text-center sm:text-left">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-0.5">Terjawab</span>
+                <span className="text-base font-bold text-emerald-700">{Object.keys(jawaban).length}</span>
+              </div>
+              <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs text-center sm:text-left">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-0.5">Belum Dijawab</span>
+                <span className="text-base font-bold text-amber-700">{jumlahSoal - Object.keys(jawaban).length}</span>
+              </div>
+              <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs text-center sm:text-left">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-0.5">Progress</span>
+                <span className="text-base font-bold text-[#1964ae]">
+                  {jumlahSoal > 0 ? Math.round((Object.keys(jawaban).length / jumlahSoal) * 100) : 0}%
+                </span>
+              </div>
+              <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs text-center sm:text-left">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-0.5">Estimasi Selesai</span>
+                <span className="text-base font-bold text-slate-700">± 5 menit</span>
+              </div>
+            </div>
           </div>
 
         </div>
@@ -251,11 +368,11 @@ export default function TestRunner1({ tes, onBack }: Props) {
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
-
-              {pertanyaan.map((p) => {
+            <div className="space-y-5">
+              {pertanyaan.map((p, idx) => {
                 const id = p.id;
                 const answered = jawaban[id] !== undefined;
+                const isHighlighted = highlightedId === id;
 
                 return (
                   <div
@@ -263,55 +380,101 @@ export default function TestRunner1({ tes, onBack }: Props) {
                     ref={(el) => {
                       questionRefs.current[id] = el;
                     }}
-                    className="rounded-2xl border border-slate-100 bg-gradient-to-r from-sky-50 via-blue-50 to-sky-50 p-4 shadow-sm"
+                    className={`rounded-2xl border p-5 shadow-xs transition-all duration-300 ${
+                      isHighlighted
+                        ? "border-amber-400 bg-amber-50/70 ring-4 ring-amber-300/80 scale-[1.01]"
+                        : answered
+                        ? "border-emerald-200 bg-white ring-1 ring-emerald-100"
+                        : "border-slate-200 bg-white hover:border-slate-300"
+                    }`}
                   >
 
-                    <div className="mb-3 flex items-center justify-between">
-                      <p className="text-sm font-medium text-slate-900">
-                        {p.teks}
-                      </p>
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                      <div>
+                        <span className="text-[11px] font-bold text-[#1f3b5b] bg-slate-100 px-2.5 py-0.5 rounded-md inline-block mb-1.5">
+                          Pertanyaan {idx + 1} dari {jumlahSoal}
+                        </span>
+                        <p className="text-sm font-semibold text-slate-900 leading-snug">
+                          {p.teks}
+                        </p>
+                        {(p.image || p.imageUrl) && (
+                          <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 max-w-md">
+                            <img
+                              src={p.image || p.imageUrl}
+                              alt={`Gambar Pertanyaan ${idx + 1}`}
+                              className="h-auto w-full object-contain max-h-60"
+                            />
+                          </div>
+                        )}
+                      </div>
 
                       <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                        className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold inline-flex items-center gap-1 ${
                           answered
-                            ? "bg-emerald-50 text-emerald-700"
+                            ? "bg-emerald-100 text-emerald-800"
                             : "bg-slate-100 text-slate-500"
                         }`}
                       >
-                        {answered ? "Terisi" : "Belum diisi"}
+                        {answered ? "✓ Sudah Dijawab" : "○ Belum Dijawab"}
                       </span>
                     </div>
 
-                    <div className="grid gap-2 md:grid-cols-2">
+                    <div className="grid gap-2.5 sm:grid-cols-2 mt-4">
 
                       {likert.map((l) => {
                         const selected = jawaban[id] === l.value;
+
+                        // Custom Label Formatting for clear qualitative display without numeric score values
+                        let optTitle = l.label;
+                        let optSubtitle = "";
+
+                        if (l.value === 0) {
+                          optTitle = "Tidak Pernah";
+                          optSubtitle = "Tidak sesuai dengan saya sama sekali";
+                        } else if (l.value === 1) {
+                          optTitle = "Kadang-kadang";
+                          optSubtitle = "Sesuai sampai tingkat tertentu";
+                        } else if (l.value === 2) {
+                          optTitle = "Cukup Sering";
+                          optSubtitle = "Sesuai sampai batas yang dapat dipertimbangkan";
+                        } else if (l.value === 3) {
+                          optTitle = "Sangat Sering";
+                          optSubtitle = "Sangat sesuai dengan saya";
+                        }
 
                         return (
                           <button
                             key={l.id}
                             type="button"
                             onClick={() => handleJawab(id, l.value)}
-                            className={`flex items-center justify-between rounded-xl border px-3 py-2 text-[11px] font-medium transition ${
+                            className={`flex items-start gap-3 rounded-xl border p-3.5 text-left transition cursor-pointer ${
                               selected
-                                ? "border-indigo-600 bg-indigo-600 text-white"
-                                : "border-slate-300 bg-white hover:bg-indigo-50"
+                                ? "border-[#1964ae] bg-blue-50/90 ring-2 ring-[#1964ae]/20 shadow-2xs"
+                                : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
                             }`}
                           >
-                            <span>{l.label}</span>
-
                             <span
-                              className={`h-4 w-4 rounded-full border flex items-center justify-center ${
+                              className={`mt-0.5 h-4 w-4 shrink-0 rounded-full border flex items-center justify-center transition-colors ${
                                 selected
-                                  ? "border-white bg-white"
-                                  : "border-slate-300"
+                                  ? "border-[#1964ae] bg-[#1964ae]"
+                                  : "border-slate-300 bg-white"
                               }`}
                             >
                               {selected && (
-                                <span className="h-2 w-2 rounded-full bg-indigo-600" />
+                                <span className="h-1.5 w-1.5 rounded-full bg-white" />
                               )}
                             </span>
 
+                            <div className="flex-1">
+                              <span className="block text-xs font-bold text-slate-800">
+                                {optTitle}
+                              </span>
+                              {optSubtitle && (
+                                <span className="block text-[11px] text-slate-500 mt-0.5 leading-tight">
+                                  {optSubtitle}
+                                </span>
+                              )}
+                            </div>
                           </button>
                         );
                       })}
@@ -328,27 +491,57 @@ export default function TestRunner1({ tes, onBack }: Props) {
         </div>
 
         {/* FOOTER */}
-        <div className="border-t border-slate-200 px-6 py-4">
+        <div className="border-t border-slate-200 px-6 py-4 bg-slate-50/50 space-y-3">
+          {unansweredQuestions.length > 0 && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50/90 p-3.5 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-semibold text-amber-800">
+                <span>⚠️</span>
+                <span>Masih ada {unansweredQuestions.length} pertanyaan yang belum dijawab.</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                <span className="text-[11px] font-medium text-amber-700 mr-1">
+                  Belum dijawab:
+                </span>
+                {unansweredQuestions.map((q) => (
+                  <button
+                    key={q.id}
+                    type="button"
+                    onClick={() => scrollToQuestion(q.id)}
+                    className="h-7 min-w-[28px] px-2 rounded-lg bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold hover:bg-amber-200 hover:scale-105 active:scale-95 transition-all shadow-2xs cursor-pointer flex items-center justify-center"
+                    title={`Lompat ke Pertanyaan ${q.number}`}
+                  >
+                    {q.number}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
 
-            <div className="text-[11px] text-slate-500">
-              <span className="font-semibold">
-                {Object.keys(jawaban).length}
-              </span>{" "}
-              dari{" "}
-              <span className="font-semibold">
-                {jumlahSoal}
-              </span>{" "}
-              pertanyaan sudah diisi
+            <div className="text-xs text-slate-600">
+              {unansweredQuestions.length > 0 ? (
+                <span className="text-[11px] font-medium text-slate-500">
+                  Klik nomor di atas untuk langsung mengisi pertanyaan yang belum dijawab.
+                </span>
+              ) : (
+                <span className="font-semibold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200 inline-block">
+                  ✓ Seluruh {jumlahSoal} pertanyaan telah terisi.
+                </span>
+              )}
             </div>
 
             <button
               type="button"
+              disabled={unansweredQuestions.length > 0}
               onClick={hitungHasil}
-              className="rounded-full bg-[#1f3b5b] px-6 py-2 text-xs font-semibold text-white hover:bg-blue-900"
+              className={`rounded-full px-8 py-2.5 text-xs font-bold transition ${
+                unansweredQuestions.length === 0
+                  ? "bg-[#1f3b5b] text-white hover:bg-blue-900 shadow-md cursor-pointer"
+                  : "bg-slate-200 text-slate-400 cursor-not-allowed opacity-60"
+              }`}
             >
-              Kirim
+              Selesaikan Tes
             </button>
 
           </div>

@@ -318,22 +318,17 @@ export default function NoteDetailModal({
             </div>
           )}
 
-          {/* Tags */}
-          {note.tags && note.tags.length > 0 && (
-            <div>
-              <p className="mb-2 text-xs font-bold text-gray-600 uppercase tracking-wider">Tags Klinik</p>
-              <div className="flex flex-wrap gap-2">
-                {note.tags.map((tag, index) => (
-                  <span
-                    key={`${tag}-${index}`}
-                    className="inline-flex items-center rounded-lg bg-[#D1EAFF] px-3 py-1 text-xs font-semibold text-[#2B5379] border border-blue-200"
-                  >
-                    #{tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Referral */}
+          <div>
+            <p className="mb-1 text-xs font-bold text-gray-600 uppercase tracking-wider">Referral Klinik</p>
+            <p className="text-xs font-semibold text-slate-800">
+              {note.tags && note.tags.length > 0
+                ? Array.isArray(note.tags)
+                  ? note.tags.join(", ")
+                  : String(note.tags)
+                : "Tidak ada"}
+            </p>
+          </div>
 
           {/* Metadata */}
           <div className="border-t border-gray-200 pt-4">

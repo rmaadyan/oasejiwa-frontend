@@ -333,19 +333,6 @@ export default function CreateMedicalRecordModal({
                   placeholder="Misal: Sertraline 50mg"
                 />
               </div>
-
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">Alergi</label>
-                <input
-                  id="allergies"
-                  name="allergies"
-                  type="text"
-                  value={formData.allergies}
-                  onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white font-medium focus:ring-2 focus:ring-[#1F415F] outline-none"
-                  placeholder="Misal: Tidak ada"
-                />
-              </div>
             </div>
           </div>
 

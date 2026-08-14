@@ -36,7 +36,7 @@ export default function CreateNoteModal({
   const [loading, setLoading] = useState(false);
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
+  const [referralText, setReferralText] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -65,8 +65,6 @@ export default function CreateNoteModal({
     tags: [] as string[],
   });
 
-  const [tagInput, setTagInput] = useState("");
-
   useEffect(() => {
     if (!isOpen) return;
 
@@ -76,12 +74,24 @@ export default function CreateNoteModal({
     setPatientSessions([]);
 
     if (editNote) {
-      const resolvedPatientId = editNote.patientId || (editNote as any).userId || "";
+      const resolvedPatientId =
+        editNote.patientId ||
+        (editNote as any).userId ||
+        (editNote as any).user?.id ||
+        "";
+
       const resolvedPatientName =
         editNote.patientName ||
         (editNote as any).user?.userProfile?.fullName ||
         (editNote as any).user?.name ||
         "";
+
+      const initialTags = editNote.tags || [];
+      const initialReferral = Array.isArray(initialTags)
+        ? initialTags.join(", ")
+        : String(initialTags || "");
+
+      setReferralText(initialReferral);
 
       setFormData({
         patientId: resolvedPatientId,
@@ -98,16 +108,17 @@ export default function CreateNoteModal({
         riskReason: editNote.riskReason || "",
         assessingPsychologistName: editNote.assessingPsychologistName || "",
         assessmentDate: editNote.assessmentDate || new Date().toISOString().split("T")[0],
-        diagnosisSummary: editNote.diagnosisSummary || editNote.subjective || "",
+        diagnosisSummary: editNote.diagnosisSummary || "",
         treatmentApproach: editNote.treatmentApproach || editNote.plan || "",
         recommendation: editNote.recommendation || editNote.nextSessionRecommendation || "",
         followUpPlan: editNote.followUpPlan || "CONTINUE_SESSION",
         additionalNotes: editNote.additionalNotes || "",
         followUpDate: editNote.followUpDate || "",
         nextSessionRecommendation: editNote.nextSessionRecommendation || "",
-        tags: editNote.tags || [],
+        tags: initialReferral ? [initialReferral] : [],
       });
     } else {
+      setReferralText("");
       setFormData({
         patientId: "",
         patientName: "",
@@ -299,7 +310,7 @@ export default function CreateNoteModal({
           riskRecommendations: activeConfig.recommendations,
           assessingPsychologistName: formData.assessingPsychologistName,
           assessmentDate: formData.assessmentDate,
-          diagnosisSummary: formData.diagnosisSummary || formData.subjective,
+          diagnosisSummary: formData.diagnosisSummary || undefined,
           treatmentApproach: formData.treatmentApproach || formData.plan,
           recommendation: formData.recommendation || formData.nextSessionRecommendation,
           followUpPlan: formData.followUpPlan,
@@ -322,7 +333,7 @@ export default function CreateNoteModal({
           riskRecommendations: activeConfig.recommendations,
           assessingPsychologistName: formData.assessingPsychologistName,
           assessmentDate: formData.assessmentDate,
-          diagnosisSummary: formData.diagnosisSummary || formData.subjective,
+          diagnosisSummary: formData.diagnosisSummary || undefined,
           treatmentApproach: formData.treatmentApproach || formData.plan,
           recommendation: formData.recommendation || formData.nextSessionRecommendation,
           followUpPlan: formData.followUpPlan,
@@ -521,19 +532,6 @@ export default function CreateNoteModal({
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2B5379]"
               />
             </div>
-
-            <div>
-              <label className="mb-1 block text-xs font-bold text-gray-700">Alergi</label>
-              <input
-                id="allergies"
-                name="allergies"
-                type="text"
-                value={formData.allergies}
-                onChange={(e) => setFormData((prev) => ({ ...prev, allergies: e.target.value }))}
-                placeholder="Contoh: Tidak ada"
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2B5379]"
-              />
-            </div>
           </div>
 
           <div className="space-y-4">
@@ -542,15 +540,22 @@ export default function CreateNoteModal({
             </h3>
 
             <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4">
-              <label className="mb-1 block text-sm font-bold text-[#2B5379]">
-                Keluhan Utama (Subjective) <span className="text-red-500">*</span>
-              </label>
+              <div className="mb-1 flex items-center justify-between">
+                <label className="text-sm font-bold text-[#2B5379]">
+                  Keluhan Utama (Subjective) <span className="text-red-500">*</span>
+                </label>
+                <span className="text-[11px] font-medium text-slate-500">
+                  {formData.subjective.length} / 600 karakter
+                </span>
+              </div>
               <textarea
                 id="subjective"
                 name="subjective"
+                maxLength={600}
                 value={formData.subjective}
                 onChange={(e) => {
-                  setFormData((prev) => ({ ...prev, subjective: e.target.value }));
+                  const val = e.target.value.slice(0, 600);
+                  setFormData((prev) => ({ ...prev, subjective: val }));
                   if (fieldErrors.subjective) setFieldErrors((prev) => ({ ...prev, subjective: "" }));
                 }}
                 rows={3}
@@ -568,15 +573,22 @@ export default function CreateNoteModal({
             </div>
 
             <div className="rounded-lg border border-green-200 bg-green-50/50 p-4">
-              <label className="mb-1 block text-sm font-bold text-[#2B5379]">
-                Observasi Psikolog (Objective) <span className="text-red-500">*</span>
-              </label>
+              <div className="mb-1 flex items-center justify-between">
+                <label className="text-sm font-bold text-[#2B5379]">
+                  Observasi Psikolog (Objective) <span className="text-red-500">*</span>
+                </label>
+                <span className="text-[11px] font-medium text-slate-500">
+                  {formData.objective.length} / 600 karakter
+                </span>
+              </div>
               <textarea
                 id="objective"
                 name="objective"
+                maxLength={600}
                 value={formData.objective}
                 onChange={(e) => {
-                  setFormData((prev) => ({ ...prev, objective: e.target.value }));
+                  const val = e.target.value.slice(0, 600);
+                  setFormData((prev) => ({ ...prev, objective: val }));
                   if (fieldErrors.objective) setFieldErrors((prev) => ({ ...prev, objective: "" }));
                 }}
                 rows={3}
@@ -594,15 +606,22 @@ export default function CreateNoteModal({
             </div>
 
             <div className="rounded-lg border border-yellow-200 bg-yellow-50/50 p-4">
-              <label className="mb-1 block text-sm font-bold text-[#2B5379]">
-                Assessment & Analisis <span className="text-red-500">*</span>
-              </label>
+              <div className="mb-1 flex items-center justify-between">
+                <label className="text-sm font-bold text-[#2B5379]">
+                  Assessment & Analisis <span className="text-red-500">*</span>
+                </label>
+                <span className="text-[11px] font-medium text-slate-500">
+                  {formData.assessment.length} / 700 karakter
+                </span>
+              </div>
               <textarea
                 id="assessment"
                 name="assessment"
+                maxLength={700}
                 value={formData.assessment}
                 onChange={(e) => {
-                  setFormData((prev) => ({ ...prev, assessment: e.target.value }));
+                  const val = e.target.value.slice(0, 700);
+                  setFormData((prev) => ({ ...prev, assessment: val }));
                   if (fieldErrors.assessment) setFieldErrors((prev) => ({ ...prev, assessment: "" }));
                 }}
                 rows={3}
@@ -620,15 +639,22 @@ export default function CreateNoteModal({
             </div>
 
             <div className="rounded-lg border border-purple-200 bg-purple-50/50 p-4">
-              <label className="mb-1 block text-sm font-bold text-[#2B5379]">
-                Intervensi & Rencana (Plan) <span className="text-red-500">*</span>
-              </label>
+              <div className="mb-1 flex items-center justify-between">
+                <label className="text-sm font-bold text-[#2B5379]">
+                  Intervensi & Rencana (Plan) <span className="text-red-500">*</span>
+                </label>
+                <span className="text-[11px] font-medium text-slate-500">
+                  {formData.plan.length} / 700 karakter
+                </span>
+              </div>
               <textarea
                 id="plan"
                 name="plan"
+                maxLength={700}
                 value={formData.plan}
                 onChange={(e) => {
-                  setFormData((prev) => ({ ...prev, plan: e.target.value }));
+                  const val = e.target.value.slice(0, 700);
+                  setFormData((prev) => ({ ...prev, plan: val }));
                   if (fieldErrors.plan) setFieldErrors((prev) => ({ ...prev, plan: "" }));
                 }}
                 rows={3}
@@ -790,10 +816,19 @@ export default function CreateNoteModal({
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-bold text-gray-700">Catatan Tambahan</label>
+              <div className="mb-1 flex items-center justify-between">
+                <label className="text-xs font-bold text-gray-700">Catatan Tambahan</label>
+                <span className="text-[11px] font-medium text-slate-500">
+                  {formData.additionalNotes.length} / 200 karakter
+                </span>
+              </div>
               <textarea
+                maxLength={200}
                 value={formData.additionalNotes}
-                onChange={(e) => setFormData((prev) => ({ ...prev, additionalNotes: e.target.value }))}
+                onChange={(e) => {
+                  const val = e.target.value.slice(0, 200);
+                  setFormData((prev) => ({ ...prev, additionalNotes: val }));
+                }}
                 rows={2}
                 placeholder="Catatan tambahan mengenai kondisi umum pasien..."
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2B5379]"
@@ -801,46 +836,27 @@ export default function CreateNoteModal({
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-bold text-gray-700">Tag Rekam Medis</label>
-              <div className="flex gap-2 mb-2">
-                <input
-                  type="text"
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  placeholder="Tambahkan tag (misal: CBT, Anxiety, Follow Up)"
-                  className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-[#2B5379]"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (tagInput.trim()) {
-                      setFormData((prev) => ({
-                        ...prev,
-                        tags: Array.from(new Set([...prev.tags, tagInput.trim()])),
-                      }));
-                      setTagInput("");
-                    }
-                  }}
-                  className="rounded-lg bg-slate-700 px-3 py-1.5 text-xs font-bold text-white hover:bg-slate-800 transition cursor-pointer"
-                >
-                  + Tambah
-                </button>
+              <div className="mb-1 flex items-center justify-between">
+                <label className="text-xs font-bold text-gray-700">Referral Rekam Medis</label>
+                <span className="text-[11px] font-medium text-slate-500">
+                  {referralText.length} / 150 karakter
+                </span>
               </div>
-
-              <div className="flex flex-wrap gap-1.5">
-                {formData.tags.map((t, idx) => (
-                  <span key={idx} className="inline-flex items-center gap-1 rounded bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700">
-                    #{t}
-                    <button
-                      type="button"
-                      onClick={() => setFormData((prev) => ({ ...prev, tags: prev.tags.filter((_, i) => i !== idx) }))}
-                      className="text-slate-500 hover:text-red-600 font-bold ml-1"
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
+              <input
+                type="text"
+                maxLength={150}
+                value={referralText}
+                onChange={(e) => {
+                  const val = e.target.value.slice(0, 150);
+                  setReferralText(val);
+                  setFormData((prev) => ({
+                    ...prev,
+                    tags: val.trim() ? [val.trim()] : [],
+                  }));
+                }}
+                placeholder="Psikiater / Dokter Umum / Rumah Sakit / Profesional lainnya..."
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2B5379]"
+              />
             </div>
           </div>
 

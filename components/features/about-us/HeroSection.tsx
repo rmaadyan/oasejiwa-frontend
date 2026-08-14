@@ -57,7 +57,7 @@ const UsersIcon = () => (
 
 export default function HeroSection() {
   const [stats, setStats] = useState<PublicStatisticsData>({
-    totalClients: 0,
+    totalClients: 250,
     totalPsychologists: 1,
     averageRating: 4.9,
     totalReviews: 157,
@@ -88,7 +88,7 @@ export default function HeroSection() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="relative w-full h-[280px] md:h-[380px] rounded-3xl overflow-hidden shadow-lg">
           <Image
-            src="/assets/about-us/STAFF005.jpg"
+            src="/assets/about-us/STAFF004.jpg"
             alt="About Us Hero"
             fill
             className="object-cover"
@@ -105,7 +105,7 @@ export default function HeroSection() {
             <div className="flex justify-center">
               <StatCard
                 icon={<UserIcon />}
-                value={`${stats.totalClients}+`}
+                value="250+"
                 label="Klien Terlayani"
               />
             </div>
@@ -119,7 +119,7 @@ export default function HeroSection() {
             <div className="flex justify-center">
               <StatCard
                 icon={<UsersIcon />}
-                value={`${stats.totalPsychologists}+`}
+                value={`${stats.totalPsychologists || 5}+`}
                 label="Psikolog Profesional"
               />
             </div>

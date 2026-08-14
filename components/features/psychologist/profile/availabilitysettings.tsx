@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Plus, Trash2, Save, CalendarDays } from "lucide-react";
-import { updatePsychologistProfile } from "@/lib/api/psychologist";
+import { updatePsychologistProfile, deletePsychologistSchedule, addPsychologistSchedule} from "@/lib/api/psychologist";
 
 const DAYS_OF_WEEK = [
   { label: "Senin", dayIndex: 1 },
@@ -17,16 +17,22 @@ const DAYS_OF_WEEK = [
 function getNextDateForDay(dayName: string) {
   const targetDay = DAYS_OF_WEEK.find((d) => d.label === dayName)?.dayIndex ?? 1;
   const now = new Date();
-  const currentDay = now.getDay();
+  const currentDay = now.getUTCDay(); // ← pakai UTC
 
   let distance = targetDay - currentDay;
   if (distance < 0) distance += 7;
+  if (distance === 0) distance = 7;
 
-  const resultDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + distance);
+  const resultDate = new Date(Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate() + distance,
+    12, 0, 0 // ← tengah hari UTC
+  ));
 
-  const year = resultDate.getFullYear();
-  const month = String(resultDate.getMonth() + 1).padStart(2, "0");
-  const day = String(resultDate.getDate()).padStart(2, "0");
+  const year = resultDate.getUTCFullYear();
+  const month = String(resultDate.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(resultDate.getUTCDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
 }
@@ -53,35 +59,31 @@ export default function AvailabilitySettings({
   const [loading, setLoading] = useState(false);
   const [localSchedules, setLocalSchedules] = useState<any[]>([]);
 
-  useEffect(() => {
-    if (Array.isArray(schedules) && schedules.length > 0) {
-      setLocalSchedules(
-        schedules.map((s) => {
-          let dayName = "Senin";
-          if (s.date) {
-            const parts = String(s.date).split("T")[0].split("-");
-            if (parts.length === 3) {
-              const y = parseInt(parts[0], 10);
-              const m = parseInt(parts[1], 10) - 1;
-              const d = parseInt(parts[2], 10);
-              const dateObj = new Date(y, m, d);
-              dayName =
-                DAYS_OF_WEEK.find((item) => item.dayIndex === dateObj.getDay())?.label || "Senin";
-            }
-          }
-
-          return {
-            day: s.day || dayName,
-            startTime: s.startTime || s.time || "09:00",
-            duration: s.duration || 60,
-            isAvailable: s.isAvailable ?? true,
-          };
-        })
-      );
-    } else {
-      setLocalSchedules([]);
-    }
-  }, [schedules]);
+useEffect(() => {
+  if (Array.isArray(schedules) && schedules.length > 0) {
+    setLocalSchedules([]); // ← reset dulu sebelum set baru
+    const mapped = schedules.map((s) => {
+      let dayName = "Senin";
+  if (s.date) {
+    const dateStr = String(s.date).split("T")[0];
+    const dateObj = new Date(dateStr + "T12:00:00.000Z"); // ← tengah hari UTC, aman di semua timezone
+    dayName =
+      DAYS_OF_WEEK.find((item) => item.dayIndex === dateObj.getUTCDay())?.label || "Senin";
+  }
+      return {
+        id: s.id || null,
+        day: s.day || dayName,
+        startTime: s.startTime || s.time || "09:00",
+        duration: s.duration || 60,
+        isAvailable: s.isAvailable ?? true,
+      };
+    });
+    console.log("MAPPED LOCAL SCHEDULES:", mapped);
+    setLocalSchedules(mapped);
+  } else {
+    setLocalSchedules([]);
+  }
+}, [schedules]);
 
   const addSchedule = () => {
     setLocalSchedules([
@@ -95,47 +97,55 @@ export default function AvailabilitySettings({
     ]);
   };
 
-  // 🟢 HANDLE HAPUS LANGSUNG TERSIMPAN KE DATABASE
-  const handleDeleteSchedule = async (indexToDelete: number) => {
-    const updated = localSchedules.filter((_, idx) => idx !== indexToDelete);
-    setLocalSchedules(updated);
 
-    try {
-      const formattedSchedules = updated.map((sch) => ({
-        date: getNextDateForDay(sch.day),
-        startTime: sch.startTime || "09:00",
-        duration: Number(sch.duration) || 60,
-        isAvailable: Boolean(sch.isAvailable),
-      }));
+const handleDeleteSchedule = async (indexToDelete: number) => {
+  const scheduleToDelete = localSchedules[indexToDelete];
 
-      await updatePsychologistProfile({ schedules: formattedSchedules });
-      if (onUpdate) await onUpdate();
-    } catch (err: any) {
-      alert("Gagal menghapus jadwal dari database.");
-    }
-  };
+  if (!scheduleToDelete?.id) {
+    setLocalSchedules(localSchedules.filter((_, idx) => idx !== indexToDelete));
+    return;
+  }
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  try {
+    await deletePsychologistSchedule(scheduleToDelete.id);
+    setLocalSchedules(localSchedules.filter((_, idx) => idx !== indexToDelete));
+    if (onUpdate) await onUpdate();
+  } catch (err: any) {
+    alert("Gagal menghapus jadwal dari database.");
+  }
+};
 
-    try {
-      const formattedSchedules = localSchedules.map((sch) => ({
-        date: getNextDateForDay(sch.day),
-        startTime: sch.startTime || "09:00",
-        duration: Number(sch.duration) || 60,
-        isAvailable: Boolean(sch.isAvailable),
-      }));
+const handleSave = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
 
-      await updatePsychologistProfile({ schedules: formattedSchedules });
-      alert("Jadwal Mingguan Praktik berhasil disimpan!");
-      if (onUpdate) await onUpdate();
-    } catch (err: any) {
-      alert(err.message || "Gagal menyimpan jadwal praktik.");
-    } finally {
+  try {
+    // Hanya simpan jadwal BARU saja (yang belum punya id)
+    const newSchedules = localSchedules.filter((sch) => !sch.id);
+
+    if (newSchedules.length === 0) {
+      alert("Tidak ada jadwal baru untuk disimpan.");
       setLoading(false);
+      return;
     }
-  };
+
+    for (const sch of newSchedules) {
+      await addPsychologistSchedule({
+        date: getNextDateForDay(sch.day),
+        startTime: sch.startTime || "09:00",
+        duration: Number(sch.duration) || 60,
+        isAvailable: true,
+      });
+    }
+
+    alert("Jadwal Mingguan Praktik berhasil disimpan!");
+    if (onUpdate) await onUpdate();
+  } catch (err: any) {
+    alert(err.message || "Gagal menyimpan jadwal praktik.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="bg-white p-5 rounded-2xl border-2 border-slate-500 shadow-xs space-y-2 font-poppins text-xs">

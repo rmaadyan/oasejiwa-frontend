@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { BadgeCheck, GraduationCap, Stethoscope, User, Calendar, Clock, ArrowLeft, Briefcase } from "lucide-react";
 import Navbar from "@/components/common/Navbar";
 import Footer from "@/components/common/Footer";
-import { getPsychologistByIdPublic } from "@/lib/api/psychologists";
+import { getPsychologistByIdPublic } from "@/lib/api/psychologist";
 
 type Schedule = {
   id: string;
@@ -114,7 +114,7 @@ function PsikologDetailContent() {
     const fetchData = async () => {
       try {
         const result = await getPsychologistByIdPublic(id);
-        const data = result?.data || result?.psychologist || result;
+        const data = result?.data || (result as any)?.psychologist || result;
         const rawSchedules = data?.schedules || data?.schedule || data?.availableSchedules || [];
 
         setPsikolog({ ...data, schedules: rawSchedules });

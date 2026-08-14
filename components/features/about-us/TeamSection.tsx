@@ -2,7 +2,7 @@ import TeamMemberCard from "@/components/ui/TeamMemberCard";
 
 const teamMembers = [
   {
-    imageSrc: "/assets/about-us/founder.jpg",
+    imageSrc: "/assets/about-us/founder.JPG",
     name: "Andi Zainuddin Japeri, M. Psi., Psikolog.",
     role: "CEO (Chief Executive Officer)",
     experience:
@@ -48,7 +48,6 @@ export default function TeamSection() {
               experience={member.experience}
               linkedinUrl={member.linkedinUrl}
               instagramUrl={member.instagramUrl}
-              facebookUrl={member.facebookUrl}
             />
           ))}
         </div>

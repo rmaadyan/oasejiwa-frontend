@@ -12,26 +12,49 @@ import {
   confirmFullPayment,
 } from "@/lib/api/booking";
 
-// ─── HELPER UNTUK URL GAMBAR BACKEND DENGAN .ENV ─────────────────────────────
-const getImageUrl = (path?: string | null): string => {
-  if (!path) return "";
+const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dxmxxw7xh";
 
-  // 1. Jika sudah berupa URL lengkap atau Base64, kembalikan langsung
-  if (
-    path.startsWith("http://") || 
-    path.startsWith("https://") || 
-    path.startsWith("data:image/")
-  ) {
-    return path;
+const getImageUrl = (path?: string | null): string => {
+  if (!path || path.trim() === "" || path === "null" || path === "undefined") {
+    return "";
   }
 
-  // 2. Ambil dari .env ATAU langsung fallback ke URL Backend (port 3000)
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
-  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  const cleanStr = path.trim();
 
-  return `${backendUrl}${cleanPath}`;
+  // 1. Jika sudah berupa HTTPS utuh atau Base64, kembalikan langsung
+  if (cleanStr.startsWith("https://") || cleanStr.startsWith("data:image/")) {
+    return cleanStr;
+  }
+
+  // 2. Jika data lama di DB tersimpan dengan 'localhost' / HTTP biasa
+  if (cleanStr.includes("localhost") || cleanStr.startsWith("http://")) {
+    return cleanStr
+      .replace(/http:\/\/localhost:\d+/, "https://api.oasejiwa.id")
+      .replace("http://", "https://");
+  }
+
+  // 3. 🟢 CLOUDINARY: Jika public ID (seperti 'psychologists/rmuolo0...' atau 'rmuolo0...')
+  if (!cleanStr.includes(".") || cleanStr.includes("cloudinary")) {
+    const publicId = cleanStr.replace(/^\/+/, "").replace(/^uploads\//, "");
+    return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${publicId}`;
+  }
+
+  // 4. Relative path file statis lokal backend VPS
+  const backendUrl =
+    process.env.NEXT_PUBLIC_API_URL ||
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    "https://api.oasejiwa.id";
+
+  let cleanPath = cleanStr.replace(/^\/+/, "");
+  if (!cleanPath.startsWith("uploads/")) {
+    cleanPath = `uploads/${cleanPath}`;
+  }
+
+  return `${backendUrl}/${cleanPath}`;
 };
 
+  // 🟢 4. Jika relative path (/uploads/...), gabungkan dengan domain API produksi
+  
 // ─── Konstanta Status Backend ──────────────────────────────────────────────────
 const statusUIMap: Record<
   string,
@@ -91,6 +114,14 @@ const defaultBooking = {
 type BookingData = typeof defaultBooking;
 
 function mapApiToBooking(data: any): BookingData {
+  // Helper internal sanitasi string URL
+  const sanitizeUrl = (url?: string | null) => {
+    if (!url) return null;
+    return url
+      .replace(/http:\/\/localhost:\d+/, "https://api.oasejiwa.id")
+      .replace("http://", "https://");
+  };
+
   return {
     id: data.id,
     bookingCode: data.bookingCode ?? String(data.id),
@@ -121,18 +152,21 @@ function mapApiToBooking(data: any): BookingData {
       jenis: data.service?.jenis ?? "-",
       harga: data.service?.harga ?? data.totalPrice ?? 0,
     },
-    payments: (data.payments ?? []).map((p: any) => ({
-      id: p.id,
-      type: p.type,
-      amount: p.amount,
-      method: p.method ?? "-",
-      status: p.status,
-      // 🟢 FIX: Memastikan gambar mengambil baik dari paymentProofUrl maupun proofImageUrl
-      proofImageUrl: p.paymentProofUrl ?? p.proofImageUrl ?? null,
-      orderId: p.orderId ?? "",
-      expiredAt: p.expiredAt ?? null,
-      createdAt: p.createdAt ?? "",
-    })),
+    payments: (data.payments ?? []).map((p: any) => {
+      const rawUrl = p.paymentProofUrl ?? p.proofImageUrl ?? p.proofUrl ?? null;
+      return {
+        id: p.id,
+        type: p.type,
+        amount: p.amount,
+        method: p.method ?? "-",
+        status: p.status,
+        // 🟢 SANITASI LANGSUNG DI LEVEL DATA / STATE:
+        proofImageUrl: sanitizeUrl(rawUrl),
+        orderId: p.orderId ?? "",
+        expiredAt: p.expiredAt ?? null,
+        createdAt: p.createdAt ?? "",
+      };
+    }),
     consultationForm: data.consultationForm ?? null,
     consentForm: data.consentForm ?? null,
   };

@@ -1,4 +1,7 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const rawUrl = (process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id")
+  .replace(/\/api\/?$/, "")
+  .replace(/\/+$/, "");
+const API_BASE_URL = rawUrl || "https://api.oasejiwa.id";
 
 function getAuthToken(): string {
   if (typeof window !== "undefined") {
@@ -134,22 +137,35 @@ export async function uploadGambar(file: File): Promise<string> {
   return data.url;
 }
 
-export async function submitTesResult(tesId: string | number, payload: any) {
+function authFetch(url: string, options: RequestInit = {}) {
   const token = getAuthToken();
-  if (!token) return null;
+  return fetch(url, {
+    ...options,
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
+    },
+  });
+}
 
+export async function submitTesResult(tesId: string | number, payload: any) {
   try {
-    const res = await fetch(`${API_BASE_URL}/tes/${tesId}/submit`, {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (!token) {
+      // User is Guest (not logged in). Do not invoke authenticated backend submit endpoint.
+      return { guest: true, success: true };
+    }
+
+    const res = await authFetch(`${API_BASE_URL}/tes/${tesId}/submit`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify(payload),
     });
 
     if (!res.ok) {
-      console.error("Gagal submit tes result ke backend status:", res.status);
+      const errText = await res.text().catch(() => "");
+      console.error(`Gagal submit tes result ke backend status: ${res.status}`, errText);
       return null;
     }
     return await res.json();
@@ -160,16 +176,9 @@ export async function submitTesResult(tesId: string | number, payload: any) {
 }
 
 export async function getUserTesResults(userId: string) {
-  const token = getAuthToken();
-  if (!token) return [];
-
   try {
-    const res = await fetch(`${API_BASE_URL}/tes/results/user/${userId}`, {
+    const res = await authFetch(`${API_BASE_URL}/tes/results/user/${userId}`, {
       cache: "no-store",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
     });
     if (!res.ok) return [];
     return await res.json();
@@ -180,16 +189,9 @@ export async function getUserTesResults(userId: string) {
 }
 
 export async function getMyTesResults() {
-  const token = getAuthToken();
-  if (!token) return [];
-
   try {
-    const res = await fetch(`${API_BASE_URL}/tes/results/my-results`, {
+    const res = await authFetch(`${API_BASE_URL}/tes/results/my-results`, {
       cache: "no-store",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
     });
     if (!res.ok) return [];
     return await res.json();
@@ -200,16 +202,9 @@ export async function getMyTesResults() {
 }
 
 export async function getAllTesResults() {
-  const token = getAuthToken();
-  if (!token) return [];
-
   try {
-    const res = await fetch(`${API_BASE_URL}/tes/results/all`, {
+    const res = await authFetch(`${API_BASE_URL}/tes/results/all`, {
       cache: "no-store",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
     });
     if (!res.ok) return [];
     return await res.json();
@@ -220,16 +215,9 @@ export async function getAllTesResults() {
 }
 
 export async function getTesResultDetail(id: string) {
-  const token = getAuthToken();
-  if (!token) return null;
-
   try {
-    const res = await fetch(`${API_BASE_URL}/tes/results/detail/${id}`, {
+    const res = await authFetch(`${API_BASE_URL}/tes/results/detail/${id}`, {
       cache: "no-store",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
     });
     if (!res.ok) return null;
     return await res.json();

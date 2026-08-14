@@ -2,30 +2,43 @@
 const DEFAULT_PLACEHOLDER =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300' fill='%23f1f5f9'%3E%3Crect width='400' height='300' fill='%23f1f5f9'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%2394a3b8' font-family='sans-serif' font-size='14' font-weight='500'%3EGambar Tidak Tersedia%3C/text%3E%3C/svg%3E";
 
-export function getImageUrl(path?: string | null): string {
-  // Jika path kosong / null / undefined / "null" / "undefined"
+const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dxmxxw7xh";
+
+export function getImageUrl(path?: string | null, fallback?: string): string {
+  // 1. Validasi jika path kosong / null
   if (!path || path.trim() === "" || path === "null" || path === "undefined") {
-    return DEFAULT_PLACEHOLDER;
+    return fallback || DEFAULT_PLACEHOLDER;
   }
 
-  // Jika sudah berupa URL lengkap (http:// atau https://)
-  if (path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
+  const cleanStr = path.trim();
+
+  // 2. Jika sudah berupa URL lengkap HTTPS / HTTP / Base64
+  if (cleanStr.startsWith("http://") || cleanStr.startsWith("https://") || cleanStr.startsWith("data:image/")) {
+    // Tangani jika ada URL localhost lama tersimpan di DB
+    if (cleanStr.includes("localhost")) {
+      return cleanStr.replace(/http:\/\/localhost:\d+/, "https://api.oasejiwa.id");
+    }
+    return cleanStr;
   }
 
-  // Ambil URL backend (Default ke http://localhost:5000)
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  // 3. Jika merupakan Cloudinary Public ID (misal: "duy21wtkls1yud1rvyxi" atau "psychologists/duy21...")
+  // Ciri: tidak memiliki ekstensi file (.jpg, .png) atau diawali folder cloudinary
+  if (!cleanStr.includes(".") || cleanStr.includes("cloudinary")) {
+    const publicId = cleanStr.replace(/^\/+/, "");
+    return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${publicId}`;
+  }
 
-  // Bersihkan slash di depan
-  let cleanPath = path.trim().replace(/^\/+/, "");
+  // 4. Default ke Backend Server VPS (Fallback ke https://api.oasejiwa.id, BUKAN localhost)
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || "https://api.oasejiwa.id";
 
-  // Pastikan ada awalan 'uploads/'
+  let cleanPath = cleanStr.replace(/^\/+/, "");
+
+  // Pastikan prefix 'uploads/' rapi
   if (cleanPath.startsWith("uploads/uploads/")) {
     cleanPath = cleanPath.replace("uploads/uploads/", "uploads/");
   } else if (!cleanPath.startsWith("uploads/")) {
     cleanPath = `uploads/${cleanPath}`;
   }
 
-  // HASIL AKHIR: http://localhost:5000/uploads/nama-file.jpg
   return `${backendUrl}/${cleanPath}`;
-}
+}

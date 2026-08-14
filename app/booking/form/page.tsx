@@ -8,6 +8,7 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas-pro";
 import { createBooking } from "@/lib/api/booking";
 import { getLayananById } from "@/lib/api/layanan";
+import { getAllPsychologistsPublic } from "@/lib/api/psychologist";
 import {
   User,
   Calendar,
@@ -346,6 +347,30 @@ function ConsultationFormContent() {
     return available[0]?.isoDate || new Date().toISOString().split("T")[0];
   });
 
+  const [selectedPsychologistId, setSelectedPsychologistId] = useState<string>(
+    psychologistId || ""
+  );
+  const [psychologistsList, setPsychologistsList] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (psychologistId) {
+      setSelectedPsychologistId(psychologistId);
+    }
+  }, [psychologistId]);
+
+  useEffect(() => {
+    getAllPsychologistsPublic()
+      .then((list: any) => {
+        if (Array.isArray(list)) {
+          setPsychologistsList(list);
+          if (!psychologistId && list.length > 0) {
+            setSelectedPsychologistId(list[0].id);
+          }
+        }
+      })
+      .catch((err: any) => console.error("Gagal memuat daftar psikolog:", err));
+  }, [psychologistId]);
+
   const [clientData, setClientData] = useState<ClientFormData>(emptyClientData);
   const [coupleClientData, setCoupleClientData] = useState<CoupleClientFormData>(emptyCoupleClientData);
 
@@ -673,6 +698,25 @@ function ConsultationFormContent() {
     setConsentData((prev) => ({ ...prev, signature: "" }));
   };
 
+  // 🟢 Helper untuk scroll otomatis ke pertanyaan pertama yang error
+  const scrollToFirstError = (newErrors: Record<string, string>) => {
+    const errorKeys = Object.keys(newErrors);
+    if (errorKeys.length === 0) return;
+
+    const firstKey = errorKeys[0];
+    const targetElement =
+      document.getElementById(`field-${firstKey}`) ||
+      document.querySelector(`[name="${firstKey}"]`) ||
+      document.querySelector(`[name="couple${firstKey.charAt(0).toUpperCase() + firstKey.slice(1)}"]`);
+
+    if (targetElement) {
+      targetElement.scrollIntoView({ behavior: "smooth", block: "center" });
+      if ("focus" in targetElement && typeof (targetElement as any).focus === "function") {
+        (targetElement as HTMLElement).focus();
+      }
+    }
+  };
+
   const validateStep2 = (): boolean => {
     const result = consultationFormSchema.safeParse(consultationData);
     if (!result.success) {
@@ -683,6 +727,9 @@ function ConsultationFormContent() {
         newErrors[key] = err.message;
       });
       setErrors(newErrors);
+
+      // 🟢 Auto scroll ke error pertama
+      setTimeout(() => scrollToFirstError(newErrors), 100);
       return false;
     }
     setErrors({});
@@ -699,6 +746,9 @@ function ConsultationFormContent() {
         newErrors[key] = err.message;
       });
       setErrors(newErrors);
+
+      // 🟢 Auto scroll ke error pertama
+      setTimeout(() => scrollToFirstError(newErrors), 100);
       return false;
     }
     setErrors({});
@@ -734,6 +784,15 @@ function ConsultationFormContent() {
       return;
     }
 
+    if (!selectedPsychologistId || selectedPsychologistId.trim() === "") {
+      setErrors((prev) => ({
+        ...prev,
+        psychologistId: "Silakan pilih psikolog terlebih dahulu.",
+      }));
+      alert("Silakan pilih psikolog terlebih dahulu.");
+      return;
+    }
+
     if (formStep === 1) {
       setFormStep(2);
     } else if (formStep === 2) {
@@ -757,13 +816,6 @@ function ConsultationFormContent() {
             noPreference: "NO_PREFERENCE",
           };
 
-          // Bentuk consultationForm berbeda untuk layanan pasangan (lihat
-          // coupleConsultationFormSchema) vs layanan individu.
-          // CATATAN: sama seperti clientData pada formulir individu (yang juga
-          // tidak dikirim ke createBooking), coupleClientData (nama/usia/alamat
-          // klien & pasangan) saat ini HANYA dipakai untuk formulir cetak/PDF,
-          // belum dikirim ke API. Kalau backend butuh data ini per booking,
-          // beri tahu aku bentuk payload yang diharapkan supaya bisa ditambahkan.
           const mappedConsultation = isCouple
             ? {
                 ...coupleConsultationData,
@@ -795,11 +847,11 @@ function ConsultationFormContent() {
               };
 
           const validScheduledDate = toValidIsoDateString(selectedDate);
-          const validConsentDate = toValidIsoDateString(consentData.consentDate!);
+const validConsentDate = toValidIsoDateString(consentData.consentDate!);
 
           const payload: any = {
             serviceId: Number(serviceId),
-            psychologistId: psychologistId || "",
+            psychologistId: (selectedPsychologistId || psychologistId || "").trim(),
             scheduleId: scheduleId || undefined,
             scheduledDate: validScheduledDate,
             scheduledTime: selectedTime,
@@ -813,9 +865,19 @@ function ConsultationFormContent() {
             },
           };
 
-          const booking = await createBooking(payload);
-          clearDraft();
-          router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
+// 🟢 Hanya masukkan scheduleId jika nilainya berupa string valid
+if (
+  scheduleId &&
+  scheduleId !== "null" &&
+  scheduleId !== "undefined" &&
+  scheduleId.trim() !== ""
+) {
+  payload.scheduleId = scheduleId;
+}
+
+const booking = await createBooking(payload);
+clearDraft();
+router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
         } catch (error: any) {
           console.error(error);
           alert(
@@ -1984,8 +2046,11 @@ function ConsultationFormContent() {
             <div>
               <p className="text-sm font-medium text-amber-800">Informasi Penting</p>
               <p className="text-sm text-amber-700">
-                Mohon isi data berikut secara manual dan pastikan datanya benar. Data ini
+                1. Mohon isi data berikut secara manual dan pastikan datanya benar. Data ini
                 akan digunakan psikolog untuk proses konsultasi pasangan Anda.
+              </p>
+              <p className="text-sm text-amber-700">
+                2. Setelah booking berhasil, kami akan mengirimkan email konfirmasi. Silakan cek Inbox atau folder Spam email Anda.
               </p>
             </div>
           </div>
@@ -2239,8 +2304,10 @@ function ConsultationFormContent() {
             <div>
               <p className="text-sm font-medium text-amber-800">Informasi Penting</p>
               <p className="text-sm text-amber-700">
-                Mohon isi data berikut secara manual dan pastikan datanya benar. Data ini
-                akan digunakan psikolog untuk proses konsultasi Anda.
+                1. Mohon isi data berikut secara manual dan pastikan datanya sudah benar untuk kebutuhan sesi konsultasi.
+              </p>
+              <p className="text-sm text-amber-700">
+                2. Setelah booking berhasil, kami akan mengirimkan email konfirmasi. Silakan cek Inbox atau folder Spam email Anda.
               </p>
             </div>
           </div>

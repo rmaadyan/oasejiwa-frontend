@@ -67,10 +67,10 @@ export default function SessionDetailModal({
 
     try {
       // 1. Panggil API backend NestJS
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id";
       const token = localStorage.getItem('token'); // Sesuaikan tempat penyimpanan token-mu
 
-      const res = await fetch(`${baseUrl}/psychologist/sessions/${session.id}/status`, {
+      const res = await fetch(`${apiUrl}/psychologist/sessions/${session.id}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

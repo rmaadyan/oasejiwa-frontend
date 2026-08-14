@@ -1,16 +1,19 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  "https://api.oasejiwa.id";
 
 /** Helper: parse JSON dengan aman — tidak crash jika response adalah HTML */
 async function safeJson(res: Response) {
-    const text = await res.text();
-    try {
-        return JSON.parse(text);
-    } catch {
-        // Server merespons dengan HTML (mis. 404/502), bukan JSON
-        throw new Error(`Server error (${res.status}): Pastikan backend sudah berjalan di ${API_BASE_URL}`);
-    }
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(
+      `Server error (${res.status}): Pastikan backend sudah berjalan di ${API_BASE_URL}`,
+    );
+  }
 }
-
 export async function registerUser(data: any) {
     const res = await fetch(`${API_BASE_URL}/auth/register`, {
         method: "POST",
@@ -84,7 +87,9 @@ export async function logoutUser() {
 }
 
 export function googleLogin() {
-    window.location.href = `${API_BASE_URL}/auth/google`;
+    if (typeof window !== "undefined") {
+        window.location.href = `${API_BASE_URL}/auth/google`;
+    }
 }
 
 export async function emailInput(email: string) {
@@ -156,10 +161,34 @@ export async function getAuthMe() {
         credentials: "include",
     });
 
+    // Jika 401 (belum login), kembalikan null agar tidak crash/throw error
+    if (res.status === 401) {
+        return null;
+    }
+
+    const result = await safeJson(res);
+
+    if (!res.ok) {
+        throw new Error(result.message || "Gagal mengambil data user");
+    }
+
+    return result;
+}
+
+export async function changeVerificationEmail(oldEmail: string, newEmail: string) {
+    const res = await fetch(`${API_BASE_URL}/auth/change-verification-email`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ oldEmail, newEmail }),
+    });
+
     const result = await res.json();
 
     if (!res.ok) {
-        throw new Error(result.message || "Unauthorized");
+        throw new Error(result.message || "Gagal mengubah email verifikasi");
     }
 
     return result;

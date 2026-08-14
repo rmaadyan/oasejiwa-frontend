@@ -1,4 +1,4 @@
-'use client'
+'use client';
 
 import EditAddress from "@/components/features/user/profileManagement/editAddress";
 import EditPersonalInformation from "@/components/features/user/profileManagement/editPersonalInfo";
@@ -13,6 +13,7 @@ import {
   Phone, 
   User, 
   X, 
+  ShieldCheck,
   Key, 
   Camera, 
   CheckCircle2, 
@@ -22,12 +23,19 @@ import {
   MapPin,
   Sparkles,
   LayoutDashboard,
-  History
+  History,
+  ClipboardList,
+  ArrowRight,
+  HeartHandshake,
+  BrainCircuit,
+  FileText
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { getMe, updateUserProfile, uploadUserAvatar, changeUserPassword } from "@/lib/api/user";
 import MyBookings from "@/components/features/user/profileManagement/MyBookings";
+import TestHistoryTab from "@/components/features/user/profileManagement/TestHistoryTab";
 import { logoutUser } from "@/lib/api/auth";
 import { getImageUrl } from "@/lib/utils/getImageUrl";
 import {
@@ -54,7 +62,7 @@ export default function Profile() {
   const [isEditPersonalInformation, setIsEditPersonalInformation] = useState(false);
   const [isEditAddress, setIsEditAddress] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"profile" | "bookings">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "bookings" | "tes">("profile");
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,9 +81,15 @@ export default function Profile() {
     confirmPassword: "",
   });
 
-  useEffect(() => {
+useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setRedirectUrl(params.get("redirect"));
+
+    // 🟢 Cek apakah ada query ?tab=bookings atau ?tab=tes
+    const tabParam = params.get("tab");
+    if (tabParam === "bookings" || tabParam === "tes" || tabParam === "profile") {
+      setActiveTab(tabParam);
+    }
   }, []);
 
   const [profileData, setProfileData] = useState<ProfileData>({
@@ -96,6 +110,17 @@ export default function Profile() {
       try {
         setIsLoading(true);
         const data = await getMe();
+        
+        // 🟢 CEK ROLE USER: Jika Admin atau Psikolog, arahkan ke dashboard masing-masing
+        const userRole = data.role || data.user?.role;
+        if (userRole === "ADMIN" || userRole === "SUPERADMIN") {
+          router.replace("/admin");
+          return;
+        } else if (userRole === "PSYCHOLOGIST") {
+          router.replace("/psychologist/dashboard");
+          return;
+        }
+
         setProfileData({
           fullName: data.profile?.name ?? data.fullName ?? "",
           gender: data.profile?.gender ?? null,
@@ -263,30 +288,18 @@ export default function Profile() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center font-poppins">
-        <div className="bg-white p-6 rounded-2xl border-2 border-red-300 shadow-md text-center max-w-md">
-          <p className="text-red-600 font-semibold mb-2">Terjadi Kesalahan</p>
-          <p className="text-gray-600 text-sm mb-4">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-[#234463] text-white rounded-xl text-sm font-medium hover:bg-[#2B5379] transition cursor-pointer"
-          >
-            Coba Lagi
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-slate-100 font-poppins pt-20 lg:pt-24 pb-16 relative">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#E8F3FC] font-poppins pt-20 lg:pt-24 pb-16 relative overflow-hidden">
+      
+      {/* Ambient Light Orbs */}
+      <div className="absolute top-10 left-1/4 w-[450px] h-[450px] bg-blue-300/40 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-10 right-1/4 w-[450px] h-[450px] bg-sky-200/50 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
         
-        {/* HEADER BAR MOBILE */}
-        <div className="flex items-center justify-between lg:hidden mb-4 bg-white p-4 rounded-2xl border-2 border-slate-400 shadow-md">
-          <h1 className="text-xl font-bold text-[#234463]">Profil Saya</h1>
+        {/* Header Bar Mobile */}
+        <div className="flex items-center justify-between lg:hidden mb-4 bg-white p-4 rounded-2xl border border-blue-200 shadow-sm">
+          <h1 className="text-xl font-bold text-[#234463]">Portal Pasien</h1>
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             className="p-2 rounded-xl bg-blue-50 border border-blue-200 text-[#234463]"
@@ -295,20 +308,20 @@ export default function Profile() {
           </button>
         </div>
 
-        {/* BANNER WARNING PROFIL BELUM LENGKAP */}
+        {/* Banner Warning Profil Belum Lengkap */}
         {redirectUrl && (
-          <div className="mb-6 bg-amber-50 border-2 border-amber-400 rounded-2xl p-4 flex items-start gap-3 shadow-md">
+          <div className="mb-6 bg-amber-50/90 backdrop-blur-sm border border-amber-200 rounded-2xl p-4 flex items-start gap-3 shadow-md">
             <span className="text-amber-600 text-xl">⚠️</span>
             <div>
-              <p className="font-semibold text-amber-800 text-sm">Profil Belum Lengkap</p>
-              <p className="text-amber-700 text-xs mt-0.5">
-                Lengkapi data profil Anda terlebih dahulu untuk melanjutkan booking. Setelah semua data terisi, Anda akan otomatis diarahkan kembali.
+              <p className="font-semibold text-amber-800 text-sm">Profil belum lengkap</p>
+              <p className="text-amber-700 text-sm mt-0.5">
+                Lengkapi data profil Anda terlebih dahulu untuk melanjutkan booking. 
+                Setelah semua data terisi, Anda akan otomatis diarahkan kembali.
               </p>
             </div>
           </div>
         )}
 
-        {/* GRID UTAMA LAYOUT DASHBOARD */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
           
           {/* 🟢 1. SIDEBAR NAVIGASI KIRI */}
@@ -316,45 +329,36 @@ export default function Profile() {
             className={`
               lg:col-span-3 lg:sticky lg:top-24 lg:h-fit z-30
               fixed lg:static inset-0
-              bg-black/40 lg:bg-transparent backdrop-blur-xs lg:backdrop-blur-none
+              bg-black/40 lg:bg-transparent backdrop-blur-sm lg:backdrop-blur-none
               transition-opacity duration-300
-              ${
-                isSidebarOpen
-                  ? "opacity-100"
-                  : "opacity-0 pointer-events-none lg:opacity-100 lg:pointer-events-auto"
-              }
+              ${isSidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none lg:opacity-100 lg:pointer-events-auto"}
             `}
             onClick={() => setIsSidebarOpen(false)}
           >
-            {/* GARIS PEMBATAS SIDEBAR KIRI DIPERTEGAS */}
             <div
               className={`
-                w-72 lg:w-full bg-white border-2 border-slate-400 rounded-2xl p-4 shadow-md
+                w-72 lg:w-full bg-white border border-blue-100 rounded-2xl p-5 shadow-md
                 fixed lg:static top-0 right-0 h-full lg:h-auto z-40
                 transition-transform duration-300 overflow-y-auto
-                ${
-                  isSidebarOpen
-                    ? "translate-x-0"
-                    : "translate-x-full lg:translate-x-0"
-                }
+                ${isSidebarOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"}
               `}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-200 lg:hidden">
-                <span className="font-bold text-slate-800 text-sm">Menu Navigasi</span>
+              <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 lg:hidden">
+                <span className="font-bold text-[#234463] text-sm">Menu Navigasi</span>
                 <button onClick={() => setIsSidebarOpen(false)} className="text-slate-400">
                   <X size={18} />
                 </button>
               </div>
 
-              {/* JUDUL NAVIGASI PANEL */}
-              <div className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-[#234463] uppercase tracking-wider bg-blue-50 rounded-xl mb-3 border border-blue-300">
+              {/* Header Panel */}
+              <div className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-[#234463] uppercase tracking-wider bg-blue-50/80 rounded-xl mb-4 border border-blue-100">
                 <LayoutDashboard size={15} />
                 <span>Panel Pasien</span>
               </div>
 
-              {/* MENU NAVIGATION */}
-              <nav className="space-y-1 text-sm">
+              {/* Menu Navigation */}
+              <nav className="space-y-1.5 text-sm">
                 <SidebarItem
                   icon={<Home size={18} />}
                   label="Dashboard Utama"
@@ -374,10 +378,19 @@ export default function Profile() {
                 />
                 <SidebarItem
                   icon={<History size={18} />}
-                  label="Riwayat & Booking"
+                  label="Riwayat Booking"
                   active={activeTab === "bookings"}
                   onClick={() => {
                     setActiveTab("bookings");
+                    setIsSidebarOpen(false);
+                  }}
+                />
+                <SidebarItem
+                  icon={<ClipboardList size={18} />}
+                  label="Riwayat Tes"
+                  active={activeTab === "tes"}
+                  onClick={() => {
+                    setActiveTab("tes");
                     setIsSidebarOpen(false);
                   }}
                 />
@@ -390,7 +403,7 @@ export default function Profile() {
                   }}
                 />
 
-                <div className="pt-3 mt-3 border-t border-slate-200">
+                <div className="pt-3 mt-3 border-t border-slate-100">
                   <SidebarItem
                     icon={<LogOut size={18} />}
                     label="Keluar / Logout"
@@ -402,17 +415,17 @@ export default function Profile() {
             </div>
           </aside>
 
-          {/* 🟢 2. KONTEN UTAMA DENGAN PORTAL BANNER DI KANAN */}
+          {/* 🟢 2. KONTEN UTAMA */}
           <main className="lg:col-span-9 space-y-6 w-full">
             
-            {/* PORTAL BANNER HERO HEADER */}
-            <div className="bg-gradient-to-r from-[#234463] via-[#2B5379] to-[#3B6E9B] rounded-3xl p-6 sm:p-8 text-white shadow-lg border-2 border-[#1E3B59] relative overflow-hidden">
+            {/* PORTAL BANNER HERO HEADER (Gaya Opsi 1) */}
+            <div className="bg-gradient-to-r from-[#234463] via-[#2B5379] to-[#3B6E9B] rounded-3xl p-6 sm:p-8 text-white shadow-lg border border-[#1E3B59] relative overflow-hidden">
               <div className="absolute -right-10 -top-10 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none" />
               <div className="absolute right-20 -bottom-10 w-36 h-36 bg-blue-300/20 rounded-full blur-xl pointer-events-none" />
 
               <div className="relative z-10 flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
                 
-                {/* AVATAR PROFIL DENGAN CAMERA BADGE */}
+                {/* Avatar dengan Camera Badge */}
                 <div className="relative shrink-0 group">
                   <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-white/20 backdrop-blur-md border-2 border-white/50 shadow-inner overflow-hidden flex items-center justify-center text-white font-bold text-3xl">
                     {profileData.avatarUrl ? (
@@ -428,7 +441,7 @@ export default function Profile() {
 
                   <label
                     title="Ubah Foto Profil"
-                    className="absolute -bottom-2 -right-2 bg-white text-[#234463] p-2 rounded-xl border border-blue-300 shadow-md hover:bg-blue-50 transition transform hover:scale-105 cursor-pointer"
+                    className="absolute -bottom-2 -right-2 bg-white text-[#234463] p-2 rounded-xl border border-blue-200 shadow-md hover:bg-blue-50 transition transform hover:scale-105 cursor-pointer"
                   >
                     <Camera size={15} />
                     <input
@@ -441,7 +454,7 @@ export default function Profile() {
                   </label>
                 </div>
 
-                {/* DETIL UCAPAN DAN IDENTITAS */}
+                {/* Info & Ucapan */}
                 <div className="space-y-2 flex-1">
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-sm border border-white/25 text-xs text-blue-100 font-medium">
                     <Sparkles size={13} className="text-amber-300" />
@@ -453,7 +466,7 @@ export default function Profile() {
                   </h1>
 
                   <p className="text-xs sm:text-sm text-blue-100 leading-relaxed max-w-2xl">
-                    Kelola informasi profil pribadi, alamat domisili, serta riwayat jadwal konsultasi psikologi Anda secara terintegrasi di sini.
+                    Kelola informasi profil pribadi, jadwal sesi konseling, serta riwayat tes kesehatan mental Anda secara terpadu di sini.
                   </p>
 
                   <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-2">
@@ -472,103 +485,144 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* TAB ISI PROFIL */}
-            {activeTab === "profile" ? (
-              <div className="space-y-6">
-                
-                {/* PROGRESS BAR PROFIL */}
-                <ProfileProgressBar
-                  fullName={profileData.fullName}
-                  birthday={profileData.birthday}
-                  gender={profileData.gender}
-                  country={profileData.country}
-                  city={profileData.city}
-                  address={profileData.address}
-                  phone={profileData.phone}
-                  email={profileData.email}
-                />
+            {/* KONTEN TAB */}
+{activeTab === "profile" ? (
+  <div className="space-y-6">
+    
+    {/* 🟢 1. PROGRESS KELENGKAPAN PROFIL (LEBAR MEMANJANG PENUH) */}
+    <div className="w-full">
+      <ProfileProgressBar {...profileData} />
+    </div>
 
-                <QuoteOfDay />
+    {/* 🟢 2. REFLEKSI HARI INI (MEMANJANG DI BAWAH PROGRESS BAR) */}
+    <div className="w-full">
+      <QuoteOfDay />
+    </div>
 
-                <StatsSection
-                  isVerified={profileData.isEmailVerified ?? true}
-                  bookingCount={bookingCount}
-                  memberSince={profileData.birthday}
-                />
+    {/* 🟢 3. CARD ACTION: BUTUH TEMAN CERITA & TES KESEHATAN MENTAL */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      
+      {/* Card 1: Butuh Teman Cerita */}
+      <div className="bg-gradient-to-br from-white to-blue-50/50 border border-blue-100 rounded-3xl p-6 shadow-sm flex flex-col justify-between space-y-4 hover:shadow-md transition">
+        <div className="space-y-2.5">
+          <div className="w-10 h-10 rounded-xl bg-blue-100 text-[#234463] flex items-center justify-center">
+            <HeartHandshake size={20} />
+          </div>
+          <h3 className="font-bold text-[#234463] text-base sm:text-lg">Butuh Teman Cerita?</h3>
+          <p className="text-xs text-slate-600 leading-relaxed">
+            Jadwalkan sesi konseling dengan psikolog klinis profesional Oase Jiwa secara daring maupun tatap muka langsung.
+          </p>
+        </div>
+        <div>
+          <Link
+            href="/layanan"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#234463] text-white rounded-xl text-xs font-semibold hover:bg-[#2B5379] transition shadow-sm active:scale-95"
+          >
+            <span>Lihat Layanan Konseling</span>
+            <ArrowRight size={14} />
+          </Link>
+        </div>
+      </div>
 
-                <Separator />
+      {/* Card 2: Tes Kesehatan Mental */}
+      <div className="bg-gradient-to-br from-white to-sky-50/50 border border-blue-100 rounded-3xl p-6 shadow-sm flex flex-col justify-between space-y-4 hover:shadow-md transition">
+        <div className="space-y-2.5">
+          <div className="w-10 h-10 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center">
+            <BrainCircuit size={20} />
+          </div>
+          <h3 className="font-bold text-[#234463] text-base sm:text-lg">Tes Kesehatan Mental</h3>
+          <p className="text-xs text-slate-600 leading-relaxed">
+            Kenali kondisi stres, kecemasan, dan tingkat depresi Anda dengan instrumen tes psikologi terstandar (DASS-21).
+          </p>
+        </div>
+        <div>
+          <Link
+            href="/tes"
+            className="inline-flex items-center gap-2 px-4 py-2.5 border border-[#234463] text-[#234463] bg-white rounded-xl text-xs font-semibold hover:bg-blue-50 transition shadow-sm active:scale-95"
+          >
+            <span>Mulai Tes Psikologi</span>
+            <ArrowRight size={14} />
+          </Link>
+        </div>
+      </div>
+    </div>
 
-                {/* CARD 1: INFORMASI PRIBADI — aksen biru di kiri agar terpisah jelas */}
-                <div className="bg-white border-2 border-slate-300 border-l-4 border-l-[#234463] rounded-2xl shadow-md hover:shadow-lg transition-shadow p-6 space-y-5">
-                  <div className="flex flex-row justify-between items-center gap-3">
-                    <div>
-                      <h2 className="font-bold text-[#234463] text-base sm:text-lg flex items-center gap-2">
-                        <User size={18} className="text-[#234463]" />
-                        Informasi Pribadi
-                      </h2>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Kelola identitas diri dan kontak utama Anda
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => setIsEditPersonalInformation(true)}
-                      className="flex items-center gap-1.5 text-xs bg-[#234463] text-white font-semibold rounded-xl px-4 py-2 hover:bg-[#2B5379] shadow-xs transition cursor-pointer"
-                    >
-                      <Pencil size={13} />
-                      <span>Edit</span>
-                    </button>
-                  </div>
+    <Separator />
 
-                  <div className="border-t border-slate-200" />
+    {/* 🟢 4. CARD INFORMASI PRIBADI */}
+    <div className="bg-white border border-blue-100 rounded-2xl shadow-sm hover:shadow-md transition p-6 space-y-5">
+      <div className="flex flex-row justify-between items-center gap-3">
+        <div>
+          <h2 className="font-bold text-[#234463] text-base sm:text-lg flex items-center gap-2">
+            <User size={18} className="text-[#234463]" />
+            Informasi Pribadi
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Kelola identitas diri dan kontak utama Anda
+          </p>
+        </div>
+        <button
+          onClick={() => setIsEditPersonalInformation(true)}
+          className="flex items-center gap-1.5 text-xs bg-[#234463] text-white font-semibold rounded-xl px-4 py-2 hover:bg-[#2B5379] shadow-xs transition cursor-pointer"
+        >
+          <Pencil size={13} />
+          <span>Edit</span>
+        </button>
+      </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                    <ProfileInformation label="Nama Lengkap" value={profileData.fullName || "—"} />
-                    <ProfileInformation label="Tanggal Lahir" value={profileData.birthday || "—"} icon={<Calendar size={15} />} />
-                    <ProfileInformation label="Jenis Kelamin" value={profileData.gender === "MALE" ? "Laki-laki" : profileData.gender === "FEMALE" ? "Perempuan" : "—"} icon={<User size={15} />} />
-                    <ProfileInformation label="Alamat Email" value={profileData.email || "—"} icon={<Mail size={15} />} />
-                    <ProfileInformation label="Nomor Telepon / WA" value={profileData.phone || "—"} icon={<Phone size={15} />} />
-                  </div>
-                </div>
+      <div className="border-t border-slate-100" />
 
-                {/* CARD 2: ALAMAT DOMISILI — aksen teal di kiri agar beda dari card di atas */}
-                <div className="bg-white border-2 border-slate-300 border-l-4 border-l-teal-500 rounded-2xl shadow-md hover:shadow-lg transition-shadow p-6 space-y-5">
-                  <div className="flex flex-row justify-between items-center gap-3">
-                    <div>
-                      <h2 className="font-bold text-[#234463] text-base sm:text-lg flex items-center gap-2">
-                        <MapPin size={18} className="text-teal-600" />
-                        Alamat Domisili
-                      </h2>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Informasi tempat tinggal dan kota domisili Anda
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => setIsEditAddress(true)}
-                      className="flex items-center gap-1.5 text-xs bg-teal-600 text-white font-semibold rounded-xl px-4 py-2 hover:bg-teal-700 shadow-xs transition cursor-pointer"
-                    >
-                      <Pencil size={13} />
-                      <span>Edit</span>
-                    </button>
-                  </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        <ProfileInformation label="Nama Lengkap" value={profileData.fullName || "—"} />
+        <ProfileInformation label="Tanggal Lahir" value={profileData.birthday || "—"} icon={<Calendar size={15} />} />
+        <ProfileInformation label="Jenis Kelamin" value={profileData.gender === "MALE" ? "Laki-laki" : profileData.gender === "FEMALE" ? "Perempuan" : "—"} icon={<User size={15} />} />
+        <ProfileInformation label="Alamat Email" value={profileData.email || "—"} icon={<Mail size={15} />} />
+        <ProfileInformation label="Nomor Telepon / WA" value={profileData.phone || "—"} icon={<Phone size={15} />} />
+      </div>
+    </div>
 
-                  <div className="border-t border-slate-200" />
+    {/* 🟢 5. CARD ALAMAT DOMISILI */}
+    <div className="bg-white border border-blue-100 rounded-2xl shadow-sm hover:shadow-md transition p-6 space-y-5">
+      <div className="flex flex-row justify-between items-center gap-3">
+        <div>
+          <h2 className="font-bold text-[#234463] text-base sm:text-lg flex items-center gap-2">
+            <MapPin size={18} className="text-teal-600" />
+            Alamat Domisili
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Informasi tempat tinggal dan kota domisili Anda
+          </p>
+        </div>
+        <button
+          onClick={() => setIsEditAddress(true)}
+          className="flex items-center gap-1.5 text-xs bg-teal-600 text-white font-semibold rounded-xl px-4 py-2 hover:bg-teal-700 shadow-xs transition cursor-pointer"
+        >
+          <Pencil size={13} />
+          <span>Edit</span>
+        </button>
+      </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                    <ProfileInformation label="Negara" value={profileData.country || "—"} />
-                    <ProfileInformation label="Kota / Kabupaten" value={profileData.city || "—"} />
-                    <div className="md:col-span-2">
-                      <ProfileInformation label="Alamat Lengkap" value={profileData.address || "—"} />
-                    </div>
-                  </div>
-                </div>
+      <div className="border-t border-slate-100" />
 
-              </div>
-            ) : (
-              /* TAB MY BOOKINGS — aksen amber di kiri */
-              <div className="bg-white border-2 border-slate-300 border-l-4 border-l-amber-500 rounded-2xl shadow-md p-5 sm:p-6">
-                <MyBookings />
-              </div>
-            )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        <ProfileInformation label="Negara" value={profileData.country || "—"} />
+        <ProfileInformation label="Kota / Kabupaten" value={profileData.city || "—"} />
+        <div className="md:col-span-2">
+          <ProfileInformation label="Alamat Lengkap" value={profileData.address || "—"} />
+        </div>
+      </div>
+    </div>
+
+  </div>
+) : activeTab === "bookings" ? (
+  /* TAB MY BOOKINGS */
+  <div className="bg-white border border-blue-100 rounded-2xl shadow-sm p-5 sm:p-6">
+    <MyBookings />
+  </div>
+) : (
+  /* TAB RIWAYAT TES */
+  <TestHistoryTab />
+)}
 
           </main>
         </div>
@@ -609,8 +663,8 @@ export default function Profile() {
         {/* MODAL CHANGE PASSWORD */}
         {isChangePasswordOpen && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-5 shadow-2xl animate-in fade-in zoom-in-95 border-2 border-slate-400">
-              <div className="flex justify-between items-center border-b border-slate-200 pb-3">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-5 shadow-2xl animate-in fade-in zoom-in-95 border border-slate-100">
+              <div className="flex justify-between items-center border-b border-slate-100 pb-3">
                 <h3 className="font-bold text-[#234463] text-base flex items-center gap-2">
                   <Key size={18} /> Ubah Kata Sandi
                 </h3>
@@ -635,7 +689,7 @@ export default function Profile() {
                       onChange={(e) =>
                         setPassData({ ...passData, currentPassword: e.target.value })
                       }
-                      className="w-full px-3.5 py-2.5 border-2 border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-100"
+                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-100"
                       placeholder="Masukkan kata sandi lama"
                     />
                     <button
@@ -660,7 +714,7 @@ export default function Profile() {
                       onChange={(e) =>
                         setPassData({ ...passData, newPassword: e.target.value })
                       }
-                      className="w-full px-3.5 py-2.5 border-2 border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-100"
+                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-100"
                       placeholder="Minimal 6 karakter"
                     />
                     <button
@@ -684,16 +738,16 @@ export default function Profile() {
                     onChange={(e) =>
                       setPassData({ ...passData, confirmPassword: e.target.value })
                     }
-                    className="w-full px-3.5 py-2.5 border-2 border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-100"
+                    className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-100"
                     placeholder="Ulangi kata sandi baru"
                   />
                 </div>
 
-                <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+                <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => setIsChangePasswordOpen(false)}
-                    className="px-4 py-2 border border-slate-300 text-slate-600 text-xs font-semibold rounded-xl hover:bg-slate-50 cursor-pointer"
+                    className="px-4 py-2 border border-slate-200 text-slate-600 text-xs font-semibold rounded-xl hover:bg-slate-50 cursor-pointer"
                   >
                     Batal
                   </button>

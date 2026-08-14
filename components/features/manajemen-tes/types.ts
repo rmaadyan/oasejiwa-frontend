@@ -12,6 +12,9 @@ export type PertanyaanItem = {
   teks: string;
   arah: ArahItem;
   section?: string;
+  urutan?: number;
+  image?: string;
+  imageUrl?: string;
 };
 
 export type LikertOption = {

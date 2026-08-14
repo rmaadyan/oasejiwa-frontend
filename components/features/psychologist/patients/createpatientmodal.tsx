@@ -99,8 +99,11 @@ export default function CreatePatientModal({
     setSubmitting(true);
 
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-      const token = typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
+      const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id").replace(/\/+$/, "");
+      const token =
+        typeof window !== "undefined"
+          ? localStorage.getItem("auth_token") || localStorage.getItem("token") || ""
+          : "";
 
       const res = await fetch(`${API_BASE_URL}/psychologist/patients`, {
         method: "POST",
@@ -468,18 +471,6 @@ export default function CreatePatientModal({
                   type="text"
                   value={formData.medication}
                   onChange={(e) => setFormData({ ...formData, medication: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2B5379]"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-bold text-gray-700">Alergi</label>
-                <input
-                  id="allergies"
-                  name="allergies"
-                  type="text"
-                  value={formData.allergies}
-                  onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
                   className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2B5379]"
                 />
               </div>

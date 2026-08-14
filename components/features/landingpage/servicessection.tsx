@@ -1,7 +1,7 @@
 "use client";
 
 import type { LayananItem } from "@/components/features/manajemen-layanan/types";
-import { getAllLayanan } from "@/lib/api/layanan";
+import { getAllLayanan, getAllLayananPublic } from "@/lib/api/layanan";
 import { getImageUrl } from "@/lib/utils/getImageUrl";
 import { useRouter } from "next/navigation";
 
@@ -24,15 +24,18 @@ export default function ServicesSection() {
   const [loading, setLoading] = useState(true);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
-  const [scrollDirection, setScrollDirection] = useState<
-    "left" | "right" | null
-  >(null);
+  const router = useRouter();
 
   useEffect(() => {
     async function fetchLayanan() {
       try {
-        const data = await getAllLayanan();
-        setServices(data);
+        let data: LayananItem[] = [];
+        try {
+          data = await getAllLayananPublic();
+        } catch {
+          data = await getAllLayanan();
+        }
+        setServices(data || []);
       } catch (err) {
         console.error("Gagal fetch layanan:", err);
       } finally {
@@ -42,9 +45,16 @@ export default function ServicesSection() {
     fetchLayanan();
   }, []);
 
-  const activeServices = services.filter((item) => item.status === "Aktif");
-  const displayedServices = activeServices.slice(0, 5);
-  const router = useRouter();
+  // 🟢 FILTER AMAN: Toleran terhadap variasi huruf kapital status atau data kosong
+  const activeServices = services.filter(
+    (item) => !item.status || item.status.toLowerCase() === "aktif" || item.status === "Draft"
+  );
+
+  // Ambil list data akhir (Fallback ke `services` jika filter kosong)
+  const listData = activeServices.length > 0 ? activeServices : services;
+  
+  // Ambil maksimal 3 item untuk beranda
+  const displayedServices = listData.slice(0, 3);
 
   const checkScrollPosition = () => {
     const el = scrollerRef.current;
@@ -58,12 +68,8 @@ export default function ServicesSection() {
   const scrollByCard = (dir: "left" | "right") => {
     const el = scrollerRef.current;
     if (!el) return;
-    setScrollDirection(dir);
-    el.scrollBy({ left: dir === "left" ? -420 : 420, behavior: "smooth" });
-    setTimeout(() => {
-      checkScrollPosition();
-      setScrollDirection(null);
-    }, 300);
+    el.scrollBy({ left: dir === "left" ? -350 : 350, behavior: "smooth" });
+    setTimeout(() => checkScrollPosition(), 300);
   };
 
   const formatPrice = (price: number) => `Rp ${(price || 0).toLocaleString("id-ID")}`;
@@ -74,14 +80,14 @@ export default function ServicesSection() {
 
   if (loading) {
     return (
-      <section id="services" className="bg-[#F5FBFF] py-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <h2 className="text-center text-4xl font-semibold text-[#2B5379] md:text-5xl mb-12">
-            Layanan Kami
+      <section id="services" className="bg-[#F0F4F8] py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-4xl font-bold text-[#1E293B] md:text-5xl mb-8">
+            Layanan <span className="text-[#234463]">Kami</span>
           </h2>
           <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#2B5379]"></div>
-            <span className="ml-3 text-[#2B5379]">Memuat layanan...</span>
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#234463]"></div>
+            <span className="ml-3 text-[#234463] font-medium">Memuat layanan...</span>
           </div>
         </div>
       </section>
@@ -89,7 +95,7 @@ export default function ServicesSection() {
   }
 
   return (
-    <section id="services" className="bg-[#F5FBFF] py-20 overflow-hidden">
+    <section id="services" className="bg-[#F0F4F8] py-20 overflow-hidden">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div
@@ -97,35 +103,31 @@ export default function ServicesSection() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
+          viewport={{ once: true }}
         >
-          <h2 className="text-center text-4xl font-semibold text-[#2B5379] md:text-5xl">
-            Layanan Kami
+          <h2 className="text-center text-4xl font-bold text-[#1E293B] md:text-5xl">
+            Layanan <span className="text-[#234463]">Kami</span>
           </h2>
         </motion.div>
 
         <div className="relative">
+          {/* Tombol Scroll Kiri */}
           <AnimatePresence>
             {canScrollLeft && (
-              <motion.div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-[#F5FBFF] to-transparent z-10" />
-            )}
-          </AnimatePresence>
-
-          <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-[#F5FBFF] to-transparent z-10" />
-
-          <AnimatePresence>
-            {canScrollLeft && (
-              <motion.button
+              <button
+                type="button"
                 onClick={() => scrollByCard("left")}
-                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-20 grid h-12 w-12 place-items-center rounded-full bg-white shadow-lg cursor-pointer"
+                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-20 grid h-12 w-12 place-items-center rounded-full bg-white shadow-lg hover:bg-slate-50 transition-all cursor-pointer"
               >
                 <ChevronLeft className="h-6 w-6 text-[#2B5379]" />
-              </motion.button>
+              </button>
             )}
           </AnimatePresence>
 
+          {/* Scroller Container */}
           <div
             ref={scrollerRef}
-            className="flex gap-5 overflow-x-auto scroll-smooth pb-4 px-2"
+            className="flex gap-6 overflow-x-auto scroll-smooth pb-4 px-2"
             onScroll={checkScrollPosition}
           >
             {displayedServices.length === 0 ? (
@@ -135,133 +137,127 @@ export default function ServicesSection() {
                 </p>
               </div>
             ) : (
-              displayedServices.map((item) => {
-                // 🟢 1. Cek path gambar dari API
+              displayedServices.map((item, index) => {
                 const rawImagePath =
                   item.coverUrl ||
                   (item as any).imageUrl ||
                   (item as any).image;
 
-                // 🟢 2. Ubah path relatif menjadi URL absolut ke backend NestJS
                 const imageSrc = getImageUrl(rawImagePath);
 
                 return (
-                  <motion.div
+                  <div
                     key={item.id}
-                    className="flex flex-col overflow-hidden rounded-[22px] bg-[#E8F6FF] shadow-md w-[340px] shrink-0 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 group"
-                    initial={{
-                      opacity: 0,
-                      x: scrollDirection === "left" ? -50 : 50,
-                    }}
-                    animate={{ opacity: 1, x: 0 }}
+                    /* 🟢 KUNCI ATURAN HP VS LAPTOP:
+                       HP (layar kecil): kartu index 0 & 1 tampil (2 kartu), index 2 hidden.
+                       Laptop (md): kartu index 2 berubah jadi md:flex (3 kartu tampil). */
+                    className={`bg-[#DDEEFC] border-2 border-[#B3D7F8] rounded-3xl p-6 shadow-md hover:shadow-xl hover:border-[#234463] hover:-translate-y-1 transition-all duration-300 flex-col justify-between shrink-0 w-[280px] sm:w-[320px] ${
+                      index === 2 ? "hidden md:flex" : "flex"
+                    }`}
                   >
-                    {/* Gambar atas */}
-                    <div className="relative h-48 w-full bg-slate-200 overflow-hidden">
-                      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#234463]/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10" />
-                      <img
-                        src={imageSrc}
-                        alt={item.nama}
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                        onError={(e) => {
-                          // Matikan event onerror agar tidak loop & set fallback SVG Data-URI
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.src =
-                            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300' fill='%23f1f5f9'%3E%3Crect width='400' height='300' fill='%23f1f5f9'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%2394a3b8' font-family='sans-serif' font-size='14' font-weight='500'%3EGambar Tidak Tersedia%3C/text%3E%3C/svg%3E";
-                        }}
-                      />
-                    </div>
+                    <div className="flex flex-col items-center text-center">
+                      {/* GAMBAR FOTO */}
+                      <div className="w-full h-44 rounded-2xl overflow-hidden border-4 border-white shadow-md mb-4 bg-slate-100">
+                        <img
+                          src={imageSrc}
+                          alt={item.nama}
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src =
+                              "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300' fill='%23f1f5f9'%3E%3Crect width='400' height='300' fill='%23f1f5f9'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%2394a3b8' font-family='sans-serif' font-size='14' font-weight='500'%3EGambar Tidak Tersedia%3C/text%3E%3C/svg%3E";
+                          }}
+                        />
+                      </div>
 
-                    {/* Konten bawah */}
-                    <div className="flex flex-1 flex-col p-6">
-                      <h3 className="text-[18px] font-semibold text-[#234463] mb-4 line-clamp-2 leading-tight">
+                      {/* JUDUL */}
+                      <h3 className="text-xl font-bold text-[#1E3A5F] leading-snug line-clamp-2 min-h-[56px] flex items-center justify-center">
                         {item.nama}
                       </h3>
 
-                      <div className="w-12 h-1 bg-[#234463] rounded-full mb-4 group-hover:w-20 transition-all duration-300" />
+                      {/* GARIS PEMBATAS */}
+                      <div className="w-full border-t border-[#C3E0FA] my-3"></div>
 
-                      <p className="text-[14px] text-[#4B4B4B] line-clamp-2 mb-4 leading-relaxed">
-                        {item.deskripsi}
-                      </p>
-
-                      <div className="space-y-3 mb-6">
-                        {/* Durasi */}
-                        <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 flex items-center gap-3">
-                          <div className="w-9 h-9 bg-[#234463] rounded-full flex items-center justify-center shrink-0">
+                      {/* KONTEN DETAIL (DURASI & HARGA) */}
+                      <div className="w-full space-y-3 text-left">
+                        {/* DURASI */}
+                        <div className="bg-white/60 p-2.5 rounded-xl border border-[#C3E0FA] flex items-center gap-3">
+                          <div className="w-8 h-8 bg-[#234463] rounded-lg flex items-center justify-center shrink-0">
                             <Clock className="h-4 w-4 text-white" />
                           </div>
-                          <div className="flex-1">
-                            <p className="text-[12px] font-medium text-[#4B4B4B]">
+                          <div>
+                            <p className="text-[11px] font-semibold text-[#1E3A5F]">
                               Durasi
                             </p>
-                            <p className="text-[14px] font-semibold text-[#234463]">
+                            <p className="font-mono text-xs text-[#3B597B] font-semibold">
                               {item.durasiMenit} menit
                             </p>
                           </div>
                         </div>
 
-                        {/* Harga */}
-                        <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 flex items-center gap-3">
-                          <div className="w-9 h-9 bg-[#234463] rounded-full flex items-center justify-center shrink-0">
+                        {/* HARGA */}
+                        <div className="bg-white/60 p-2.5 rounded-xl border border-[#C3E0FA] flex items-center gap-3">
+                          <div className="w-8 h-8 bg-[#234463] rounded-lg flex items-center justify-center shrink-0">
                             <Banknote className="h-4 w-4 text-white" />
                           </div>
-                          <div className="flex-1">
-                            <p className="text-[12px] font-medium text-[#4B4B4B]">
+                          <div>
+                            <p className="text-[11px] font-semibold text-[#1E3A5F]">
                               Harga
                             </p>
-                            <p className="text-[14px] font-semibold text-[#234463]">
+                            <p className="font-mono text-xs text-[#3B597B] font-semibold">
                               {formatPrice(item.harga)}
                             </p>
                           </div>
                         </div>
                       </div>
-
-                      <div className="flex justify-center">
-                        <button
-                          type="button"
-                          onClick={() => handleLihatDetail(item.id)}
-                          className="inline-flex h-11 items-center justify-center rounded-full bg-[#3AB64C] px-10 text-sm font-semibold text-white hover:bg-[#2E8B3D] transition cursor-pointer"
-                        >
-                          Lihat Detail
-                        </button>
-                      </div>
                     </div>
-                  </motion.div>
+
+                    {/* TOMBOL LIHAT DETAIL */}
+                    <button
+                      type="button"
+                      onClick={() => handleLihatDetail(item.id)}
+                      className="w-full bg-[#234463] hover:bg-[#1C364F] active:scale-[0.98] text-white font-semibold py-3 px-6 rounded-2xl transition-all duration-200 shadow-md mt-6 cursor-pointer text-sm"
+                    >
+                      Lihat Detail
+                    </button>
+                  </div>
                 );
               })
             )}
 
-            {/* Lihat semua */}
+            {/* Tombol Lihat Semua */}
             <div className="flex items-center justify-center w-[200px] shrink-0">
               <Link
                 href="/layanan"
-                className="flex flex-col items-center gap-3 text-[#2B5379]"
+                className="flex flex-col items-center gap-3 text-[#2B5379] hover:text-[#1C364F] transition-colors"
               >
                 <div className="flex items-center gap-2 text-lg font-semibold">
                   Lihat Semua
                   <ArrowRight className="h-5 w-5" />
                 </div>
                 <p className="text-sm text-[#2B5379]/70 text-center">
-                  {activeServices.length} layanan tersedia
+                  {listData.length} layanan tersedia
                 </p>
               </Link>
             </div>
           </div>
 
+          {/* Tombol Scroll Kanan */}
           <AnimatePresence>
             {canScrollRight && (
-              <motion.button
+              <button
+                type="button"
                 onClick={() => scrollByCard("right")}
-                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-20 grid h-12 w-12 place-items-center rounded-full bg-white shadow-lg cursor-pointer"
+                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-20 grid h-12 w-12 place-items-center rounded-full bg-white shadow-lg hover:bg-slate-50 transition-all cursor-pointer"
               >
                 <ChevronRight className="h-6 w-6 text-[#2B5379]" />
-              </motion.button>
+              </button>
             )}
           </AnimatePresence>
         </div>
 
         <p className="mt-6 text-center text-sm text-slate-500">
-          Geser untuk melihat layanan lainnya • {displayedServices.length} dari{" "}
-          {activeServices.length} layanan ditampilkan
+          Geser untuk melihat layanan lainnya
         </p>
       </div>
     </section>

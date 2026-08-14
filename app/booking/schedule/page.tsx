@@ -8,7 +8,7 @@ import { ScheduleSelectionContent } from "@/components/features/booking";
 import { PsychologistProfile } from "@/components/features/booking";
 import { deriveUniqueDates, RawSchedule, DateOption } from "@/lib/booking-data";
 import { getPsychologistByIdPublic } from "@/lib/api/psychologist";
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id").replace(/\/+$/, "");
 
 export interface Schedule {
   id: string;
@@ -167,7 +167,7 @@ function SchedulePageContent() {
 
     const fetchBookedDates = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id";
         const res = await fetch(
           `${apiUrl}/bookings/public/booked-dates?psychologistId=${psychologistId}&time=${selectedTime}`
         );

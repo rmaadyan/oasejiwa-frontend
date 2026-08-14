@@ -8,7 +8,7 @@ export default function VisionMissionSection() {
           {/* Image */}
           <div className="relative w-full max-w-[400px] rounded-[30px] overflow-hidden mx-auto lg:mx-0 shadow-xl hover:shadow-2xl transition-shadow duration-300 group">
             <Image
-              src="/assets/about-us/PSYCHS007.jpg"
+              src="/assets/about-us/PSYCHS009.jpg"
               alt="Vision Mission"
               width={800}
               height={600}

@@ -1,30 +1,36 @@
-// Fallback ke localhost untuk environment dev
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+export const API_BASE_URL = (
+  process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id"
+).replace(/\/$/, "");
 
-// Helper terpusat — selalu pakai cookie
-const authFetch = (url: string, options: RequestInit = {}) =>
-  fetch(url, {
+function getAuthToken(): string {
+  if (typeof window !== "undefined") {
+    return (
+      localStorage.getItem("token") ||
+      localStorage.getItem("accessToken") ||
+      localStorage.getItem("auth_token") ||
+      ""
+    );
+  }
+  return "";
+}
+
+const authFetch = (url: string, options: RequestInit = {}) => {
+  const token = getAuthToken();
+  return fetch(url, {
     ...options,
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
   });
+};
 
-// ---------------------------------------------------------
-// HELPER TRANSFORM DATA CONSULTATION FORM
-// ---------------------------------------------------------
 function sanitizeConsultationForm(rawForm: any) {
   if (!rawForm) return undefined;
-
-  // Buat copy agar tidak merusak state asli
   const form = { ...rawForm };
 
-  // 1. Hapus field yang memicu whitelistValidation jika tidak dipakai di DTO
-  delete form.partnerSleepQuality;
-
-  // 2. Pastikan Boolean murni
   if ("usesAddictiveSubstances" in form) {
     form.usesAddictiveSubstances =
       form.usesAddictiveSubstances === true ||
@@ -32,7 +38,6 @@ function sanitizeConsultationForm(rawForm: any) {
       form.usesAddictiveSubstances === "Ya";
   }
 
-  // 3. Transform Enum ke UPPERCASE (sesuai Enum Prisma/NestJS)
   const enumFields = [
     "selfHarmThoughts",
     "eatingPattern",
@@ -47,7 +52,6 @@ function sanitizeConsultationForm(rawForm: any) {
     }
   });
 
-  // 4. Pastikan consultationGoals berupa Array of String
   if (form.consultationGoals) {
     if (!Array.isArray(form.consultationGoals)) {
       form.consultationGoals = [String(form.consultationGoals)];
@@ -59,34 +63,44 @@ function sanitizeConsultationForm(rawForm: any) {
   return form;
 }
 
-// ---------------------------------------------------------
-// USER ENDPOINTS
-// ---------------------------------------------------------
-
 export async function createBooking(payload: any) {
-  // Transform consultationForm jika ada di dalam payload
-  const formattedPayload = {
-    ...payload,
-    ...(payload.consultationForm && {
-      consultationForm: sanitizeConsultationForm(payload.consultationForm),
-    }),
+  // 🟢 Hanya ambil properti wajib
+  const cleanPayload: any = {
+    psychologistId: payload.psychologistId,
+    serviceId: Number(payload.serviceId),
+    scheduledDate: payload.scheduledDate,
+    scheduledTime: payload.scheduledTime,
+    consultationForm: sanitizeConsultationForm(payload.consultationForm),
+    consentForm: payload.consentForm,
   };
+
+  // 🟢 HANYA sertakan scheduleId jika valid (bukan null, "null", "undefined", atau string kosong)
+  if (
+    payload.scheduleId &&
+    String(payload.scheduleId).trim() !== "" &&
+    payload.scheduleId !== "null" &&
+    payload.scheduleId !== "undefined"
+  ) {
+    cleanPayload.scheduleId = String(payload.scheduleId);
+  }
+
+  if (payload.notes && String(payload.notes).trim() !== "") {
+    cleanPayload.notes = payload.notes;
+  }
 
   const res = await authFetch(`${API_BASE_URL}/bookings`, {
     method: "POST",
-    body: JSON.stringify(formattedPayload),
+    body: JSON.stringify(cleanPayload),
   });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-
-    // Tangkap error validasi dari NestJS jika berupa Array of Strings
     const errorMessage = Array.isArray(err.message)
       ? err.message.join("\n• ")
       : err.message || "Gagal membuat booking";
-
     throw new Error(errorMessage);
   }
+
   return res.json();
 }
 
@@ -130,10 +144,6 @@ export async function confirmFullPayment(id: string | number) {
   }
   return res.json();
 }
-
-// ---------------------------------------------------------
-// ADMIN ENDPOINTS
-// ---------------------------------------------------------
 
 export async function getAdminBookings() {
   const res = await authFetch(`${API_BASE_URL}/admin/bookings`);

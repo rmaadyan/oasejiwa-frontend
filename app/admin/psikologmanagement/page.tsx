@@ -1,8 +1,25 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { Plus, Search, UserCheck, Mail, Lock, X, CheckCircle2, Pencil, Trash2, AlertTriangle, Clock, Eye } from "lucide-react";
+import { 
+    Plus, 
+    Search, 
+    UserCheck, 
+    Mail, 
+    Lock, 
+    X, 
+    CheckCircle2, 
+    Pencil, 
+    Trash2, 
+    AlertTriangle, 
+    Clock, 
+    Eye, 
+    ArrowUp, 
+    ArrowDown,
+    GripVertical
+} from "lucide-react";
 import Link from "next/link";
+import { getAllPsychologistsAdmin, API_BASE_URL } from "@/lib/api/psychologist";
 
 export default function PsikologManagementPage() {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -12,31 +29,30 @@ export default function PsikologManagementPage() {
     const [psikologList, setPsikologList] = useState<any[]>([]);
     const [loadingFetch, setLoadingFetch] = useState(true);
     const [sendingReminderId, setSendingReminderId] = useState<string | null>(null);
+    const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
     const fetchPsikologs = async () => {
         setLoadingFetch(true);
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/admin/psychologist`, {
-                credentials: "include",
-            });
-            const data = await res.json();
-            if (res.ok) {
-                const formatted = (Array.isArray(data) ? data : data.data || []).map((item: any) => {
-                    const sippVal = item.sipp || "";
-                    const isComplete = sippVal !== "" && sippVal !== "-";
+            const res = await getAllPsychologistsAdmin();
+            const rawData = res.data || [];
 
-                    return {
-                        id: item.id,
-                        fullName: item.fullName,
-                        email: item.user?.email || item.email || "",
-                        phoneNumber: item.phoneNumber || item.user?.userProfile?.phone || item.user?.phoneNumber || "",
-                        sipp: item.sipp,
-                        str: item.str,
-                        isProfileComplete: item.user?.isProfileComplete ?? isComplete,
-                    };
-                });
-                setPsikologList(formatted);
-            }
+            const formatted = rawData.map((item: any) => {
+                const sippVal = item.sipp || "";
+                const isComplete = sippVal !== "" && sippVal !== "-";
+
+                return {
+                    id: item.id,
+                    fullName: item.fullName || item.name,
+                    email: item.user?.email || item.email || "-",
+                    phoneNumber: item.phoneNumber || item.phone || item.user?.phoneNumber || "-",
+                    sipp: item.sipp || "-",
+                    str: item.str || "-",
+                    isProfileComplete: item.user?.isProfileComplete ?? isComplete,
+                };
+            });
+
+            setPsikologList(formatted);
         } catch (err) {
             console.error("Gagal mengambil data psikolog:", err);
         } finally {
@@ -47,6 +63,78 @@ export default function PsikologManagementPage() {
     useEffect(() => {
         fetchPsikologs();
     }, []);
+
+    // 🟢 Fitur Tombol Naik / Turun
+    // 🟢 1. Fungsi untuk mengirim urutan baru ke backend
+    const saveOrderToBackend = async (list: any[]) => {
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
+        const orderedIds = list.map((item) => item.id);
+
+        console.log("Mengirim urutan baru ID:", orderedIds);
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/admin/psychologists/reorder`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                credentials: "include",
+                body: JSON.stringify({ orderedIds }),
+            });
+
+            const result = await res.json();
+            console.log("Respon server reorder:", result);
+
+            if (!res.ok) {
+                alert(result.message || "Gagal menyimpan urutan ke server");
+            }
+        } catch (err: any) {
+            console.error("Gagal request reorder:", err);
+        }
+    };
+
+    // 🟢 2. Tombol Panah Naik / Turun (Sekarang kirim data ke server)
+    const handleMoveOrder = async (index: number, direction: "up" | "down") => {
+        const targetIndex = direction === "up" ? index - 1 : index + 1;
+        if (targetIndex < 0 || targetIndex >= psikologList.length) return;
+
+        const updatedList = [...psikologList];
+        const temp = updatedList[index];
+        updatedList[index] = updatedList[targetIndex];
+        updatedList[targetIndex] = temp;
+
+        // Update tampilan langsung
+        setPsikologList(updatedList);
+
+        // 👈 SIMPAN KE DATABASE
+        await saveOrderToBackend(updatedList);
+    };
+
+    // 🟢 3. Fitur Drag & Drop (Sekarang kirim data ke server saat dilepas)
+    const handleDragStart = (index: number) => {
+        setDraggedIndex(index);
+    };
+
+    const handleDragOver = (e: React.DragEvent, index: number) => {
+        e.preventDefault();
+        if (draggedIndex === null || draggedIndex === index) return;
+
+        const updatedList = [...psikologList];
+        const itemToMove = updatedList[draggedIndex];
+
+        updatedList.splice(draggedIndex, 1);
+        updatedList.splice(index, 0, itemToMove);
+
+        setDraggedIndex(index);
+        setPsikologList(updatedList);
+    };
+
+    const handleDragEnd = async () => {
+        setDraggedIndex(null);
+        // 👈 SIMPAN KE DATABASE SETELAH DRAG SELESAI
+        await saveOrderToBackend(psikologList);
+    };
 
     const handleSuccessAdd = () => {
         fetchPsikologs();
@@ -61,9 +149,14 @@ export default function PsikologManagementPage() {
 
     const handleSendReminder = async (psikologId: string, email: string) => {
         setSendingReminderId(psikologId);
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/admin/psychologist/${psikologId}/send-reminder`, {
+            const res = await fetch(`${API_BASE_URL}/admin/psychologist/${psikologId}/send-reminder`, {
                 method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
                 credentials: "include",
             });
 
@@ -80,10 +173,15 @@ export default function PsikologManagementPage() {
 
     const ConfirmDelete = async () => {
         if (!deletingId) return;
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
 
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/admin/psychologist/${deletingId}`, {
+            const res = await fetch(`${API_BASE_URL}/admin/psychologists/${deletingId}`, {
                 method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
                 credentials: "include",
             });
 
@@ -110,12 +208,11 @@ export default function PsikologManagementPage() {
 
     return (
         <div className="w-full p-6 sm:p-8 font-poppins space-y-6">
-            
             {/* HEADER SECTION */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-5">
                 <div>
                     <h1 className="text-2xl sm:text-3xl font-bold text-[#234463]">Manajemen Psikolog</h1>
-                    <p className="text-sm text-slate-500 mt-1">Kelola pendaftaran, pembaruan data, dan akun psikolog resmi Oase Jiwa</p>
+                    <p className="text-sm text-slate-500 mt-1">Kelola pendaftaran, pembaruan data, dan urutan tampilan psikolog</p>
                 </div>
 
                 <button
@@ -144,13 +241,14 @@ export default function PsikologManagementPage() {
                 </div>
             </div>
 
-            {/* TABEL DAFTAR PSIKOLOG */}
+            {/* TABEL DAFTAR PSIKOLOG (MENDUKUNG DRAG & DROP) */}
             <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden w-full">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
+                    <table className="w-full text-left text-sm border-collapse">
                         <thead className="bg-[#F8FAFC] border-b border-slate-200 text-slate-600 font-semibold">
                             <tr>
-                                <th className="p-4 pl-6">Psikolog</th>
+                                <th className="p-4 pl-6 w-24 text-center">Urutan</th>
+                                <th className="p-4">Psikolog</th>
                                 <th className="p-4">No. HP / WA</th>
                                 <th className="p-4">No. SIPP / STR</th>
                                 <th className="p-4">Status Akun</th>
@@ -160,19 +258,66 @@ export default function PsikologManagementPage() {
                         <tbody className="divide-y divide-slate-100 text-slate-700">
                             {loadingFetch ? (
                                 <tr>
-                                    <td colSpan={5} className="text-center py-8 text-slate-400">Memuat data psikolog...</td>
+                                    <td colSpan={6} className="text-center py-8 text-slate-400">Memuat data psikolog...</td>
                                 </tr>
                             ) : filteredList.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="text-center py-8 text-slate-400">Belum ada data psikolog.</td>
+                                    <td colSpan={6} className="text-center py-8 text-slate-400">Belum ada data psikolog.</td>
                                 </tr>
                             ) : (
-                                filteredList.map((item) => {
+                                filteredList.map((item, index) => {
                                     const isComplete = item.sipp && item.sipp !== "-" && item.sipp !== "";
+                                    const isDraggingThis = draggedIndex === index;
 
                                     return (
-                                        <tr key={item.id} className="hover:bg-slate-50/80 transition">
-                                            <td className="p-4 pl-6">
+                                        <tr 
+                                            key={item.id} 
+                                            draggable
+                                            onDragStart={() => handleDragStart(index)}
+                                            onDragOver={(e) => handleDragOver(e, index)}
+                                            onDragEnd={handleDragEnd}
+                                            className={`transition-all ${
+                                                isDraggingThis 
+                                                    ? "bg-blue-50/80 opacity-40 border-2 border-dashed border-[#234463]" 
+                                                    : "hover:bg-slate-50/80"
+                                            }`}
+                                        >
+                                            {/* 🟢 Kolom Drag Grip & Tombol Panah Urutan */}
+                                            <td className="p-4 pl-6 text-center">
+                                                <div className="flex items-center justify-center gap-1.5">
+                                                    <span 
+                                                        title="Tarik & Geser untuk Mengatur Urutan"
+                                                        className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-[#234463] p-1 rounded-md hover:bg-slate-100"
+                                                    >
+                                                        <GripVertical size={16} />
+                                                    </span>
+
+                                                    <span className="w-5 text-xs font-bold text-slate-600">
+                                                        #{index + 1}
+                                                    </span>
+
+                                                    <div className="flex flex-col gap-0.5 ml-1">
+                                                        <button
+                                                            disabled={index === 0}
+                                                            onClick={() => handleMoveOrder(index, "up")}
+                                                            className="text-slate-400 hover:text-[#234463] disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer"
+                                                            title="Pindah ke Atas"
+                                                        >
+                                                            <ArrowUp size={12} />
+                                                        </button>
+                                                        <button
+                                                            disabled={index === filteredList.length - 1}
+                                                            onClick={() => handleMoveOrder(index, "down")}
+                                                            className="text-slate-400 hover:text-[#234463] disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer"
+                                                            title="Pindah ke Bawah"
+                                                        >
+                                                            <ArrowDown size={12} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            <td className="p-4">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-10 h-10 rounded-full bg-blue-100 text-[#234463] font-bold flex items-center justify-center text-sm shrink-0">
                                                         {item.fullName ? item.fullName.slice(0, 2).toUpperCase() : "PS"}
@@ -183,7 +328,7 @@ export default function PsikologManagementPage() {
                                                     </div>
                                                 </div>
                                             </td>
-                                            
+
                                             <td className="p-4">
                                                 <p className="text-xs font-medium text-slate-700">{item.phoneNumber || "-"}</p>
                                             </td>
@@ -191,7 +336,7 @@ export default function PsikologManagementPage() {
                                             <td className="p-4">
                                                 <p className="font-mono text-xs bg-slate-100 px-2.5 py-1 rounded-md w-fit">{item.sipp || "-"}</p>
                                             </td>
-                                            
+
                                             <td className="p-4">
                                                 {isComplete ? (
                                                     <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-medium border border-emerald-200">
@@ -302,12 +447,10 @@ export default function PsikologManagementPage() {
                     </div>
                 </div>
             )}
-
         </div>
     );
 }
 
-{/* MODAL TAMBAH */}
 function AddPsychologistModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
     const [formData, setFormData] = useState({
         fullName: "",
@@ -327,12 +470,14 @@ function AddPsychologistModal({ onClose, onSuccess }: { onClose: () => void; onS
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
 
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/admin/psychologist`, {
+            const res = await fetch(`${API_BASE_URL}/admin/psychologists`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
                 },
                 credentials: "include",
                 body: JSON.stringify({
@@ -365,7 +510,6 @@ function AddPsychologistModal({ onClose, onSuccess }: { onClose: () => void; onS
     return (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 font-poppins">
             <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-6">
-                
                 <div className="flex justify-between items-start border-b border-slate-100 pb-4">
                     <div>
                         <h3 className="text-xl font-bold text-[#234463] flex items-center gap-2">
@@ -446,22 +590,24 @@ function AddPsychologistModal({ onClose, onSuccess }: { onClose: () => void; onS
     );
 }
 
-{/* MODAL EDIT */}
 function EditPsychologistModal({ initialData, onClose, onSuccess }: { initialData: any; onClose: () => void; onSuccess: (data: any) => void }) {
     const [formData, setFormData] = useState({ ...initialData });
 
     const handleUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
 
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/admin/psychologist/${formData.id}`, {
+            const res = await fetch(`${API_BASE_URL}/admin/psychologists/${formData.id}`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
                 },
                 credentials: "include",
                 body: JSON.stringify({
                     fullName: formData.fullName,
+                    email: formData.email,
                     phoneNumber: formData.phoneNumber,
                     sipp: formData.sipp,
                     str: formData.str || undefined,
@@ -494,31 +640,37 @@ function EditPsychologistModal({ initialData, onClose, onSuccess }: { initialDat
                 <form onSubmit={handleUpdate} className="space-y-4">
                     <div>
                         <label className="text-xs font-semibold text-slate-700">Nama Lengkap & Gelar</label>
-                        <input type="text" required value={formData.fullName} onChange={(e) => setFormData({ ...formData, fullName: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-xl text-sm mt-1" />
+                        <input type="text" required value={formData.fullName} onChange={(e) => setFormData({ ...formData, fullName: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-xl text-sm mt-1 focus:ring-2 focus:ring-blue-100 outline-none" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="text-xs font-semibold text-slate-700">Email (Read-Only)</label>
-                            <input type="email" disabled value={formData.email} className="w-full px-3.5 py-2.5 bg-slate-100 border rounded-xl text-sm mt-1 cursor-not-allowed" />
+                            <label className="text-xs font-semibold text-slate-700">Email Psikolog *</label>
+                            <input 
+                                type="email" 
+                                required 
+                                value={formData.email || ""} 
+                                onChange={(e) => setFormData({ ...formData, email: e.target.value })} 
+                                className="w-full px-3.5 py-2.5 border rounded-xl text-sm mt-1 focus:ring-2 focus:ring-blue-100 outline-none" 
+                            />
                         </div>
                         <div>
                             <label className="text-xs font-semibold text-slate-700">Nomor HP / WhatsApp</label>
-                            <input type="text" required value={formData.phoneNumber || ""} onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-xl text-sm mt-1" />
+                            <input type="text" required value={formData.phoneNumber || ""} onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-xl text-sm mt-1 focus:ring-2 focus:ring-blue-100 outline-none" />
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="text-xs font-semibold text-slate-700">No. SIPP</label>
-                            <input type="text" required value={formData.sipp} onChange={(e) => setFormData({ ...formData, sipp: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-xl text-sm mt-1" />
+                            <input type="text" required value={formData.sipp} onChange={(e) => setFormData({ ...formData, sipp: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-xl text-sm mt-1 focus:ring-2 focus:ring-blue-100 outline-none" />
                         </div>
                         <div>
                             <label className="text-xs font-semibold text-slate-700">No. STR</label>
-                            <input type="text" value={formData.str || ""} onChange={(e) => setFormData({ ...formData, str: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-xl text-sm mt-1" />
+                            <input type="text" value={formData.str || ""} onChange={(e) => setFormData({ ...formData, str: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-xl text-sm mt-1 focus:ring-2 focus:ring-blue-100 outline-none" />
                         </div>
                     </div>
                     <div className="flex justify-end gap-3 pt-4 border-t">
-                        <button type="button" onClick={onClose} className="px-5 py-2.5 border rounded-xl text-sm cursor-pointer">Batal</button>
-                        <button type="submit" className="px-5 py-2.5 bg-[#234463] text-white rounded-xl text-sm cursor-pointer">Simpan Perubahan</button>
+                        <button type="button" onClick={onClose} className="px-5 py-2.5 border rounded-xl text-sm cursor-pointer hover:bg-slate-50">Batal</button>
+                        <button type="submit" className="px-5 py-2.5 bg-[#234463] text-white rounded-xl text-sm font-medium hover:bg-[#2B5379] transition cursor-pointer">Simpan Perubahan</button>
                     </div>
                 </form>
             </div>
