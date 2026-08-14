@@ -9,19 +9,26 @@ export interface Dass21PdfData {
   result: Dass21Result;
 }
 
-function loadImageAsBase64(url: string): Promise<string> {
+function loadImageAsBase64(url: string, maxWidth = 256, maxHeight = 256): Promise<string> {
   return new Promise((resolve, reject) => {
     if (typeof window === "undefined") return reject("SSR");
     const img = new Image();
     img.crossOrigin = "Anonymous";
     img.onload = () => {
+      let width = img.naturalWidth || img.width;
+      let height = img.naturalHeight || img.height;
+      if (width > maxWidth || height > maxHeight) {
+        const ratio = Math.min(maxWidth / width, maxHeight / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
       const canvas = document.createElement("canvas");
-      canvas.width = img.naturalWidth || img.width;
-      canvas.height = img.naturalHeight || img.height;
+      canvas.width = width;
+      canvas.height = height;
       const ctx = canvas.getContext("2d");
       if (ctx) {
-        ctx.drawImage(img, 0, 0);
-        resolve(canvas.toDataURL("image/png"));
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.85));
       } else {
         reject(new Error("Failed canvas context"));
       }
@@ -59,7 +66,7 @@ export async function downloadDass21Pdf(data: Dass21PdfData) {
 
   // Left: Official Logo & Brand Title
   if (logoBase64) {
-    doc.addImage(logoBase64, "PNG", margin, y, 16, 16);
+    doc.addImage(logoBase64, "JPEG", margin, y, 16, 16);
     doc.setTextColor(31, 59, 91);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
