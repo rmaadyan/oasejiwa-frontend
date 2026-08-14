@@ -28,9 +28,7 @@ import {
   ArrowRight,
   HeartHandshake,
   BrainCircuit,
-  FileText,
-  Clock,
-  Activity
+  FileText
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -43,6 +41,8 @@ import { getImageUrl } from "@/lib/utils/getImageUrl";
 import {
   ProfileProgressBar,
   QuoteOfDay,
+  StatsSection,
+  Separator,
 } from "@/components/features/user/modernProfile";
 
 type ProfileData = {
@@ -62,12 +62,12 @@ export default function Profile() {
   const [isEditPersonalInformation, setIsEditPersonalInformation] = useState(false);
   const [isEditAddress, setIsEditAddress] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  // 🟢 Default tab diset ke "dashboard" agar tampilan modern langsung muncul
-  const [activeTab, setActiveTab] = useState<"dashboard" | "profile" | "bookings" | "tes">("dashboard");
+  const [activeTab, setActiveTab] = useState<"profile" | "bookings" | "tes">("profile");
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
+  const [bookingCount, setBookingCount] = useState(0);
 
   // State Ubah Password & Upload Foto
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -265,7 +265,7 @@ export default function Profile() {
       <div className="min-h-screen bg-slate-100 flex items-center justify-center font-poppins">
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 border-4 border-[#234463] border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-[#234463] font-semibold text-sm">Memuat dashboard...</p>
+          <p className="text-[#234463] font-semibold text-sm">Memuat profil...</p>
         </div>
       </div>
     );
@@ -280,22 +280,14 @@ export default function Profile() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
         
-        {/* Header Title */}
-        <div className="flex items-center pb-6 relative justify-between">
-          <div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#234463] tracking-wide">
-              {activeTab === "dashboard" ? "Dashboard Pasien" : activeTab === "profile" ? "My Profile" : activeTab === "bookings" ? "Jadwal Konseling Saya" : "Riwayat Tes Psikologi"}
-            </h1> 
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              Selamat datang kembali, <b>{profileData.fullName || "Pengguna Oase Jiwa"}</b>
-            </p>
-          </div>
-
+        {/* Header Bar Mobile */}
+        <div className="flex items-center justify-between lg:hidden mb-4 bg-white p-4 rounded-2xl border border-blue-200 shadow-sm">
+          <h1 className="text-xl font-bold text-[#234463]">Portal Pasien</h1>
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="lg:hidden p-2.5 rounded-xl bg-white border border-blue-200 shadow-sm hover:bg-blue-50 transition"
+            className="p-2 rounded-xl bg-blue-50 border border-blue-200 text-[#234463]"
           >
-            {isSidebarOpen ? <X size={22} className="text-[#234463]" /> : <Menu size={22} className="text-[#234463]" />}
+            {isSidebarOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
 
@@ -313,54 +305,128 @@ export default function Profile() {
           </div>
         )}
 
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
           
-          {/* SIDEBAR NAVIGATION */}
-          <aside className={`
-            fixed lg:static inset-0 z-50 lg:z-auto
-            w-full lg:w-72 lg:shrink-0
-            bg-black/40 lg:bg-transparent backdrop-blur-sm lg:backdrop-blur-none
-            transition-opacity duration-300
-            ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none lg:opacity-100 lg:pointer-events-auto'}`}
+          {/* 🟢 1. SIDEBAR NAVIGASI KIRI */}
+          <aside
+            className={`
+              lg:col-span-3 lg:sticky lg:top-24 lg:h-fit z-30
+              fixed lg:static inset-0
+              bg-black/40 lg:bg-transparent backdrop-blur-sm lg:backdrop-blur-none
+              transition-opacity duration-300
+              ${isSidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none lg:opacity-100 lg:pointer-events-auto"}
+            `}
             onClick={() => setIsSidebarOpen(false)}
           >
             <div
               className={`
-                absolute lg:static right-0 top-0 h-full
-                w-80 lg:w-full
-                bg-white border-l lg:border border-blue-100 lg:rounded-2xl shadow-xl lg:shadow-md
-                overflow-hidden
-                transform transition-transform duration-300
-                ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+                w-72 lg:w-full bg-white border border-blue-100 rounded-2xl p-5 shadow-md
+                fixed lg:static top-0 right-0 h-full lg:h-auto z-40
+                transition-transform duration-300 overflow-y-auto
+                ${isSidebarOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"}
               `}
               onClick={(e) => e.stopPropagation()}
             >
-              <button
-                onClick={() => setIsSidebarOpen(false)}
-                className="lg:hidden absolute top-4 right-4 p-2 text-white z-10"
-              >
-                <X size={20} />
-              </button>
+              <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 lg:hidden">
+                <span className="font-bold text-[#234463] text-sm">Menu Navigasi</span>
+                <button onClick={() => setIsSidebarOpen(false)} className="text-slate-400">
+                  <X size={18} />
+                </button>
+              </div>
 
-              {/* Banner Header Sidebar */}
-              <div className="h-24 bg-gradient-to-r from-[#234463] to-[#3B6E9B] relative" />
+              {/* Header Panel */}
+              <div className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-[#234463] uppercase tracking-wider bg-blue-50/80 rounded-xl mb-4 border border-blue-100">
+                <LayoutDashboard size={15} />
+                <span>Panel Pasien</span>
+              </div>
 
-              {/* Info Profile User */}
-              <div className="px-6 pb-6 relative text-center -mt-12">
-                <div className="relative inline-block group">
-                  <div className="w-22 h-22 sm:w-24 sm:h-24 mx-auto rounded-full bg-gradient-to-tr from-[#234463] to-[#427BB0] border-4 border-white shadow-lg flex items-center justify-center text-white font-bold text-2xl tracking-wider overflow-hidden">
+              {/* Menu Navigation */}
+              <nav className="space-y-1.5 text-sm">
+                <SidebarItem
+                  icon={<Home size={18} />}
+                  label="Dashboard Utama"
+                  onClick={() => {
+                    router.push("/");
+                    setIsSidebarOpen(false);
+                  }}
+                />
+                <SidebarItem
+                  icon={<User size={18} />}
+                  label="Profil Saya"
+                  active={activeTab === "profile"}
+                  onClick={() => {
+                    setActiveTab("profile");
+                    setIsSidebarOpen(false);
+                  }}
+                />
+                <SidebarItem
+                  icon={<History size={18} />}
+                  label="Riwayat Booking"
+                  active={activeTab === "bookings"}
+                  onClick={() => {
+                    setActiveTab("bookings");
+                    setIsSidebarOpen(false);
+                  }}
+                />
+                <SidebarItem
+                  icon={<ClipboardList size={18} />}
+                  label="Riwayat Tes"
+                  active={activeTab === "tes"}
+                  onClick={() => {
+                    setActiveTab("tes");
+                    setIsSidebarOpen(false);
+                  }}
+                />
+                <SidebarItem
+                  icon={<Key size={18} />}
+                  label="Ubah Password"
+                  onClick={() => {
+                    setIsChangePasswordOpen(true);
+                    setIsSidebarOpen(false);
+                  }}
+                />
+
+                <div className="pt-3 mt-3 border-t border-slate-100">
+                  <SidebarItem
+                    icon={<LogOut size={18} />}
+                    label="Keluar / Logout"
+                    danger
+                    onClick={handleLogout}
+                  />
+                </div>
+              </nav>
+            </div>
+          </aside>
+
+          {/* 🟢 2. KONTEN UTAMA */}
+          <main className="lg:col-span-9 space-y-6 w-full">
+            
+            {/* PORTAL BANNER HERO HEADER (Gaya Opsi 1) */}
+            <div className="bg-gradient-to-r from-[#234463] via-[#2B5379] to-[#3B6E9B] rounded-3xl p-6 sm:p-8 text-white shadow-lg border border-[#1E3B59] relative overflow-hidden">
+              <div className="absolute -right-10 -top-10 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+              <div className="absolute right-20 -bottom-10 w-36 h-36 bg-blue-300/20 rounded-full blur-xl pointer-events-none" />
+
+              <div className="relative z-10 flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
+                
+                {/* Avatar dengan Camera Badge */}
+                <div className="relative shrink-0 group">
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-white/20 backdrop-blur-md border-2 border-white/50 shadow-inner overflow-hidden flex items-center justify-center text-white font-bold text-3xl">
                     {profileData.avatarUrl ? (
-                      <img src={profileData.avatarUrl} alt={profileData.fullName} className="w-full h-full object-cover" />
+                      <img
+                        src={getImageUrl(profileData.avatarUrl)}
+                        alt={profileData.fullName}
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
                       getInitials(profileData.fullName)
                     )}
                   </div>
 
-                  <label 
+                  <label
                     title="Ubah Foto Profil"
-                    className="absolute bottom-1 right-1 bg-white text-[#234463] p-2 rounded-full border border-blue-100 shadow-md hover:bg-blue-50 transition transform hover:scale-105 cursor-pointer"
+                    className="absolute -bottom-2 -right-2 bg-white text-[#234463] p-2 rounded-xl border border-blue-200 shadow-md hover:bg-blue-50 transition transform hover:scale-105 cursor-pointer"
                   >
-                    <Camera size={14} />
+                    <Camera size={15} />
                     <input
                       type="file"
                       accept="image/*"
@@ -371,59 +437,42 @@ export default function Profile() {
                   </label>
                 </div>
 
-                <p className="mt-3 font-bold text-[#234463] text-base sm:text-lg">{profileData.fullName || "—"}</p>
-                <p className="text-xs text-slate-500 break-all px-2 mt-0.5">{profileData.email}</p>
+                {/* Info & Ucapan */}
+                <div className="space-y-2 flex-1">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-sm border border-white/25 text-xs text-blue-100 font-medium">
+                    <Sparkles size={13} className="text-amber-300" />
+                    <span>Portal Pasien Oase Jiwa</span>
+                  </div>
 
-                <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-200/80 rounded-full text-emerald-700 text-xs font-medium">
-                  <CheckCircle2 size={13} className="text-emerald-600" />
-                  <span>Verified Account</span>
+                  <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                    Selamat Datang, {profileData.fullName || "User Oase Jiwa"} 👋
+                  </h1>
+
+                  <p className="text-xs sm:text-sm text-blue-100 leading-relaxed max-w-2xl">
+                    Kelola informasi profil pribadi, jadwal sesi konseling, serta riwayat tes kesehatan mental Anda secara terpadu di sini.
+                  </p>
+
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-2">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/20 border border-emerald-300/40 rounded-lg text-emerald-200 text-xs font-medium">
+                      <CheckCircle2 size={13} className="text-emerald-400" />
+                      <span>Akun Terverifikasi</span>
+                    </div>
+
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 border border-white/25 rounded-lg text-blue-100 text-xs">
+                      <Mail size={13} />
+                      <span>{profileData.email}</span>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Item Menu Sidebar */}
-                <nav className="space-y-1.5 mt-6 text-left text-sm">
-                  <SidebarItem
-                    icon={<Home size={18} />}     
-                    label="Dashboard"
-                    active={activeTab === "dashboard"}
-                    onClick={() => { setActiveTab("dashboard"); setIsSidebarOpen(false); }}
-                  />
-                  <SidebarItem
-                    icon={<User size={18} />}
-                    label="My Profile"
-                    active={activeTab === "profile"}
-                    onClick={() => { setActiveTab("profile"); setIsSidebarOpen(false); }}
-                  />
-                  <SidebarItem
-                    icon={<Calendar size={18} />}
-                    label="My Bookings"
-                    active={activeTab === "bookings"}
-                    onClick={() => { setActiveTab("bookings"); setIsSidebarOpen(false); }}
-                  />
-                  <SidebarItem
-                    icon={<ClipboardList size={18} />}
-                    label="Riwayat Tes"
-                    active={activeTab === "tes"}
-                    onClick={() => { setActiveTab("tes"); setIsSidebarOpen(false); }}
-                  />
-                  <SidebarItem
-                    icon={<LogOut size={18} />}
-                    label="Log Out"
-                    danger
-                    onClick={handleLogout}
-                  />
-                </nav>
               </div>
             </div>
-          </aside>
 
-          {/* MAIN CONTENT AREA */}
-          <main className="flex-1 w-full">
-            
-            {/* 🟢 1. TAMPILAN DASHBOARD USER MODERN */}
-            {activeTab === "dashboard" ? (
+            {/* KONTEN TAB */}
+            {activeTab === "profile" ? (
               <div className="space-y-6">
                 
-                {/* Widget Quote & Progress Bar */}
+                {/* Progress Bar & Quote of the Day */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="md:col-span-2">
                     <QuoteOfDay />
@@ -433,188 +482,137 @@ export default function Profile() {
                   </div>
                 </div>
 
-                {/* 🟢 Kartu Statistik Ringkasan Mandiri (Bebas Error Props) */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-                  <div 
-                    onClick={() => setActiveTab("bookings")}
-                    className="bg-white border border-blue-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition cursor-pointer flex items-center gap-4 group"
-                  >
-                    <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#234463] flex items-center justify-center shrink-0 group-hover:bg-[#234463] group-hover:text-white transition">
-                      <Calendar size={22} />
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500 font-medium">Jadwal Konseling</p>
-                      <p className="text-lg font-bold text-[#234463] mt-0.5">Lihat Sesi</p>
-                    </div>
-                  </div>
-
-                  <div 
-                    onClick={() => setActiveTab("tes")}
-                    className="bg-white border border-blue-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition cursor-pointer flex items-center gap-4 group"
-                  >
-                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition">
-                      <ClipboardList size={22} />
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500 font-medium">Riwayat Tes</p>
-                      <p className="text-lg font-bold text-[#234463] mt-0.5">Lihat Hasil</p>
-                    </div>
-                  </div>
-
-                  <div 
-                    onClick={() => setActiveTab("profile")}
-                    className="bg-white border border-blue-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition cursor-pointer flex items-center gap-4 group"
-                  >
-                    <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0 group-hover:bg-sky-600 group-hover:text-white transition">
-                      <User size={22} />
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500 font-medium">Kelengkapan Akun</p>
-                      <p className="text-lg font-bold text-[#234463] mt-0.5">Edit Profil</p>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Card Navigasi Cepat & Rekomendasi Layanan */}
+                {/* 🟢 CARD ACTION: Butuh Teman Cerita & Tes Kesehatan Mental */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-white border border-blue-100 rounded-2xl p-6 shadow-sm space-y-4">
-                    <h3 className="font-bold text-[#234463] text-base flex items-center gap-2">
-                      <HeartHandshake size={18} /> Butuh Teman Cerita?
-                    </h3>
-                    <p className="text-xs text-slate-500 leading-relaxed">
-                      Jadwalkan sesi konseling dengan psikolog klinis profesional Oase Jiwa secara online maupun tatap muka langsung.
-                    </p>
-                    <Link
-                      href="/layanan"
-                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#234463] text-white rounded-xl text-xs font-semibold hover:bg-[#2B5379] transition shadow-xs"
-                    >
-                      <span>Lihat Layanan Konseling</span>
-                      <ArrowRight size={14} />
-                    </Link>
+                  {/* Card 1: Butuh Teman Cerita */}
+                  <div className="bg-gradient-to-br from-white to-blue-50/50 border border-blue-100 rounded-3xl p-6 shadow-sm flex flex-col justify-between space-y-4 hover:shadow-md transition">
+                    <div className="space-y-2.5">
+                      <div className="w-10 h-10 rounded-xl bg-blue-100 text-[#234463] flex items-center justify-center">
+                        <HeartHandshake size={20} />
+                      </div>
+                      <h3 className="font-bold text-[#234463] text-base sm:text-lg">Butuh Teman Cerita?</h3>
+                      <p className="text-xs text-slate-600 leading-relaxed">
+                        Jadwalkan sesi konseling dengan psikolog klinis profesional Oase Jiwa secara daring maupun tatap muka langsung.
+                      </p>
+                    </div>
+                    <div>
+                      <Link
+                        href="/layanan"
+                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#234463] text-white rounded-xl text-xs font-semibold hover:bg-[#2B5379] transition shadow-sm active:scale-95"
+                      >
+                        <span>Lihat Layanan Konseling</span>
+                        <ArrowRight size={14} />
+                      </Link>
+                    </div>
                   </div>
 
-                  <div className="bg-white border border-blue-100 rounded-2xl p-6 shadow-sm space-y-4">
-                    <h3 className="font-bold text-[#234463] text-base flex items-center gap-2">
-                      <BrainCircuit size={18} /> Tes Kesehatan Mental
-                    </h3>
-                    <p className="text-xs text-slate-500 leading-relaxed">
-                      Kenali kondisi stres, kecemasan, dan tingkat depresi Anda dengan instrumen tes psikologi terstandar (DASS-21).
-                    </p>
-                    <Link
-                      href="/tes"
-                      className="inline-flex items-center gap-2 px-4 py-2.5 border border-[#234463] text-[#234463] rounded-xl text-xs font-semibold hover:bg-blue-50 transition"
-                    >
-                      <span>Mulai Tes Psikologi</span>
-                      <ArrowRight size={14} />
-                    </Link>
+                  {/* Card 2: Tes Kesehatan Mental */}
+                  <div className="bg-gradient-to-br from-white to-sky-50/50 border border-blue-100 rounded-3xl p-6 shadow-sm flex flex-col justify-between space-y-4 hover:shadow-md transition">
+                    <div className="space-y-2.5">
+                      <div className="w-10 h-10 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center">
+                        <BrainCircuit size={20} />
+                      </div>
+                      <h3 className="font-bold text-[#234463] text-base sm:text-lg">Tes Kesehatan Mental</h3>
+                      <p className="text-xs text-slate-600 leading-relaxed">
+                        Kenali kondisi stres, kecemasan, dan tingkat depresi Anda dengan instrumen tes psikologi terstandar (DASS-21).
+                      </p>
+                    </div>
+                    <div>
+                      <Link
+                        href="/tes"
+                        className="inline-flex items-center gap-2 px-4 py-2.5 border border-[#234463] text-[#234463] bg-white rounded-xl text-xs font-semibold hover:bg-blue-50 transition shadow-sm active:scale-95"
+                      >
+                        <span>Mulai Tes Psikologi</span>
+                        <ArrowRight size={14} />
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-            ) : activeTab === "profile" ? (
-              
-              /* 🟢 2. TAMPILAN MY PROFILE */
-              <div className="space-y-6">
-                
-                {/* CARD 1: Profile Information */}
-                <div className="bg-white border border-blue-100/80 rounded-2xl shadow-md p-5 sm:p-7 space-y-5">
-                  <div className="flex flex-row justify-between sm:items-center gap-3">
+                <Separator />
+
+                {/* CARD 1: INFORMASI PRIBADI */}
+                <div className="bg-white border border-blue-100 rounded-2xl shadow-sm hover:shadow-md transition p-6 space-y-5">
+                  <div className="flex flex-row justify-between items-center gap-3">
                     <div>
-                      <h2 className="font-bold text-[#234463] text-lg sm:text-xl flex items-center gap-2">
-                        <User size={20} className="text-[#234463]" />
-                        Profile Information
+                      <h2 className="font-bold text-[#234463] text-base sm:text-lg flex items-center gap-2">
+                        <User size={18} className="text-[#234463]" />
+                        Informasi Pribadi
                       </h2>
-                      <p className="text-xs text-slate-500 mt-0.5">Kelola informasi pribadi dan identitas diri Anda</p>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Kelola identitas diri dan kontak utama Anda
+                      </p>
                     </div>
                     <button
                       onClick={() => setIsEditPersonalInformation(true)}
-                      className="flex items-center justify-center gap-2 text-sm bg-[#234463] text-white font-semibold rounded-xl px-4 py-2 hover:bg-[#2B5379] shadow-sm transition cursor-pointer w-auto h-fit"
+                      className="flex items-center gap-1.5 text-xs bg-[#234463] text-white font-semibold rounded-xl px-4 py-2 hover:bg-[#2B5379] shadow-xs transition cursor-pointer"
                     >
-                      <Pencil size={14} />
+                      <Pencil size={13} />
                       <span>Edit</span>
                     </button>
                   </div>
-                  
+
                   <div className="border-t border-slate-100" />
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                    <ProfileInformation label="Full Name" value={profileData.fullName || "—"} />
-                    <ProfileInformation label="Birthday" value={profileData.birthday || "—"} icon={<Calendar size={16} />} />
-                    <ProfileInformation label="Gender" value={profileData.gender === "MALE" ? "Male" : profileData.gender === "FEMALE" ? "Female" : "—"} icon={<User size={16} />} />
-                    <ProfileInformation label="Email" value={profileData.email || "—"} icon={<Mail size={16} />} />
-                    <ProfileInformation label="Phone" value={profileData.phone || "—"} icon={<Phone size={16} />} />
+                    <ProfileInformation label="Nama Lengkap" value={profileData.fullName || "—"} />
+                    <ProfileInformation label="Tanggal Lahir" value={profileData.birthday || "—"} icon={<Calendar size={15} />} />
+                    <ProfileInformation label="Jenis Kelamin" value={profileData.gender === "MALE" ? "Laki-laki" : profileData.gender === "FEMALE" ? "Perempuan" : "—"} icon={<User size={15} />} />
+                    <ProfileInformation label="Alamat Email" value={profileData.email || "—"} icon={<Mail size={15} />} />
+                    <ProfileInformation label="Nomor Telepon / WA" value={profileData.phone || "—"} icon={<Phone size={15} />} />
                   </div>
                 </div>
 
-                {/* CARD 2: Address */}
-                <div className="bg-white border border-blue-100/80 rounded-2xl shadow-md p-5 sm:p-7 space-y-5">
-                  <div className="flex flex-row justify-between sm:items-center gap-3">
+                {/* CARD 2: ALAMAT DOMISILI */}
+                <div className="bg-white border border-blue-100 rounded-2xl shadow-sm hover:shadow-md transition p-6 space-y-5">
+                  <div className="flex flex-row justify-between items-center gap-3">
                     <div>
-                      <h2 className="font-bold text-[#234463] text-lg sm:text-xl">Address</h2>
-                      <p className="text-xs text-slate-500 mt-0.5">Informasi domisili dan alamat lengkap</p>
+                      <h2 className="font-bold text-[#234463] text-base sm:text-lg flex items-center gap-2">
+                        <MapPin size={18} className="text-teal-600" />
+                        Alamat Domisili
+                      </h2>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Informasi tempat tinggal dan kota domisili Anda
+                      </p>
                     </div>
                     <button
                       onClick={() => setIsEditAddress(true)}
-                      className="flex items-center justify-center gap-2 text-sm bg-[#234463] text-white font-semibold rounded-xl px-4 py-2 hover:bg-[#2B5379] shadow-sm transition cursor-pointer w-auto h-fit"
+                      className="flex items-center gap-1.5 text-xs bg-teal-600 text-white font-semibold rounded-xl px-4 py-2 hover:bg-teal-700 shadow-xs transition cursor-pointer"
                     >
-                      <Pencil size={14} />
+                      <Pencil size={13} />
                       <span>Edit</span>
                     </button>
                   </div>
-                  
-                  <div className="border-t border-slate-100" />
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                    <ProfileInformation label="Country" value={profileData.country || "—"} />
-                    <ProfileInformation label="City" value={profileData.city || "—"} />
-                    <div className="md:col-span-2">
-                      <ProfileInformation label="Full Address" value={profileData.address || "—"} />
-                    </div>
-                  </div>
-                </div>
 
-                {/* CARD 3: Security & Password */}
-                <div className="bg-white border border-blue-100/80 rounded-2xl shadow-md p-5 sm:p-7 space-y-5">
-                  <div className="flex flex-row justify-between sm:items-center gap-3">
-                    <div>
-                      <h2 className="font-bold text-[#234463] text-lg sm:text-xl flex items-center gap-2">
-                        <ShieldCheck size={20} className="text-[#234463]" />
-                        Account Security
-                      </h2>
-                      <p className="text-xs text-slate-500 mt-0.5">Kelola kata sandi dan keamanan akun Anda</p>
-                    </div>
-                    <button
-                      onClick={() => setIsChangePasswordOpen(true)}
-                      className="flex items-center justify-center gap-2 text-sm border border-[#234463] text-[#234463] font-semibold rounded-xl px-4 py-2 hover:bg-blue-50 shadow-xs transition cursor-pointer w-auto h-fit"
-                    >
-                      <Key size={14} />
-                      <span>Change Password</span>
-                    </button>
-                  </div>
-                  
                   <div className="border-t border-slate-100" />
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                    <ProfileInformation label="Password" value="••••••••••••" />
-                    <ProfileInformation label="Auth Provider" value="Local / Google Account" />
+                    <ProfileInformation label="Negara" value={profileData.country || "—"} />
+                    <ProfileInformation label="Kota / Kabupaten" value={profileData.city || "—"} />
+                    <div className="md:col-span-2">
+                      <ProfileInformation label="Alamat Lengkap" value={profileData.address || "—"} />
+                    </div>
                   </div>
                 </div>
 
               </div>
             ) : activeTab === "bookings" ? (
-              <div className="bg-white border border-blue-100/80 rounded-2xl shadow-md p-4 sm:p-6">
+              /* TAB MY BOOKINGS */
+              <div className="bg-white border border-blue-100 rounded-2xl shadow-sm p-5 sm:p-6">
                 <MyBookings />
               </div>
             ) : (
+              /* 🟢 TAB RIWAYAT TES */
               <TestHistoryTab />
             )}
+
           </main>
         </div>
 
         {/* MODAL EDIT PERSONAL INFO */}
         {isEditPersonalInformation && (
           <EditPersonalInformation
-            key={JSON.stringify({ 
+            key={JSON.stringify({
               fullName: profileData.fullName,
               phone: profileData.phone,
               email: profileData.email,
@@ -629,12 +627,16 @@ export default function Profile() {
             onClose={() => setIsEditPersonalInformation(false)}
             onSave={handleSavePersonalInfo}
           />
-        )}                
+        )}
 
         {/* MODAL EDIT ADDRESS */}
         {isEditAddress && (
           <EditAddress
-            initialData={{ country: profileData.country, city: profileData.city, address: profileData.address }}
+            initialData={{
+              country: profileData.country,
+              city: profileData.city,
+              address: profileData.address,
+            }}
             onClose={() => setIsEditAddress(false)}
             onSave={handleSaveAddress}
           />
@@ -643,10 +645,10 @@ export default function Profile() {
         {/* MODAL CHANGE PASSWORD */}
         {isChangePasswordOpen && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-5 shadow-2xl animate-in fade-in zoom-in-95">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-5 shadow-2xl animate-in fade-in zoom-in-95 border border-slate-100">
               <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                <h3 className="font-bold text-[#234463] text-lg flex items-center gap-2">
-                  <Key size={18} /> Change Password
+                <h3 className="font-bold text-[#234463] text-base flex items-center gap-2">
+                  <Key size={18} /> Ubah Kata Sandi
                 </h3>
                 <button
                   onClick={() => setIsChangePasswordOpen(false)}
@@ -666,14 +668,16 @@ export default function Profile() {
                       type={showCurrentPass ? "text" : "password"}
                       required
                       value={passData.currentPassword}
-                      onChange={(e) => setPassData({ ...passData, currentPassword: e.target.value })}
-                      className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-100"
+                      onChange={(e) =>
+                        setPassData({ ...passData, currentPassword: e.target.value })
+                      }
+                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-100"
                       placeholder="Masukkan kata sandi lama"
                     />
                     <button
                       type="button"
                       onClick={() => setShowCurrentPass(!showCurrentPass)}
-                      className="absolute right-3 top-2.5 text-slate-400"
+                      className="absolute right-3 top-3 text-slate-400 cursor-pointer"
                     >
                       {showCurrentPass ? <EyeOff size={14} /> : <Eye size={14} />}
                     </button>
@@ -689,14 +693,16 @@ export default function Profile() {
                       type={showNewPass ? "text" : "password"}
                       required
                       value={passData.newPassword}
-                      onChange={(e) => setPassData({ ...passData, newPassword: e.target.value })}
-                      className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-100"
+                      onChange={(e) =>
+                        setPassData({ ...passData, newPassword: e.target.value })
+                      }
+                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-100"
                       placeholder="Minimal 6 karakter"
                     />
                     <button
                       type="button"
                       onClick={() => setShowNewPass(!showNewPass)}
-                      className="absolute right-3 top-2.5 text-slate-400"
+                      className="absolute right-3 top-3 text-slate-400 cursor-pointer"
                     >
                       {showNewPass ? <EyeOff size={14} /> : <Eye size={14} />}
                     </button>
@@ -711,8 +717,10 @@ export default function Profile() {
                     type="password"
                     required
                     value={passData.confirmPassword}
-                    onChange={(e) => setPassData({ ...passData, confirmPassword: e.target.value })}
-                    className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-100"
+                    onChange={(e) =>
+                      setPassData({ ...passData, confirmPassword: e.target.value })
+                    }
+                    className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-100"
                     placeholder="Ulangi kata sandi baru"
                   />
                 </div>
@@ -738,6 +746,7 @@ export default function Profile() {
             </div>
           </div>
         )}
+
       </div>
     </div>
   );
