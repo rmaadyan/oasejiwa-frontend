@@ -16,9 +16,14 @@ import {
   ClipboardList,
   Clock,
   Award,
+  FileDown,
+  Eye,
 } from "lucide-react";
 import { getPatientDetail } from "@/lib/api/psychologist";
 import type { PsychologistPatientDetail } from "@/lib/types/psychologist";
+import { calculateDass21Result } from "@/lib/utils/dass21-calculator";
+import { downloadDass21Pdf } from "@/lib/utils/dass21-pdf-generator";
+import TestResultDetailModal from "./TestResultDetailModal";
 
 interface PatientDetailModalProps {
   isOpen: boolean;
@@ -34,6 +39,7 @@ export default function PatientDetailModal({
   const [loading, setLoading] = useState(false);
   const [patient, setPatient] = useState<PsychologistPatientDetail | null>(null);
   const [activeTab, setActiveTab] = useState<"profil" | "medis" | "tes" | "riwayat">("profil");
+  const [selectedTestForDetail, setSelectedTestForDetail] = useState<any | null>(null);
 
   useEffect(() => {
     if (isOpen && patientId) {
@@ -43,6 +49,7 @@ export default function PatientDetailModal({
     if (!isOpen) {
       setPatient(null);
       setActiveTab("profil");
+      setSelectedTestForDetail(null);
     }
   }, [isOpen, patientId]);
 
@@ -89,27 +96,8 @@ export default function PatientDetailModal({
   const currentMedication = activeNote.currentMedication || ["Sertraline 50 mg (1x sehari)"];
   const allergies = activeNote.allergies || ["Tidak ada alergi yang diketahui"];
 
-  // Test Results Fallback
-  const tesResults = patient?.tesResults?.length
-    ? patient.tesResults
-    : [
-        {
-          id: "tes-1",
-          tesName: "Tes Kecemasan GAD-7",
-          category: "Kecemasan Sedang",
-          score: "12 / 21",
-          date: "28 Juli 2026",
-          description: "Menunjukkan indikasi kecemasan tingkat sedang terkait beban kerja.",
-        },
-        {
-          id: "tes-2",
-          tesName: "Tes Kepribadian MBTI",
-          category: "INFJ - Advocate",
-          score: "Lengkap",
-          date: "15 Juni 2026",
-          description: "Tipe kepribadian reflektif, empatik, dan terstruktur.",
-        },
-      ];
+  // Real Test Results from backend (NO dummy fallbacks)
+  const tesResults = patient?.tesResults || [];
 
   // Session History
   const sessionNotesList = (patient as any)?.sessionNotesList?.length
@@ -319,7 +307,7 @@ export default function PatientDetailModal({
                   <span>Kondisi Medis & Diagnosis Pasien</span>
                 </h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Diagnosis */}
                   <div className="p-4 rounded-xl border border-blue-200 bg-blue-50/50 space-y-2">
                     <div className="flex items-center gap-2 text-blue-900 font-bold text-xs">
@@ -345,19 +333,6 @@ export default function PatientDetailModal({
                         : <li>{String(currentMedication)}</li>}
                     </ul>
                   </div>
-
-                  {/* Alergi */}
-                  <div className="p-4 rounded-xl border border-red-200 bg-red-50/50 space-y-2">
-                    <div className="flex items-center gap-2 text-red-900 font-bold text-xs">
-                      <AlertTriangle className="w-4 h-4 text-red-600" />
-                      <span>Alergi</span>
-                    </div>
-                    <ul className="pl-4 list-disc text-slate-800 space-y-1 text-xs">
-                      {Array.isArray(allergies)
-                        ? allergies.map((a: string, idx: number) => <li key={idx}>{a}</li>)
-                        : <li>{String(allergies)}</li>}
-                    </ul>
-                  </div>
                 </div>
               </div>
             )}
@@ -370,32 +345,106 @@ export default function PatientDetailModal({
                   <span>Hasil Tes Psikologi Pasien</span>
                 </h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {tesResults.map((tes: any, idx: number) => (
-                    <div
-                      key={tes.id || idx}
-                      className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:shadow-xs transition space-y-2"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="font-bold text-slate-900 text-xs">{tes.tesName}</h4>
-                          <p className="text-[11px] text-slate-500">{tes.date}</p>
-                        </div>
-                        <span className="px-2.5 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-lg font-bold text-[11px]">
-                          Skor: {tes.score}
-                        </span>
-                      </div>
+                {tesResults.length === 0 ? (
+                  <div className="p-8 text-center bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-500 font-medium">
+                    Belum ada hasil tes psikologi.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-4">
+                    {tesResults.map((tes: any, idx: number) => {
+                      const testName = tes.tesName || tes.namaTes || "Tes Psikologi";
+                      const isDass21 = (testName || "").toUpperCase().includes("DASS");
+                      const dassRes = isDass21 && tes.answers ? calculateDass21Result(tes.answers) : null;
 
-                      <div className="pt-2 border-t border-slate-200">
-                        <span className="text-[11px] font-semibold text-slate-600">Kategori: </span>
-                        <span className="text-[11px] font-bold text-[#19355E]">{tes.category}</span>
-                        {tes.description && (
-                          <p className="text-[11px] text-slate-600 italic mt-1">{tes.description}</p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                      const handleDownloadPdf = () => {
+                        if (dassRes) {
+                          downloadDass21Pdf({
+                            userName: name || "Pasien Oase Jiwa",
+                            date: tes.date || new Date(tes.createdAt || Date.now()).toLocaleDateString("id-ID"),
+                            testName: testName,
+                            result: dassRes,
+                          });
+                        } else {
+                          alert(`Mendownload laporan PDF ${testName}...`);
+                        }
+                      };
+
+                      return (
+                        <div
+                          key={tes.id || idx}
+                          className="p-4 rounded-xl border border-slate-200 bg-white shadow-xs space-y-3"
+                        >
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                            <div>
+                              <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full inline-block mb-1">
+                                {testName}
+                              </span>
+                              <p className="text-[11px] text-slate-500">{tes.date || new Date(tes.createdAt || Date.now()).toLocaleDateString("id-ID")}</p>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <span className="px-3 py-1 bg-[#19355E] text-white rounded-lg font-bold text-xs">
+                                Kategori: {tes.category || tes.kategoriNama || "-"}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedTestForDetail(tes)}
+                                className="flex items-center gap-1 px-3 py-1 bg-[#19355E] hover:bg-[#234463] text-white rounded-lg text-xs font-semibold transition cursor-pointer shadow-xs"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>Lihat Hasil</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleDownloadPdf}
+                                className="flex items-center gap-1 px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition cursor-pointer"
+                              >
+                                <FileDown className="w-3.5 h-3.5" />
+                                <span>Download PDF</span>
+                              </button>
+                            </div>
+                          </div>
+
+                          {dassRes ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 bg-slate-50 p-3 rounded-lg text-xs">
+                              <div className="p-2.5 bg-white rounded-md border border-slate-200">
+                                <span className="text-slate-500 font-medium block text-[11px]">Depresi</span>
+                                <div className="flex items-center justify-between mt-1">
+                                  <span className="font-bold text-slate-900">{dassRes.depression.score} / 21</span>
+                                  <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800">
+                                    {dassRes.depression.category}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="p-2.5 bg-white rounded-md border border-slate-200">
+                                <span className="text-slate-500 font-medium block text-[11px]">Kecemasan (Anxiety)</span>
+                                <div className="flex items-center justify-between mt-1">
+                                  <span className="font-bold text-slate-900">{dassRes.anxiety.score} / 21</span>
+                                  <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-800">
+                                    {dassRes.anxiety.category}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="p-2.5 bg-white rounded-md border border-slate-200">
+                                <span className="text-slate-500 font-medium block text-[11px]">Stres</span>
+                                <div className="flex items-center justify-between mt-1">
+                                  <span className="font-bold text-slate-900">{dassRes.stress.score} / 21</span>
+                                  <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-indigo-100 text-indigo-800">
+                                    {dassRes.stress.category}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-slate-600">{tes.description || tes.detailDiagnosis || "Hasil skrining pasien."}</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
@@ -453,6 +502,13 @@ export default function PatientDetailModal({
           </>
         )}
       </div>
+
+      <TestResultDetailModal
+        isOpen={!!selectedTestForDetail}
+        onClose={() => setSelectedTestForDetail(null)}
+        testData={selectedTestForDetail}
+        patientName={name}
+      />
     </div>
   );
 }

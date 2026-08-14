@@ -471,18 +471,6 @@ export default function CreatePatientModal({
                   className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2B5379]"
                 />
               </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-bold text-gray-700">Alergi</label>
-                <input
-                  id="allergies"
-                  name="allergies"
-                  type="text"
-                  value={formData.allergies}
-                  onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2B5379]"
-                />
-              </div>
             </div>
           </div>
 

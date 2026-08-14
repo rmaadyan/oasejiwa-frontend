@@ -98,26 +98,26 @@ export default function SignIn() {
     return (
         <div>
             <AuthLayout
-            title="Welcome"
-            description="Sign In to Your Account"
+                title="Welcome"
+                description="Sign In to Your Account"
             >
                 <form onSubmit={handleSubmit} noValidate>
-                        <div className="space-y-8 flex flex-col items-center">
-                            <FormField
-                                label="Email"
-                                id="email"
-                                name="email"
-                                type="text"
-                                autoComplete="email"
-                                value={email}
-                                placeholder="your@gmail.com"
-                                onChange={setEmail}
-                                icon={<Mail className="h-5 w-5"></Mail>}
-                                error={emailError}                         
-                                onClearError={() => setEmailError("")} 
-                            />
+                    <div className="space-y-8 flex flex-col items-center">
+                        <FormField
+                            label="Email"
+                            id="email"
+                            name="email"
+                            type="text"
+                            autoComplete="email"
+                            value={email}
+                            placeholder="your@gmail.com"
+                            onChange={setEmail}
+                            icon={<Mail className="h-5 w-5"></Mail>}
+                            error={emailError}
+                            onClearError={() => setEmailError("")}
+                        />
 
-                            <FormField
+                        <FormField
                             label="Password"
                             id="password"
                             name="password"
@@ -133,19 +133,19 @@ export default function SignIn() {
                             onClearError={() => setPasswordError("")}
                         />
 
-                            {error && (
-                                <div className="text-red-600 text-sm text-center bg-red-50 py-2 px-3 rounded-lg">
-                                    {error}
-                                </div>
-                            )}
+                        {error && (
+                            <div className="text-red-600 text-sm text-center bg-red-50 py-2 px-3 rounded-lg">
+                                {error}
+                            </div>
+                        )}
 
                         <div className="w-full max-w-xl flex flex-col justify-center gap-6">
                             <Link href="/auth/email-input" className="text-center text-[#234463] font-bold text-sm hover:text-[#2B5379] cursor-pointer">
                                 Forgot Password?
                             </Link>
-                            <button 
-                            suppressHydrationWarning
-                            className="font-bold text-white bg-[#234463] w-full py-2 border rounded-2xl hover:[#2B5379] hover:shadow cursor-pointer">Sign in</button>
+                            <button
+                                suppressHydrationWarning
+                                className="font-bold text-white bg-[#234463] w-full py-2 border rounded-2xl hover:[#2B5379] hover:shadow cursor-pointer">Sign in</button>
                         </div>
 
                         <div className="text-center">
@@ -169,9 +169,9 @@ export default function SignIn() {
 
                 <div className="flex justify-center">
                     <button className="flex justify-center gap-2 mb-10 py-2 md:py-3 px-8 md:px-12 border border-[#234463] rounded-4xl bg-blue-50 text-md font-bold text-[#234463] hover:shadow-md hover:border-blue-900 cursor-pointer"
-                    suppressHydrationWarning
-                    type="button"
-                    onClick={handleGoogleLogin}
+                        suppressHydrationWarning
+                        type="button"
+                        onClick={handleGoogleLogin}
                     >
                         <svg className="w-6 h-6" viewBox="0 0 24 24">
                             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -184,9 +184,9 @@ export default function SignIn() {
                 </div>
             </AuthLayout>
             <VerifyEmailModal
-            email={registeredEmail}
-            isOpen={showVerifyModal}
-            onClose={() => setShowVerifyModal(false)}
+                email={registeredEmail}
+                isOpen={showVerifyModal}
+                onClose={() => setShowVerifyModal(false)}
             />
         </div>
     )

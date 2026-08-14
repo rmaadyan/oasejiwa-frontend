@@ -328,22 +328,17 @@ export default function SessionNoteModal({
             </div>
           )}
 
-          {/* Tags */}
-          {note.tags && note.tags.length > 0 && (
-            <div>
-              <p className="mb-2 text-xs font-medium text-gray-600">Tags</p>
-              <div className="flex flex-wrap gap-2">
-                {note.tags.map((tag, index) => (
-                  <span
-                    key={`${tag}-${index}`}
-                    className="inline-flex items-center rounded-md bg-[#D1EAFF] px-3 py-1 text-sm text-[#2B5379]"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Referral */}
+          <div>
+            <p className="mb-1 text-xs font-semibold text-gray-600">Referral</p>
+            <p className="text-sm font-medium text-slate-800">
+              {note.tags && note.tags.length > 0
+                ? Array.isArray(note.tags)
+                  ? note.tags.join(", ")
+                  : String(note.tags)
+                : "Tidak ada"}
+            </p>
+          </div>
 
           {/* Metadata */}
           <div className="border-t border-gray-200 pt-4">

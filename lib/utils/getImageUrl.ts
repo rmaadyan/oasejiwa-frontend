@@ -4,10 +4,10 @@ const DEFAULT_PLACEHOLDER =
 
 const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dxmxxw7xh";
 
-export function getImageUrl(path?: string | null): string {
+export function getImageUrl(path?: string | null, fallback?: string): string {
   // 1. Validasi jika path kosong / null
   if (!path || path.trim() === "" || path === "null" || path === "undefined") {
-    return DEFAULT_PLACEHOLDER;
+    return fallback || DEFAULT_PLACEHOLDER;
   }
 
   const cleanStr = path.trim();
@@ -29,7 +29,7 @@ export function getImageUrl(path?: string | null): string {
   }
 
   // 4. Default ke Backend Server VPS (Fallback ke https://api.oasejiwa.id, BUKAN localhost)
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id";
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || "https://api.oasejiwa.id";
 
   let cleanPath = cleanStr.replace(/^\/+/, "");
 
@@ -41,4 +41,4 @@ export function getImageUrl(path?: string | null): string {
   }
 
   return `${backendUrl}/${cleanPath}`;
-}
+}

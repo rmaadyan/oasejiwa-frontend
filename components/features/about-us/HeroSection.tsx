@@ -57,7 +57,7 @@ const UsersIcon = () => (
 
 export default function HeroSection() {
   const [stats, setStats] = useState<PublicStatisticsData>({
-    totalClients: 0,
+    totalClients: 250,
     totalPsychologists: 1,
     averageRating: 4.9,
     totalReviews: 157,

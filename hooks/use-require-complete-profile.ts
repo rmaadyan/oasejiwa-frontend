@@ -44,8 +44,9 @@ export function useRequireCompleteProfile() {
 
             if (!isComplete) {
                 //redirect ke halaman lengkapi profil, simpan tujuan asal
+                const currentUrl = typeof window !== "undefined" ? window.location.href : "";
                 router.replace(
-                    `/userprofile?redirect=${encodeURIComponent(window.location.href)}`
+                    `/userprofile?redirect=${encodeURIComponent(currentUrl)}`
                 );
                 return;
             }

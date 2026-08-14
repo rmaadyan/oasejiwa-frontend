@@ -87,7 +87,9 @@ export async function logoutUser() {
 }
 
 export function googleLogin() {
-    window.location.href = `${API_BASE_URL}/auth/google`;
+    if (typeof window !== "undefined") {
+        window.location.href = `${API_BASE_URL}/auth/google`;
+    }
 }
 
 export async function emailInput(email: string) {
@@ -168,6 +170,25 @@ export async function getAuthMe() {
 
     if (!res.ok) {
         throw new Error(result.message || "Gagal mengambil data user");
+    }
+
+    return result;
+}
+
+export async function changeVerificationEmail(oldEmail: string, newEmail: string) {
+    const res = await fetch(`${API_BASE_URL}/auth/change-verification-email`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ oldEmail, newEmail }),
+    });
+
+    const result = await res.json();
+
+    if (!res.ok) {
+        throw new Error(result.message || "Gagal mengubah email verifikasi");
     }
 
     return result;

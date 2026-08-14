@@ -4,6 +4,8 @@ import Footer from "@/components/common/Footer";
 import Navbar from "@/components/common/Navbar";
 import type { TesItem } from "@/components/features/manajemen-tes/types";
 import { getAllTes } from "@/lib/api/tes";
+import { DASS21_QUESTIONS } from "@/lib/data/dass21-questions";
+import { getImageUrl } from "@/lib/utils/getImageUrl";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 

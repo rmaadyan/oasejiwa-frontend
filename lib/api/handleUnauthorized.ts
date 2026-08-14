@@ -1,4 +1,6 @@
 export function clearSessionAndRedirect() {
-    localStorage.removeItem("user");
-    window.location.href = "/auth/signin";
+    if (typeof window !== "undefined") {
+        localStorage.removeItem("user");
+        window.location.href = "/auth/signin";
+    }
 }

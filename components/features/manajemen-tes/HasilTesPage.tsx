@@ -11,6 +11,8 @@ import jsPDF from "jspdf";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { DiagnosisKategori, SectionKategoriMap } from "./types";
+import { calculateDass21Result } from "@/lib/utils/dass21-calculator";
+import { downloadDass21Pdf } from "@/lib/utils/dass21-pdf-generator";
 
 const RESULT_KEY = "tes-last-result";
 
@@ -91,6 +93,22 @@ export default function HasilTesPage() {
 
     setIsDownloading(true);
     try {
+      if (hasil && (hasil as any).answers) {
+        const dassRes = calculateDass21Result((hasil as any).answers);
+        downloadDass21Pdf({
+          userName: dataPeserta.nama,
+          date: new Date().toLocaleDateString("id-ID", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          }),
+          testName: hasil.namaTes,
+          result: dassRes,
+        });
+        setIsDownloading(false);
+        return;
+      }
+
       const element = document.getElementById("hasil-tes-content");
       if (!element) {
         setPdfError("Elemen hasil tes tidak ditemukan.");
@@ -567,19 +585,32 @@ export default function HasilTesPage() {
           </div>
 
           {/* Tombol aksi */}
-          <div className="mt-6 flex items-center justify-end gap-3">
+          <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
             <button
               onClick={() => router.push("/tes")}
-              className="rounded-full border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-blue-50"
+              className="rounded-full border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-blue-50 cursor-pointer"
             >
               Kembali
             </button>
             <button
               onClick={generatePDF}
               disabled={isDownloading}
-              className="rounded-full bg-[#1f3b5b] px-6 py-2 text-sm font-semibold text-white hover:bg-blue-900 disabled:opacity-60"
+              className="rounded-full bg-[#1f3b5b] px-6 py-2 text-sm font-semibold text-white hover:bg-blue-900 disabled:opacity-60 cursor-pointer"
             >
-              {isDownloading ? "Mengunduh..." : "Download PDF"}
+              {isDownloading ? "Mengunduh..." : "Download Hasil PDF"}
+            </button>
+            <button
+              onClick={() => {
+                const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+                if (!token) {
+                  router.push(`/auth/signin?redirect=${encodeURIComponent("/booking/psychologists")}`);
+                } else {
+                  router.push("/booking/psychologists");
+                }
+              }}
+              className="rounded-full bg-emerald-600 px-6 py-2 text-sm font-semibold text-white hover:bg-emerald-700 shadow-sm cursor-pointer"
+            >
+              Booking Psikolog
             </button>
           </div>
         </div>

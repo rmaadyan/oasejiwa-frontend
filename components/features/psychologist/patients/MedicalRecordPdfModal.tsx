@@ -193,9 +193,12 @@ export default function MedicalRecordPdfModal({
   const formattedSessionTime = note.sessionTime || "09:00 WIB";
   const consultationStatus = note.consultationStatus || "SELESAI";
 
-  const diagnosisStr = Array.isArray(patient.diagnosis) && patient.diagnosis.length > 0
-    ? patient.diagnosis.join(", ")
-    : note.diagnosisSummary || "Dalam Evaluasi";
+  const rawDiagnosis = note.diagnosisSummary || (patient as any)?.diagnosis || (note as any)?.diagnosis;
+  const diagnosisStr = Array.isArray(rawDiagnosis)
+    ? rawDiagnosis.length > 0 ? rawDiagnosis.join(", ") : "-"
+    : typeof rawDiagnosis === "string" && rawDiagnosis.trim()
+    ? rawDiagnosis
+    : "-";
 
   const medicationStr = Array.isArray(patient.currentMedication) && patient.currentMedication.length > 0
     ? patient.currentMedication.join(", ")
@@ -235,7 +238,23 @@ export default function MedicalRecordPdfModal({
         format: "a4",
       });
 
-      pdf.addImage(imgData, "PNG", 0, 0, 210, 297);
+      const imgWidth = 210;
+      const pageHeight = 297;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 5) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
       pdf.save(`Rekam-Medis-${patient.name.replace(/\s+/g, "_")}.pdf`);
     } catch (err) {
       console.error("Gagal generate PDF:", err);
@@ -352,10 +371,10 @@ export default function MedicalRecordPdfModal({
           <div
             id="medical-record-pdf-target"
             ref={singlePageRef}
-            className="w-[210mm] max-h-[290mm] mx-auto bg-white p-[6mm_10mm] shadow-md border border-slate-300 font-sans text-[12px] leading-snug space-y-2 flex flex-col justify-between box-border overflow-hidden"
-            style={{ width: "210mm", height: "auto", maxHeight: "290mm" }}
+            className="w-[210mm] mx-auto bg-white p-[6mm_10mm] shadow-md border border-slate-300 font-sans text-[11.5px] leading-snug space-y-1.5 flex flex-col justify-between box-border"
+            style={{ width: "210mm", minHeight: "297mm", height: "auto" }}
           >
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {/* HEADER OASE JIWA */}
               <div className="flex justify-between items-center border-b-2 border-slate-800 pb-1.5">
                 <div className="flex items-center gap-2.5">
@@ -380,7 +399,7 @@ export default function MedicalRecordPdfModal({
 
               {/* DOCUMENT TITLE */}
               <div className="text-center border-b border-slate-700 pb-0.5">
-                <h3 className="font-bold text-slate-900 uppercase tracking-wide text-xs underline decoration-slate-400 decoration-1">
+                <h3 className="font-bold text-[#19355E] uppercase tracking-wide text-[12px] underline decoration-slate-400 decoration-1">
                   CATATAN UNTUK PSIKOLOG (DIISI OLEH PSIKOLOG SETELAH SESI)
                 </h3>
               </div>
@@ -388,7 +407,7 @@ export default function MedicalRecordPdfModal({
               {/* METADATA BOX */}
               <div className="p-2 rounded-xl border border-slate-300 bg-slate-50/70 space-y-1">
                 <div className="flex justify-between items-center border-b border-slate-200 pb-1">
-                  <span className="font-bold text-[#19355E] text-[11.5px]">
+                  <span className="font-bold text-[#19355E] text-[11px]">
                     Sesi Konsultasi ke-{sessionNum} (dari total {totalSessionsCount} sesi) &nbsp;|&nbsp; Tanggal: {formattedSessionDate} &nbsp;|&nbsp; Jam: {formattedSessionTime}
                   </span>
 
@@ -416,7 +435,7 @@ export default function MedicalRecordPdfModal({
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-x-6 gap-y-0.5 text-[11.5px]">
+                <div className="grid grid-cols-2 gap-x-6 gap-y-0.5 text-[11px]">
                   <div>
                     <span className="font-bold text-slate-700">Psikolog:</span>{" "}
                     <span className="text-slate-900 font-medium">{finalPsychologistName}</span>
@@ -441,42 +460,38 @@ export default function MedicalRecordPdfModal({
                     <span className="font-bold text-slate-700">Obat Saat Ini:</span>{" "}
                     <span className="text-slate-800">{medicationStr}</span>
                   </div>
-                  <div className="col-span-2">
-                    <span className="font-bold text-slate-700">Alergi:</span>{" "}
-                    <span className="text-slate-800">{allergiesStr}</span>
-                  </div>
                 </div>
               </div>
 
               {/* MAIN CLINICAL DOCUMENTATION BOX */}
-              <div className="p-2 rounded-xl border-2 border-slate-300 bg-white space-y-1.5 text-[11.5px] leading-snug">
+              <div className="p-2 rounded-xl border-2 border-slate-300 bg-white space-y-1.5 text-[10px] leading-snug break-words">
                 {/* 1. Ringkasan Masalah Utama */}
                 <div>
-                  <span className="font-bold text-slate-900 block mb-0.5">• Ringkasan Masalah Utama (Subjective) :</span>
-                  <p className="pl-4 text-slate-800">{mainProblem}</p>
+                  <span className="font-bold text-[#19355E] text-[11px] block mb-0.5">• Ringkasan Masalah Utama (Subjective) :</span>
+                  <p className="pl-4 text-slate-800 text-justify">{mainProblem}</p>
                 </div>
 
                 {/* 2. Observasi Psikolog */}
                 <div>
-                  <span className="font-bold text-slate-900 block mb-0.5">• Observasi Psikolog (Objective) :</span>
-                  <p className="pl-4 text-slate-800">{observation}</p>
+                  <span className="font-bold text-[#19355E] text-[11px] block mb-0.5">• Observasi Psikolog (Objective) :</span>
+                  <p className="pl-4 text-slate-800 text-justify">{observation}</p>
                 </div>
 
                 {/* 3. Assessment Psikolog */}
                 <div>
-                  <span className="font-bold text-slate-900 block mb-0.5">• Assessment Psikolog :</span>
-                  <p className="pl-4 text-slate-800">{assessment}</p>
+                  <span className="font-bold text-[#19355E] text-[11px] block mb-0.5">• Assessment Psikolog :</span>
+                  <p className="pl-4 text-slate-800 text-justify">{assessment}</p>
                 </div>
 
                 {/* 4. Rekomendasi Pendekatan Terapi */}
                 <div>
-                  <span className="font-bold text-slate-900 block mb-0.5">• Rekomendasi Pendekatan Terapi (Plan) :</span>
-                  <p className="pl-4 text-slate-800">{plan}</p>
+                  <span className="font-bold text-[#19355E] text-[11px] block mb-0.5">• Rekomendasi Pendekatan Terapi (Plan) :</span>
+                  <p className="pl-4 text-slate-800 text-justify">{plan}</p>
                 </div>
 
                 {/* 5. Rencana Tindak Lanjut */}
                 <div>
-                  <span className="font-bold text-slate-900 block mb-0.5">• Rencana Tindak Lanjut :</span>
+                  <span className="font-bold text-[#19355E] text-[11px] block mb-0.5">• Rencana Tindak Lanjut :</span>
                   <div className="pl-4 flex items-center gap-6 text-slate-800 font-medium">
                     <label className={`flex items-center gap-1.5 ${followUpPlan === "CONTINUE_SESSION" ? "font-bold text-blue-800" : ""}`}>
                       <input type="checkbox" readOnly checked={followUpPlan === "CONTINUE_SESSION"} className="rounded text-blue-600" />
@@ -501,7 +516,7 @@ export default function MedicalRecordPdfModal({
 
                 {/* 7. Alasan Penilaian Risiko */}
                 <div>
-                  <span className="font-bold text-slate-900 block mb-0.5">
+                  <span className="font-bold text-[#19355E] text-[11px] block mb-0.5">
                     • Alasan Penilaian Risiko ({riskLevel.toUpperCase()}) :
                   </span>
                   <p className="pl-4 text-slate-700 italic">{riskReason}</p>
@@ -509,7 +524,7 @@ export default function MedicalRecordPdfModal({
 
                 {/* 8. Rekomendasi Penanganan Otomatis */}
                 <div>
-                  <span className="font-bold text-slate-900 block mb-0.5">• Rekomendasi Penanganan Otomatis :</span>
+                  <span className="font-bold text-[#19355E] text-[11px] block mb-0.5">• Rekomendasi Penanganan Otomatis :</span>
                   <ul className="pl-8 list-disc text-slate-800 space-y-0.5">
                     {autoRecommendations.map((rec: string, idx: number) => (
                       <li key={idx}>{rec}</li>
@@ -519,35 +534,32 @@ export default function MedicalRecordPdfModal({
 
                 {/* 9. Fokus Sesi Berikutnya */}
                 <div>
-                  <span className="font-bold text-slate-900 block mb-0.5">• Fokus Sesi Berikutnya :</span>
+                  <span className="font-bold text-[#19355E] text-[11px] block mb-0.5">• Fokus Sesi Berikutnya :</span>
                   <p className="pl-4 text-slate-800">{nextSessionFocus}</p>
                 </div>
 
                 {/* 10. Catatan Tambahan */}
                 <div>
-                  <span className="font-bold text-slate-900 block mb-0.5">• Catatan Tambahan (jika ada) :</span>
+                  <span className="font-bold text-[#19355E] text-[11px] block mb-0.5">• Catatan Tambahan (jika ada) :</span>
                   <p className="pl-4 text-slate-700 italic">{additionalNotes}</p>
                 </div>
 
-                {/* 11. Tag */}
-                <div className="pt-1 border-t border-slate-200 flex items-center gap-2">
-                  <span className="font-bold text-slate-900">• Tag :</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {tags.map((t: string, idx: number) => (
-                      <span
-                        key={idx}
-                        className="px-2 py-0.5 bg-slate-100 border border-slate-300 text-slate-700 rounded text-[10.5px] font-semibold"
-                      >
-                        #{t}
-                      </span>
-                    ))}
-                  </div>
+                {/* 11. Referral */}
+                <div className="pt-1 border-t border-slate-200 flex items-start gap-2">
+                  <span className="font-bold text-slate-900 shrink-0">• Referral :</span>
+                  <p className="text-slate-800 text-[11px] break-words">
+                    {tags && tags.length > 0
+                      ? Array.isArray(tags)
+                        ? tags.join(", ")
+                        : String(tags)
+                      : "Tidak ada"}
+                  </p>
                 </div>
               </div>
             </div>
 
             {/* DIGITAL SIGNATURE BLOCK & FOOTER */}
-            <div className="space-y-1 pt-1 border-t border-slate-200">
+            <div className="space-y-1 pt-2 border-t border-slate-200" style={{ pageBreakInside: "avoid", breakInside: "avoid" }}>
               <div className="flex justify-end font-sans">
                 <div className="text-center w-64">
                   <p className="mb-0.5 text-[11.5px] text-slate-800 font-medium">

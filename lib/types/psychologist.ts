@@ -86,6 +86,8 @@ export interface PsychologistPatient {
   latestTesName?: string | null;
   latestTesCategory?: string | null;
   latestTesScore?: string | null;
+  latestTesDate?: string | null;
+  latestTesSummary?: string | null;
 
   notes?: string | null;
 }

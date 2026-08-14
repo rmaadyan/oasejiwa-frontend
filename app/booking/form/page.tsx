@@ -8,6 +8,7 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas-pro";
 import { createBooking } from "@/lib/api/booking";
 import { getLayananById } from "@/lib/api/layanan";
+import { getAllPsychologistsPublic } from "@/lib/api/psychologist";
 import {
   User,
   Calendar,
@@ -345,6 +346,30 @@ function ConsultationFormContent() {
     const available = getAvailableDatesForDay(dayParam);
     return available[0]?.isoDate || new Date().toISOString().split("T")[0];
   });
+
+  const [selectedPsychologistId, setSelectedPsychologistId] = useState<string>(
+    psychologistId || ""
+  );
+  const [psychologistsList, setPsychologistsList] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (psychologistId) {
+      setSelectedPsychologistId(psychologistId);
+    }
+  }, [psychologistId]);
+
+  useEffect(() => {
+    getAllPsychologistsPublic()
+      .then((list: any) => {
+        if (Array.isArray(list)) {
+          setPsychologistsList(list);
+          if (!psychologistId && list.length > 0) {
+            setSelectedPsychologistId(list[0].id);
+          }
+        }
+      })
+      .catch((err: any) => console.error("Gagal memuat daftar psikolog:", err));
+  }, [psychologistId]);
 
   const [clientData, setClientData] = useState<ClientFormData>(emptyClientData);
   const [coupleClientData, setCoupleClientData] = useState<CoupleClientFormData>(emptyCoupleClientData);
@@ -734,6 +759,15 @@ function ConsultationFormContent() {
       return;
     }
 
+    if (!selectedPsychologistId || selectedPsychologistId.trim() === "") {
+      setErrors((prev) => ({
+        ...prev,
+        psychologistId: "Silakan pilih psikolog terlebih dahulu.",
+      }));
+      alert("Silakan pilih psikolog terlebih dahulu.");
+      return;
+    }
+
     if (formStep === 1) {
       setFormStep(2);
     } else if (formStep === 2) {
@@ -757,13 +791,6 @@ function ConsultationFormContent() {
             noPreference: "NO_PREFERENCE",
           };
 
-          // Bentuk consultationForm berbeda untuk layanan pasangan (lihat
-          // coupleConsultationFormSchema) vs layanan individu.
-          // CATATAN: sama seperti clientData pada formulir individu (yang juga
-          // tidak dikirim ke createBooking), coupleClientData (nama/usia/alamat
-          // klien & pasangan) saat ini HANYA dipakai untuk formulir cetak/PDF,
-          // belum dikirim ke API. Kalau backend butuh data ini per booking,
-          // beri tahu aku bentuk payload yang diharapkan supaya bisa ditambahkan.
           const mappedConsultation = isCouple
             ? {
                 ...coupleConsultationData,
@@ -797,21 +824,21 @@ function ConsultationFormContent() {
           const validScheduledDate = toValidIsoDateString(selectedDate);
 const validConsentDate = toValidIsoDateString(consentData.consentDate!);
 
-// 🟢 PERBARUI BAGIAN PAYLOAD INI:
-const payload: any = {
-  serviceId: Number(serviceId),
-  psychologistId: psychologistId || "",
-  scheduledDate: validScheduledDate,
-  scheduledTime: selectedTime,
-  consultationForm: mappedConsultation,
-  consentForm: {
-    consentDate: consentData.consentDate,
-    clientNameConfirmation: consentData.clientNameConfirmation,
-    signatureData: consentData.signature,
-    signatureType: useTextSignature ? "TEXT" : "DRAWING",
-    agreedToTerms: consentData.agreedToTerms ?? false,
-  },
-};
+          const payload: any = {
+            serviceId: Number(serviceId),
+            psychologistId: (selectedPsychologistId || psychologistId || "").trim(),
+            scheduleId: scheduleId || undefined,
+            scheduledDate: validScheduledDate,
+            scheduledTime: selectedTime,
+            consultationForm: mappedConsultation,
+            consentForm: {
+              consentDate: consentData.consentDate,
+              clientNameConfirmation: consentData.clientNameConfirmation,
+              signatureData: consentData.signature,
+              signatureType: useTextSignature ? "TEXT" : "DRAWING",
+              agreedToTerms: consentData.agreedToTerms ?? false,
+            },
+          };
 
 // 🟢 Hanya masukkan scheduleId jika nilainya berupa string valid
 if (

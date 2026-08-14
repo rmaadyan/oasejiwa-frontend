@@ -17,6 +17,7 @@ import type {
   TesStatus,
 } from "./types";
 import { uploadGambar } from "@/lib/api/tes";
+import { getImageUrl } from "@/lib/utils/getImageUrl";
 
 export type TesDetail = {
   id?: number;
@@ -335,7 +336,7 @@ export default function DetailTesForm({ initial, onSave, onCancel }: Props) {
           {/* Preview */}
           <div className="h-24 w-24 rounded-xl border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center shrink-0">
             {coverUrl ? (
-              <img src={coverUrl} alt="Cover" className="h-full w-full object-cover" />
+              <img src={getImageUrl(coverUrl)} alt="Cover" className="h-full w-full object-cover" />
             ) : (
               <span className="text-xs text-gray-400">No Image</span>
             )}
@@ -426,6 +427,15 @@ export default function DetailTesForm({ initial, onSave, onCancel }: Props) {
                     onChange={(e) => ubahPertanyaan(p.id, "section", e.target.value)}
                     className="w-32 rounded-full border border-gray-300 px-3 py-1 text-xs text-gray-800"
                     placeholder="Mis. Depresi"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-700">URL Gambar</span>
+                  <input
+                    value={p.image ?? p.imageUrl ?? ""}
+                    onChange={(e) => ubahPertanyaan(p.id, "image", e.target.value)}
+                    className="w-48 rounded-full border border-gray-300 px-3 py-1 text-xs text-gray-800"
+                    placeholder="URL gambar (opsional)"
                   />
                 </div>
               </div>

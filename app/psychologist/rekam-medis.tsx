@@ -319,11 +319,36 @@ export default function PsychologistRekamMedisPage() {
 
                     <td className="py-4 px-4">
                       {patient.latestTesName ? (
-                        <div>
-                          <p className="text-xs font-medium text-gray-900">{patient.latestTesName}</p>
-                          <p className="text-xs text-blue-600 font-semibold">{patient.latestTesCategory}</p>
-                          {patient.latestTesScore && (
-                            <span className="text-[11px] text-gray-400">Skor: {patient.latestTesScore}</span>
+                        <div className="space-y-0.5 max-w-[200px]">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-xs font-semibold text-[#234463]">
+                              {patient.latestTesName.toUpperCase().includes("DASS") ? "DASS-21" : patient.latestTesName}
+                            </span>
+                            {patient.latestTesDate && (
+                              <span className="text-[10px] text-gray-400 shrink-0">
+                                {new Date(patient.latestTesDate).toLocaleDateString("id-ID", {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric",
+                                })}
+                              </span>
+                            )}
+                          </div>
+                          {patient.latestTesSummary ? (
+                            <p className="text-[11px] font-medium text-gray-600 truncate" title={patient.latestTesSummary}>
+                              {patient.latestTesSummary}
+                            </p>
+                          ) : patient.latestTesScore ? (
+                            <p className="text-[11px] text-gray-500 truncate">
+                              Skor: {patient.latestTesScore}
+                            </p>
+                          ) : null}
+                          {patient.latestTesCategory && (
+                            <div className="pt-0.5">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-[#E8F6FF] text-[#234463] border border-[#d4edff]">
+                                Kategori: {patient.latestTesCategory}
+                              </span>
+                            </div>
                           )}
                         </div>
                       ) : (
