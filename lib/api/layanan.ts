@@ -1,6 +1,3 @@
-<<<<<<< Updated upstream
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-=======
 // 🟢 SANITASI API_BASE_URL (Perbaikan URL cacat, prefix /api, & trailing slash)
 let rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
@@ -21,9 +18,9 @@ async function safeParseJson(res: Response, fallbackValue: any = null) {
     return fallbackValue;
   }
 }
->>>>>>> Stashed changes
 
 function mapBackendToLayananItem(raw: any) {
+  if (!raw) return {} as any;
   return {
     id: raw.id,
     nama: raw.nama,
@@ -70,14 +67,9 @@ export async function getAllLayanan() {
     credentials: "include",
   });
   if (!res.ok) throw new Error("Gagal fetch data layanan");
-<<<<<<< Updated upstream
-  const data = await res.json();
-  return data.map(mapBackendToLayananItem);
-=======
   const data = await safeParseJson(res, []);
   const mapped = Array.isArray(data) ? data.map(mapBackendToLayananItem) : [];
   return sortByUrutan(mapped);
->>>>>>> Stashed changes
 }
 
 export async function getAllLayananPublic() {
@@ -85,14 +77,9 @@ export async function getAllLayananPublic() {
     cache: "no-store",
   });
   if (!res.ok) throw new Error("Gagal fetch data layanan");
-<<<<<<< Updated upstream
-  const data = await res.json();
-  return data.map(mapBackendToLayananItem);
-=======
   const data = await safeParseJson(res, []);
   const mapped = Array.isArray(data) ? data.map(mapBackendToLayananItem) : [];
   return sortByUrutan(mapped);
->>>>>>> Stashed changes
 }
 
 export async function getLayananById(id: string) {
@@ -101,7 +88,7 @@ export async function getLayananById(id: string) {
     credentials: "include",
   });
   if (!res.ok) throw new Error("Gagal fetch layanan");
-  const data = await res.json();
+  const data = await safeParseJson(res, null);
   return mapBackendToLayananItem(data);
 }
 
@@ -113,11 +100,11 @@ export async function createLayanan(data: any) {
     body: JSON.stringify(mapToBackendPayload(data)),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
+    const err = await safeParseJson(res, {});
     const msg = Array.isArray(err.message) ? err.message.join(", ") : err.message;
     throw new Error(msg || "Gagal create layanan");
   }
-  return res.json();
+  return await safeParseJson(res, {});
 }
 
 export async function updateLayanan(id: string, data: any) {
@@ -128,7 +115,7 @@ export async function updateLayanan(id: string, data: any) {
     body: JSON.stringify(mapToBackendPayload(data)),
   });
   if (!res.ok) throw new Error("Gagal update layanan");
-  return res.json();
+  return await safeParseJson(res, {});
 }
 
 // 🟢 Simpan urutan baru untuk banyak layanan sekaligus.
@@ -159,20 +146,21 @@ export async function uploadGambarLayanan(file: File): Promise<string> {
     body: formData,
   });
   if (!res.ok) throw new Error("Gagal upload gambar");
-  const result = await res.json();
-  return result.url;
+  const result = await safeParseJson(res, {});
+  return result.url || "";
 }
 
-export async function deleteLayanan(id: string) {
-  const res = await fetch(`${API_BASE_URL}/layanan/${id}`, {
+export async function deleteLayanan(id: number) {
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+  const response = await fetch(`${API_BASE_URL}/layanan/${id}`, {
     method: "DELETE",
     credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
   });
-<<<<<<< Updated upstream
-  if (!res.ok) throw new Error("Gagal hapus layanan");
-  return res.json();
-}
-=======
 
   if (!response.ok) {
     const errorData = await safeParseJson(response, {});
@@ -181,4 +169,3 @@ export async function deleteLayanan(id: string) {
 
   return await safeParseJson(response, {});
 }
->>>>>>> Stashed changes
