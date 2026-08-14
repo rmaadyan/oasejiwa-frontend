@@ -583,55 +583,67 @@ export async function updatePsychologistProfile(
 }
 
 export async function getAllPsychologistsPublic() {
-  let res = await fetch(`${API_BASE_URL}/psychologists/public`, { cache: "no-store" });
+  const res = await fetch(`${API_BASE_URL}/psychologist/public`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    cache: "no-store", // 👈 Menghindari cache lama di Next.js
+  });
 
   if (!res.ok) {
-    res = await fetch(`${API_BASE_URL}/psychologists`, { cache: "no-store" });
-  }
-
-  if (!res.ok) {
-    return { data: [] };
+    throw new Error("Gagal memuat data psikolog publik");
   }
 
   const result = await safeParseJson(res, { data: [] });
-  const rawData = result.data || result.psychologists || (Array.isArray(result) ? result : []);
+  const rawData =
+    result.data ||
+    result.psychologists ||
+    (Array.isArray(result) ? result : []);
 
   const cleanData = (Array.isArray(rawData) ? rawData : [])
     .filter((p: any) => {
       const name = p?.name || p?.fullName;
       const sipp = p?.sipp;
-      const hasValidSipp = sipp && String(sipp).trim() !== "" && String(sipp).trim() !== "-";
-      
-      // 🟢 Filter status aktif: jika field isActive didefinisikan, wajib true; atau status bukan INACTIVE
-      const isActiveStatus = 
-        p?.isActive === true || 
-        p?.status === "ACTIVE" || 
+      const hasValidSipp =
+        sipp && String(sipp).trim() !== "" && String(sipp).trim() !== "-";
+
+      // Status Aktif
+      const isActiveStatus =
+        p?.isActive === true ||
+        p?.status === "Aktif" ||
+        p?.status === "ACTIVE" ||
         (p?.isActive === undefined && p?.status !== "INACTIVE");
 
       return (
-        p?.id && 
-        name && 
-        name.trim() !== "" && 
-        name !== "Psikolog" && 
+        p?.id &&
+        name &&
+        name.trim() !== "" &&
+        name !== "Psikolog" &&
         hasValidSipp &&
-        isActiveStatus // 👈 Hanya lolos jika aktif
+        isActiveStatus
       );
     })
     .map((p: any) => ({
       ...p,
+      displayOrder: Number(p.displayOrder ?? p.order ?? 0), // 👈 Ambil displayOrder
       name: p.fullName || p.name,
-      avatarUrl: p.avatarUrl && p.avatarUrl.trim() !== "" ? p.avatarUrl : null,
+      avatarUrl:
+        p.avatarUrl && p.avatarUrl.trim() !== "" ? p.avatarUrl : null,
       sipp: p.sipp || "-",
       str: p.str || "-",
       about: p.about || "Psikolog Klinik Oase Jiwa",
       specializations: p.specializations || [],
     }))
     .sort((a: any, b: any) => {
-      // 🟢 Urutkan berdasarkan field order jika ada, jika sama baru alfabetis
-      if (typeof a.order === "number" && typeof b.order === "number") {
-        return a.order - b.order;
+      // 🟢 Urutkan berdasarkan displayOrder yang sudah diatur admin
+      const orderA = a.displayOrder;
+      const orderB = b.displayOrder;
+
+      if (orderA !== orderB) {
+        return orderA - orderB;
       }
-      return a.name.localeCompare(b.name);
+      return 0; // Pertahankan urutan array dari database
     });
 
   return { data: cleanData };

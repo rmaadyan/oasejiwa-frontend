@@ -29,11 +29,10 @@ export default function PsikologList() {
     const fetchData = async () => {
       try {
         const result = await getAllPsychologistsPublic();
-        const rawList = Array.isArray(result?.data)
-          ? result.data
-          : Array.isArray(result)
-          ? result
-          : [];
+        
+        // 🟢 Ambil data langsung dari result.data
+        const rawData = (result as any)?.data || result || [];
+        const rawList = Array.isArray(rawData) ? rawData : [];
 
         const cleanList = rawList
           .filter((p: any) => {
@@ -42,6 +41,7 @@ export default function PsikologList() {
           })
           .map((p: any) => ({
             id: p.id,
+            displayOrder: Number(p.displayOrder ?? 0),
             name: p.name || p.fullName,
             avatarUrl: p.avatarUrl && p.avatarUrl.trim() !== "" ? p.avatarUrl : null,
             sipp: p.sipp || "-",
@@ -52,13 +52,17 @@ export default function PsikologList() {
             experiences: p.experiences || [],
           }));
 
+        // 🟢 Urutkan sesuai displayOrder yang diatur admin
+        cleanList.sort((a: any, b: any) => a.displayOrder - b.displayOrder);
+
         setPsikologList(cleanList);
-     } catch (err: any) {
+      } catch (err: any) {
         setError(err.message || "Gagal memuat data psikolog");
       } finally {
         setIsLoading(false);
       }
     };
+    
     fetchData();
   }, []);
 
@@ -159,25 +163,36 @@ export default function PsikologList() {
 
                 <div className="w-full border-t border-[#C3E0FA] my-1"></div>
 
-                {/* KONTEN DETAIL PROFIL */}
-                <div className="w-full space-y-3 text-left text-xs sm:text-sm">
-                  {/* NO SIPP & NO STR */}
-                  <div className="grid grid-cols-2 gap-2 bg-white/60 p-2.5 rounded-xl border border-[#C3E0FA]">
-                    <div className="flex items-start gap-2">
-                      <BadgeCheck className="w-4 h-4 text-[#234463] shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-[11px] font-semibold text-[#1E3A5F]">No. SIPP/SILP</p>
-                        <p className="font-mono text-[11px] text-[#3B597B] truncate">{psikolog.sipp || "-"}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <FileText className="w-4 h-4 text-[#234463] shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-[11px] font-semibold text-[#1E3A5F]">No. STR</p>
-                        <p className="font-mono text-[11px] text-[#3B597B] truncate">{psikolog.str || "-"}</p>
-                      </div>
-                    </div>
-                  </div>
+               {/* 🟢 KOTAK NO SIPP & NO STR RESPONSIF PENUH (VERTIKAL STACK) */}
+<div className="w-full bg-white/80 rounded-2xl p-3.5 border border-[#C3E0FA] space-y-2.5 shadow-xs">
+  {/* Baris 1: SIPP */}
+  <div className="flex items-start gap-2.5 text-left">
+    <div className="p-1 rounded-lg bg-blue-50 text-[#234463] shrink-0 mt-0.5">
+      <BadgeCheck className="w-3.5 h-3.5" />
+    </div>
+    <div className="flex-1 min-w-0">
+      <p className="text-[10px] font-bold text-[#1E3A5F] uppercase tracking-wider">No. SIPP / SILP</p>
+      <p className="font-mono text-xs text-[#2B5379] font-medium break-all leading-tight mt-0.5">
+        {psikolog.sipp || "-"}
+      </p>
+    </div>
+  </div>
+
+  {/* Garis Pembatas Tipis */}
+  <div className="border-t border-slate-100/90 w-full" />
+
+  {/* Baris 2: STR */}
+  <div className="flex items-start gap-2.5 text-left">
+    <div className="p-1 rounded-lg bg-blue-50 text-[#234463] shrink-0 mt-0.5">
+      <FileText className="w-3.5 h-3.5" />
+    </div>
+    <div className="flex-1 min-w-0">
+      <p className="text-[10px] font-bold text-[#1E3A5F] uppercase tracking-wider">No. STR</p>
+      <p className="font-mono text-xs text-[#2B5379] font-medium break-all leading-tight mt-0.5">
+        {psikolog.str || "-"}
+      </p>
+    </div>
+  </div>
 
                   {/* SPESIALISASI */}
                   <div className="flex items-start gap-2.5">
