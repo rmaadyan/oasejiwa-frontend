@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { Plus, Search, UserCheck, Mail, Lock, X, CheckCircle2, Pencil, Trash2, AlertTriangle, Clock, Eye } from "lucide-react";
+import { Plus, Search, UserCheck, Mail, Lock, X, CheckCircle2, Pencil, Trash2, AlertTriangle, Clock, Eye, ArrowUp, ArrowDown } from "lucide-react";
 import Link from "next/link";
 import { getAllPsychologistsAdmin, API_BASE_URL } from "@/lib/api/psychologist";
 
@@ -14,7 +14,6 @@ export default function PsikologManagementPage() {
     const [loadingFetch, setLoadingFetch] = useState(true);
     const [sendingReminderId, setSendingReminderId] = useState<string | null>(null);
 
-    // 🟢 MENGGUNAKAN HELPER API KHUSUS ADMIN DENGAN FALLBACK & AUTH TOKEN
     const fetchPsikologs = async () => {
         setLoadingFetch(true);
         try {
@@ -47,6 +46,19 @@ export default function PsikologManagementPage() {
     useEffect(() => {
         fetchPsikologs();
     }, []);
+
+    // 🟢 Fitur Mengubah Urutan Tata Letak Psikolog (Naik / Turun)
+    const handleMoveOrder = (index: number, direction: "up" | "down") => {
+        const targetIndex = direction === "up" ? index - 1 : index + 1;
+        if (targetIndex < 0 || targetIndex >= psikologList.length) return;
+
+        const updatedList = [...psikologList];
+        const temp = updatedList[index];
+        updatedList[index] = updatedList[targetIndex];
+        updatedList[targetIndex] = temp;
+
+        setPsikologList(updatedList);
+    };
 
     const handleSuccessAdd = () => {
         fetchPsikologs();
@@ -88,7 +100,7 @@ export default function PsikologManagementPage() {
         const token = typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
 
         try {
-            const res = await fetch(`${API_BASE_URL}/psychologists/${deletingId}`, {
+            const res = await fetch(`${API_BASE_URL}/admin/psychologists/${deletingId}`, {
                 method: "DELETE",
                 headers: {
                     "Content-Type": "application/json",
@@ -159,7 +171,8 @@ export default function PsikologManagementPage() {
                     <table className="w-full text-left text-sm">
                         <thead className="bg-[#F8FAFC] border-b border-slate-200 text-slate-600 font-semibold">
                             <tr>
-                                <th className="p-4 pl-6">Psikolog</th>
+                                <th className="p-4 pl-6 w-16 text-center">Urutan</th>
+                                <th className="p-4">Psikolog</th>
                                 <th className="p-4">No. HP / WA</th>
                                 <th className="p-4">No. SIPP / STR</th>
                                 <th className="p-4">Status Akun</th>
@@ -169,19 +182,41 @@ export default function PsikologManagementPage() {
                         <tbody className="divide-y divide-slate-100 text-slate-700">
                             {loadingFetch ? (
                                 <tr>
-                                    <td colSpan={5} className="text-center py-8 text-slate-400">Memuat data psikolog...</td>
+                                    <td colSpan={6} className="text-center py-8 text-slate-400">Memuat data psikolog...</td>
                                 </tr>
                             ) : filteredList.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="text-center py-8 text-slate-400">Belum ada data psikolog.</td>
+                                    <td colSpan={6} className="text-center py-8 text-slate-400">Belum ada data psikolog.</td>
                                 </tr>
                             ) : (
-                                filteredList.map((item) => {
+                                filteredList.map((item, index) => {
                                     const isComplete = item.sipp && item.sipp !== "-" && item.sipp !== "";
 
                                     return (
                                         <tr key={item.id} className="hover:bg-slate-50/80 transition">
-                                            <td className="p-4 pl-6">
+                                            {/* 🟢 Kolom Tombol Urutan Tata Letak */}
+                                            <td className="p-4 pl-6 text-center">
+                                                <div className="flex items-center justify-center gap-1">
+                                                    <button
+                                                        disabled={index === 0}
+                                                        onClick={() => handleMoveOrder(index, "up")}
+                                                        className="p-1 text-slate-400 hover:text-[#234463] hover:bg-slate-100 rounded-md disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer transition"
+                                                        title="Pindah ke Atas"
+                                                    >
+                                                        <ArrowUp size={15} />
+                                                    </button>
+                                                    <button
+                                                        disabled={index === filteredList.length - 1}
+                                                        onClick={() => handleMoveOrder(index, "down")}
+                                                        className="p-1 text-slate-400 hover:text-[#234463] hover:bg-slate-100 rounded-md disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer transition"
+                                                        title="Pindah ke Bawah"
+                                                    >
+                                                        <ArrowDown size={15} />
+                                                    </button>
+                                                </div>
+                                            </td>
+
+                                            <td className="p-4">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-10 h-10 rounded-full bg-blue-100 text-[#234463] font-bold flex items-center justify-center text-sm shrink-0">
                                                         {item.fullName ? item.fullName.slice(0, 2).toUpperCase() : "PS"}
@@ -192,7 +227,7 @@ export default function PsikologManagementPage() {
                                                     </div>
                                                 </div>
                                             </td>
-                                            
+
                                             <td className="p-4">
                                                 <p className="text-xs font-medium text-slate-700">{item.phoneNumber || "-"}</p>
                                             </td>
@@ -200,7 +235,7 @@ export default function PsikologManagementPage() {
                                             <td className="p-4">
                                                 <p className="font-mono text-xs bg-slate-100 px-2.5 py-1 rounded-md w-fit">{item.sipp || "-"}</p>
                                             </td>
-                                            
+
                                             <td className="p-4">
                                                 {isComplete ? (
                                                     <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-medium border border-emerald-200">
@@ -311,12 +346,10 @@ export default function PsikologManagementPage() {
                     </div>
                 </div>
             )}
-
         </div>
     );
 }
 
-{/* MODAL TAMBAH */}
 function AddPsychologistModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
     const [formData, setFormData] = useState({
         fullName: "",
@@ -339,7 +372,7 @@ function AddPsychologistModal({ onClose, onSuccess }: { onClose: () => void; onS
         const token = typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
 
         try {
-            const res = await fetch(`${API_BASE_URL}/psychologists`, {
+            const res = await fetch(`${API_BASE_URL}/admin/psychologists`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -376,7 +409,6 @@ function AddPsychologistModal({ onClose, onSuccess }: { onClose: () => void; onS
     return (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 font-poppins">
             <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-6">
-                
                 <div className="flex justify-between items-start border-b border-slate-100 pb-4">
                     <div>
                         <h3 className="text-xl font-bold text-[#234463] flex items-center gap-2">
@@ -457,8 +489,6 @@ function AddPsychologistModal({ onClose, onSuccess }: { onClose: () => void; onS
     );
 }
 
-{/* MODAL EDIT */}
-{/* MODAL EDIT */}
 function EditPsychologistModal({ initialData, onClose, onSuccess }: { initialData: any; onClose: () => void; onSuccess: (data: any) => void }) {
     const [formData, setFormData] = useState({ ...initialData });
 
@@ -467,7 +497,7 @@ function EditPsychologistModal({ initialData, onClose, onSuccess }: { initialDat
         const token = typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
 
         try {
-            const res = await fetch(`${API_BASE_URL}/psychologists/${formData.id}`, {
+            const res = await fetch(`${API_BASE_URL}/admin/psychologists/${formData.id}`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
@@ -476,7 +506,7 @@ function EditPsychologistModal({ initialData, onClose, onSuccess }: { initialDat
                 credentials: "include",
                 body: JSON.stringify({
                     fullName: formData.fullName,
-                    email: formData.email, // 🟢 Sertakan email yang baru diedit ke backend
+                    email: formData.email,
                     phoneNumber: formData.phoneNumber,
                     sipp: formData.sipp,
                     str: formData.str || undefined,
@@ -513,7 +543,6 @@ function EditPsychologistModal({ initialData, onClose, onSuccess }: { initialDat
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            {/* 🟢 Label diganti & disabled dihapus */}
                             <label className="text-xs font-semibold text-slate-700">Email Psikolog *</label>
                             <input 
                                 type="email" 

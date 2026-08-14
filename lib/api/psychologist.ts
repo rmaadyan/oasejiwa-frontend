@@ -22,7 +22,7 @@ import {
   mockSessionNotes,
 } from "@/lib/data/mock-ui-data";
 
-// 🟢 BASE URL (Fallback selalu ke domain produksi https://api.oasejiwa.id tanpa /api)
+// 🟢 BASE URL
 let rawUrl =
   process.env.NEXT_PUBLIC_API_URL ||
   process.env.NEXT_PUBLIC_BACKEND_URL ||
@@ -38,7 +38,6 @@ const USE_REAL_NOTES_API = true;
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// 🟢 HEADER AUTHENTICATION (JWT)
 function getAuthHeaders() {
   let token = "";
 
@@ -60,7 +59,6 @@ function getAuthHeaders() {
   };
 }
 
-// 🟢 HELPER AMAN PARSE RESPONSE JSON / TEXT
 async function safeParseJson(res: Response, fallbackValue: any = null) {
   const text = await res.text();
   if (!text || text.trim() === "") return fallbackValue;
@@ -584,8 +582,7 @@ export async function updatePsychologistProfile(
   return formatPsychologistProfile(profileData);
 }
 
-// 🟢 GET BY ID PUBLIC
-// 🟢 GET ALL PUBLIC (Hanya untuk halaman awal / tampilan publik user)
+// 🟢 GET ALL PUBLIC (Halaman awal user)
 export async function getAllPsychologistsPublic() {
   let res = await fetch(`${API_BASE_URL}/psychologists/public`, { cache: "no-store" });
 
@@ -616,17 +613,7 @@ export async function getAllPsychologistsPublic() {
       about: p.about || "Psikolog Klinik Oase Jiwa",
       specializations: p.specializations || [],
     }))
-    // 🟢 TAMBAHKAN PENGURUTAN DI SINI SESUAI KEBUTUHAN:
-    .sort((a: any, b: any) => {
-      // 1. Opsi Berdasarkan Nama Abjad (A - Z):
-      return a.name.localeCompare(b.name);
-
-      // 2. ATAU Opsi Berdasarkan Rating Tertinggi (Uncomment jika ingin rating):
-      // return (b.rating || 0) - (a.rating || 0);
-
-      // 3. ATAU Opsi Berdasarkan Jumlah Spesialisasi / Layanan Terbanyak:
-      // return (b.specializations?.length || 0) - (a.specializations?.length || 0);
-    });
+    .sort((a: any, b: any) => a.name.localeCompare(b.name));
 
   return { data: cleanData };
 }
@@ -664,7 +651,7 @@ export async function addPsychologistSchedule(payload: {
   startTime: string;
   duration: number;
   isAvailable?: boolean;
-}){
+}) {
   const res = await fetch(`${API_BASE_URL}/psychologist/schedule`, {
     method: "POST",
     credentials: "include",
@@ -746,7 +733,7 @@ export async function deletePatient(patientId: string): Promise<void> {
   }
 }
 
-// 🟢 1. FUNGSI FETCH SEMUA PSIKOLOG UNTUK ADMIN
+// 🟢 1. FETCH SEMUA PSIKOLOG KHUSUS ADMIN
 export async function getAllPsychologistsAdmin() {
   try {
     const res = await fetch(`${API_BASE_URL}/admin/psychologists`, {
@@ -768,8 +755,9 @@ export async function getAllPsychologistsAdmin() {
       ...p,
       id: p.id || p.userId || String(Math.random()),
       name: p.fullName || p.name || p.user?.fullName || "Psikolog",
-      email: p.email || p.user?.email || "-",
-      phone: p.phoneNumber || p.phone || p.user?.phoneNumber || "-",
+      email: p.user?.email || p.email || "-",
+      phone: p.user?.userProfile?.phone || p.phoneNumber || p.phone || "-",
+      phoneNumber: p.user?.userProfile?.phone || p.phoneNumber || p.phone || "-",
       avatarUrl: p.avatarUrl || p.photo || p.user?.avatarUrl || null,
       sipp: p.sipp && p.sipp.trim() !== "" ? p.sipp : "-",
       str: p.str && p.str.trim() !== "" ? p.str : "-",
@@ -784,7 +772,7 @@ export async function getAllPsychologistsAdmin() {
   }
 }
 
-// 🟢 2. FUNGSI HAPUS PSIKOLOG KHUSUS ADMIN (DENGAN PREFIX /admin/psychologists)
+// 🟢 2. HAPUS PSIKOLOG KHUSUS ADMIN
 export async function deletePsychologist(id: string): Promise<any> {
   const res = await fetch(`${API_BASE_URL}/admin/psychologists/${id}`, {
     method: "DELETE",
