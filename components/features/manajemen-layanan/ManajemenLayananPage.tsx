@@ -107,9 +107,7 @@ export default function ManajemenLayananPage() {
     try {
       setSavingOrder(true);
       setErrorMsg(null);
-      await reorderLayanan(
-        items.map((item, idx) => ({ id: item.id, urutan: item.urutan ?? idx + 1 }))
-      );
+      await reorderLayanan(items);
       setOrderChanged(false);
       setManualMode(false);
       await fetchData();

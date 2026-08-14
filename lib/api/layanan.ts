@@ -119,22 +119,11 @@ export async function updateLayanan(id: string, data: any) {
 }
 
 // 🟢 Simpan urutan baru untuk banyak layanan sekaligus.
-// Karena backend belum punya endpoint bulk-reorder, kita kirim PATCH
-// per-item secara paralel memakai updateLayanan yang sudah ada.
-export async function reorderLayanan(items: { id: number; urutan: number }[]) {
-  await Promise.all(
-    items.map((item) =>
-      fetch(`${API_BASE_URL}/layanan/${item.id}`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ urutan: item.urutan }),
-      }).then((res) => {
-        if (!res.ok) throw new Error(`Gagal update urutan layanan id ${item.id}`);
-        return safeParseJson(res, {});
-      })
-    )
-  );
+// Karena backend belum punya endpoint bulk-reorder, kita pakai ulang
+// updateLayanan() yang sudah terbukti jalan (dipakai form edit) —
+// supaya cara autentikasinya konsisten dan tidak kena 403.
+export async function reorderLayanan(items: any[]) {
+  await Promise.all(items.map((item) => updateLayanan(String(item.id), item)));
 }
 
 export async function uploadGambarLayanan(file: File): Promise<string> {
