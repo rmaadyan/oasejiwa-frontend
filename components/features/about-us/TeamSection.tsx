@@ -12,7 +12,7 @@ const teamMembers = [
   },
   {
     imageSrc: "/assets/about-us/Bilqis.jpg",
-    name: "Hana Bilqisty",
+    name: "Hana Bilqisty Rachmatillah Wahyu Putri, S. Psi",
     role: "CFO (Chief Financial Officer)",
     experience:
       "Bertanggung jawab atas pengelolaan keuangan, penyusunan anggaran, serta administrasi perusahaan untuk memastikan operasional berjalan secara efisien.",
@@ -21,7 +21,7 @@ const teamMembers = [
   },
   {
     imageSrc: "/assets/about-us/Novi.jpg",
-    name: "Novi Rachmawati ",
+    name: "Novi Rachmawati, S. Psi",
     role: "COO (Chief Operating Officer)",
     experience:
       "Bertanggung jawab mengelola operasional perusahaan, mengoordinasikan proses layanan, serta memastikan setiap layanan berjalan secara efektif, efisien, dan profesional.",
