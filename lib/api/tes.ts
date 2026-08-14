@@ -1,4 +1,7 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const rawUrl = (process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id")
+  .replace(/\/api\/?$/, "")
+  .replace(/\/+$/, "");
+const API_BASE_URL = rawUrl || "https://api.oasejiwa.id";
 
 function getAuthToken(): string {
   if (typeof window !== "undefined") {

@@ -89,7 +89,7 @@ export default function MedicalRecordPdfModal({
     const trimmed = String(rawUrl).trim();
     if (!trimmed || trimmed === "null" || trimmed === "undefined") return null;
     if (trimmed.startsWith("http")) return trimmed;
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+    const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id").replace(/\/+$/, "");
     return `${API_BASE_URL}${trimmed.startsWith("/") ? "" : "/"}${trimmed}`;
   };
 

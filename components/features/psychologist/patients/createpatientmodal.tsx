@@ -99,7 +99,7 @@ export default function CreatePatientModal({
     setSubmitting(true);
 
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+      const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id").replace(/\/+$/, "");
       const token = typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
 
       const res = await fetch(`${API_BASE_URL}/psychologist/patients`, {

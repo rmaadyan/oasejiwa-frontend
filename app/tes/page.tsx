@@ -50,6 +50,35 @@ function getTesImage(tes: TesItem): string {
   return "/assets/layanan-default.png";
 }
 
+const FALLBACK_TES_ITEMS: TesItem[] = [
+  {
+    id: 2,
+    nama: "DASS-42",
+    jumlah: 42,
+    status: "Aktif",
+    deskripsi: "Kuesioner ini dirancang untuk membantu Anda mengenali kondisi emosional Anda saat ini (depresi, kecemasan, dan stres) secara mandiri.",
+    penjelasanHasil: "",
+    jenis: "Tes Kesehatan Mental",
+    coverUrl: "https://res.cloudinary.com/dxmxxw7xh/image/upload/v1777575213/oasejiwa/tes/ysoxbuwhb3o5bgxbkmmq.jpg",
+    pertanyaan: [],
+    likert: [],
+    kategori: [],
+  },
+  {
+    id: 1,
+    nama: "Burnout Assessment",
+    jumlah: 15,
+    status: "Aktif",
+    deskripsi: "Evaluasi tingkat kelelahan emosional, depersonalisasi, dan pencapaian pribadi akibat tekanan pekerjaan atau rutinitas harian.",
+    penjelasanHasil: "",
+    jenis: "Tes Kesehatan Mental",
+    coverUrl: "https://res.cloudinary.com/dxmxxw7xh/image/upload/v1777572135/oasejiwa/tes/wue7fb9k1psvpgkbcocd.jpg",
+    pertanyaan: [],
+    likert: [],
+    kategori: [],
+  },
+];
+
 export default function TesPsikologiUserPage() {
   const router = useRouter();
   const [tesList, setTesList] = useState<TesItem[]>([]);
@@ -60,10 +89,15 @@ export default function TesPsikologiUserPage() {
     async function fetchTes() {
       try {
         const data = await getAllTes();
-        const aktif = data.filter((t: TesItem) => t.status === "Aktif");
-        setTesList(aktif);
+        const aktif = (data || []).filter((t: TesItem) => t.status === "Aktif");
+        if (aktif.length > 0) {
+          setTesList(aktif);
+        } else {
+          setTesList(FALLBACK_TES_ITEMS);
+        }
       } catch (err) {
-        console.error("Gagal fetch tes:", err);
+        console.error("Gagal fetch tes, menggunakan fallback:", err);
+        setTesList(FALLBACK_TES_ITEMS);
       } finally {
         setLoading(false);
       }

@@ -105,7 +105,7 @@ export default function HeroSection() {
             <div className="flex justify-center">
               <StatCard
                 icon={<UserIcon />}
-                value={`${stats.totalClients}+`}
+                value="250+"
                 label="Klien Terlayani"
               />
             </div>
@@ -119,7 +119,7 @@ export default function HeroSection() {
             <div className="flex justify-center">
               <StatCard
                 icon={<UsersIcon />}
-                value={`${stats.totalPsychologists}+`}
+                value={`${stats.totalPsychologists || 5}+`}
                 label="Psikolog Profesional"
               />
             </div>
