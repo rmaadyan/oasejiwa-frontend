@@ -601,8 +601,14 @@ export default function HasilTesPage() {
             </button>
             <button
               onClick={() => {
-                const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-                if (!token) {
+                const token =
+                  typeof window !== "undefined"
+                    ? localStorage.getItem("auth_token") ||
+                      localStorage.getItem("token") ||
+                      localStorage.getItem("accessToken")
+                    : null;
+                const user = typeof window !== "undefined" ? localStorage.getItem("user") : null;
+                if (!token && !user) {
                   router.push(`/auth/signin?redirect=${encodeURIComponent("/booking/psychologists")}`);
                 } else {
                   router.push("/booking/psychologists");

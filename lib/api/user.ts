@@ -3,10 +3,29 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   "https://api.oasejiwa.id";
 
+function getAuthToken(): string {
+  if (typeof window !== "undefined") {
+    return (
+      localStorage.getItem("auth_token") ||
+      localStorage.getItem("token") ||
+      localStorage.getItem("accessToken") ||
+      ""
+    );
+  }
+  return "";
+}
+
 // ─── USER PROFILE & ME ─────────────────────────────────────────────────────────
 
 export async function getMe() {
+  const token = getAuthToken();
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const res = await fetch(`${API_BASE_URL}/user/me`, {
+    headers,
     credentials: "include",
     cache: "no-store",
   });
@@ -24,9 +43,15 @@ export async function getMe() {
 }
 
 export async function updateUserProfile(data: any) {
+  const token = getAuthToken();
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const res = await fetch(`${API_BASE_URL}/user/profile`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers,
     credentials: "include",
     body: JSON.stringify(data),
   });

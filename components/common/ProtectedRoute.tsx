@@ -32,13 +32,27 @@ export default function ProtectedRoute({
       }
 
       try {
+        const token =
+          typeof window !== "undefined"
+            ? localStorage.getItem("auth_token") ||
+              localStorage.getItem("token") ||
+              localStorage.getItem("accessToken")
+            : null;
+
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+
         const res = await fetch(`${API_BASE_URL}/auth/me`, {
+          headers,
           credentials: "include",
           cache: "no-store",
         });
 
         if (!res.ok) {
-          router.replace("/auth/signin");
+          const currentPath = typeof window !== "undefined" ? window.location.pathname + window.location.search : "/booking";
+          router.replace(`/auth/signin?redirect=${encodeURIComponent(currentPath)}`);
           return;
         }
 

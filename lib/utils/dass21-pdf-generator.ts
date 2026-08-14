@@ -9,18 +9,27 @@ export interface Dass21PdfData {
   result: Dass21Result;
 }
 
-function loadImageAsBase64(url: string): Promise<string> {
+function loadImageAsBase64(url: string, maxWidth = 256, maxHeight = 256): Promise<string> {
   return new Promise((resolve, reject) => {
     if (typeof window === "undefined") return reject("SSR");
     const img = new Image();
     img.crossOrigin = "Anonymous";
     img.onload = () => {
+      let width = img.naturalWidth || img.width;
+      let height = img.naturalHeight || img.height;
+      if (width > maxWidth || height > maxHeight) {
+        const ratio = Math.min(maxWidth / width, maxHeight / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
       const canvas = document.createElement("canvas");
-      canvas.width = img.naturalWidth || img.width;
-      canvas.height = img.naturalHeight || img.height;
+      canvas.width = width;
+      canvas.height = height;
       const ctx = canvas.getContext("2d");
       if (ctx) {
-        ctx.drawImage(img, 0, 0);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
         resolve(canvas.toDataURL("image/png"));
       } else {
         reject(new Error("Failed canvas context"));
