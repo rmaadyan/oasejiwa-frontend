@@ -469,142 +469,143 @@ export default function Profile() {
             </div>
 
             {/* KONTEN TAB */}
-            {activeTab === "profile" ? (
-              <div className="space-y-6">
-                
-                {/* Progress Bar & Quote of the Day */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="md:col-span-2">
-                    <QuoteOfDay />
-                  </div>
-                  <div>
-                    <ProfileProgressBar {...profileData} />
-                  </div>
-                </div>
+{activeTab === "profile" ? (
+  <div className="space-y-6">
+    
+    {/* 🟢 1. PROGRESS KELENGKAPAN PROFIL (LEBAR MEMANJANG PENUH) */}
+    <div className="w-full">
+      <ProfileProgressBar {...profileData} />
+    </div>
 
-                {/* 🟢 CARD ACTION: Butuh Teman Cerita & Tes Kesehatan Mental */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Card 1: Butuh Teman Cerita */}
-                  <div className="bg-gradient-to-br from-white to-blue-50/50 border border-blue-100 rounded-3xl p-6 shadow-sm flex flex-col justify-between space-y-4 hover:shadow-md transition">
-                    <div className="space-y-2.5">
-                      <div className="w-10 h-10 rounded-xl bg-blue-100 text-[#234463] flex items-center justify-center">
-                        <HeartHandshake size={20} />
-                      </div>
-                      <h3 className="font-bold text-[#234463] text-base sm:text-lg">Butuh Teman Cerita?</h3>
-                      <p className="text-xs text-slate-600 leading-relaxed">
-                        Jadwalkan sesi konseling dengan psikolog klinis profesional Oase Jiwa secara daring maupun tatap muka langsung.
-                      </p>
-                    </div>
-                    <div>
-                      <Link
-                        href="/layanan"
-                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#234463] text-white rounded-xl text-xs font-semibold hover:bg-[#2B5379] transition shadow-sm active:scale-95"
-                      >
-                        <span>Lihat Layanan Konseling</span>
-                        <ArrowRight size={14} />
-                      </Link>
-                    </div>
-                  </div>
+    {/* 🟢 2. REFLEKSI HARI INI (MEMANJANG DI BAWAH PROGRESS BAR) */}
+    <div className="w-full">
+      <QuoteOfDay />
+    </div>
 
-                  {/* Card 2: Tes Kesehatan Mental */}
-                  <div className="bg-gradient-to-br from-white to-sky-50/50 border border-blue-100 rounded-3xl p-6 shadow-sm flex flex-col justify-between space-y-4 hover:shadow-md transition">
-                    <div className="space-y-2.5">
-                      <div className="w-10 h-10 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center">
-                        <BrainCircuit size={20} />
-                      </div>
-                      <h3 className="font-bold text-[#234463] text-base sm:text-lg">Tes Kesehatan Mental</h3>
-                      <p className="text-xs text-slate-600 leading-relaxed">
-                        Kenali kondisi stres, kecemasan, dan tingkat depresi Anda dengan instrumen tes psikologi terstandar (DASS-21).
-                      </p>
-                    </div>
-                    <div>
-                      <Link
-                        href="/tes"
-                        className="inline-flex items-center gap-2 px-4 py-2.5 border border-[#234463] text-[#234463] bg-white rounded-xl text-xs font-semibold hover:bg-blue-50 transition shadow-sm active:scale-95"
-                      >
-                        <span>Mulai Tes Psikologi</span>
-                        <ArrowRight size={14} />
-                      </Link>
-                    </div>
-                  </div>
-                </div>
+    {/* 🟢 3. CARD ACTION: BUTUH TEMAN CERITA & TES KESEHATAN MENTAL */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      
+      {/* Card 1: Butuh Teman Cerita */}
+      <div className="bg-gradient-to-br from-white to-blue-50/50 border border-blue-100 rounded-3xl p-6 shadow-sm flex flex-col justify-between space-y-4 hover:shadow-md transition">
+        <div className="space-y-2.5">
+          <div className="w-10 h-10 rounded-xl bg-blue-100 text-[#234463] flex items-center justify-center">
+            <HeartHandshake size={20} />
+          </div>
+          <h3 className="font-bold text-[#234463] text-base sm:text-lg">Butuh Teman Cerita?</h3>
+          <p className="text-xs text-slate-600 leading-relaxed">
+            Jadwalkan sesi konseling dengan psikolog klinis profesional Oase Jiwa secara daring maupun tatap muka langsung.
+          </p>
+        </div>
+        <div>
+          <Link
+            href="/layanan"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#234463] text-white rounded-xl text-xs font-semibold hover:bg-[#2B5379] transition shadow-sm active:scale-95"
+          >
+            <span>Lihat Layanan Konseling</span>
+            <ArrowRight size={14} />
+          </Link>
+        </div>
+      </div>
 
-                <Separator />
+      {/* Card 2: Tes Kesehatan Mental */}
+      <div className="bg-gradient-to-br from-white to-sky-50/50 border border-blue-100 rounded-3xl p-6 shadow-sm flex flex-col justify-between space-y-4 hover:shadow-md transition">
+        <div className="space-y-2.5">
+          <div className="w-10 h-10 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center">
+            <BrainCircuit size={20} />
+          </div>
+          <h3 className="font-bold text-[#234463] text-base sm:text-lg">Tes Kesehatan Mental</h3>
+          <p className="text-xs text-slate-600 leading-relaxed">
+            Kenali kondisi stres, kecemasan, dan tingkat depresi Anda dengan instrumen tes psikologi terstandar (DASS-21).
+          </p>
+        </div>
+        <div>
+          <Link
+            href="/tes"
+            className="inline-flex items-center gap-2 px-4 py-2.5 border border-[#234463] text-[#234463] bg-white rounded-xl text-xs font-semibold hover:bg-blue-50 transition shadow-sm active:scale-95"
+          >
+            <span>Mulai Tes Psikologi</span>
+            <ArrowRight size={14} />
+          </Link>
+        </div>
+      </div>
+    </div>
 
-                {/* CARD 1: INFORMASI PRIBADI */}
-                <div className="bg-white border border-blue-100 rounded-2xl shadow-sm hover:shadow-md transition p-6 space-y-5">
-                  <div className="flex flex-row justify-between items-center gap-3">
-                    <div>
-                      <h2 className="font-bold text-[#234463] text-base sm:text-lg flex items-center gap-2">
-                        <User size={18} className="text-[#234463]" />
-                        Informasi Pribadi
-                      </h2>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Kelola identitas diri dan kontak utama Anda
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => setIsEditPersonalInformation(true)}
-                      className="flex items-center gap-1.5 text-xs bg-[#234463] text-white font-semibold rounded-xl px-4 py-2 hover:bg-[#2B5379] shadow-xs transition cursor-pointer"
-                    >
-                      <Pencil size={13} />
-                      <span>Edit</span>
-                    </button>
-                  </div>
+    <Separator />
 
-                  <div className="border-t border-slate-100" />
+    {/* 🟢 4. CARD INFORMASI PRIBADI */}
+    <div className="bg-white border border-blue-100 rounded-2xl shadow-sm hover:shadow-md transition p-6 space-y-5">
+      <div className="flex flex-row justify-between items-center gap-3">
+        <div>
+          <h2 className="font-bold text-[#234463] text-base sm:text-lg flex items-center gap-2">
+            <User size={18} className="text-[#234463]" />
+            Informasi Pribadi
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Kelola identitas diri dan kontak utama Anda
+          </p>
+        </div>
+        <button
+          onClick={() => setIsEditPersonalInformation(true)}
+          className="flex items-center gap-1.5 text-xs bg-[#234463] text-white font-semibold rounded-xl px-4 py-2 hover:bg-[#2B5379] shadow-xs transition cursor-pointer"
+        >
+          <Pencil size={13} />
+          <span>Edit</span>
+        </button>
+      </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                    <ProfileInformation label="Nama Lengkap" value={profileData.fullName || "—"} />
-                    <ProfileInformation label="Tanggal Lahir" value={profileData.birthday || "—"} icon={<Calendar size={15} />} />
-                    <ProfileInformation label="Jenis Kelamin" value={profileData.gender === "MALE" ? "Laki-laki" : profileData.gender === "FEMALE" ? "Perempuan" : "—"} icon={<User size={15} />} />
-                    <ProfileInformation label="Alamat Email" value={profileData.email || "—"} icon={<Mail size={15} />} />
-                    <ProfileInformation label="Nomor Telepon / WA" value={profileData.phone || "—"} icon={<Phone size={15} />} />
-                  </div>
-                </div>
+      <div className="border-t border-slate-100" />
 
-                {/* CARD 2: ALAMAT DOMISILI */}
-                <div className="bg-white border border-blue-100 rounded-2xl shadow-sm hover:shadow-md transition p-6 space-y-5">
-                  <div className="flex flex-row justify-between items-center gap-3">
-                    <div>
-                      <h2 className="font-bold text-[#234463] text-base sm:text-lg flex items-center gap-2">
-                        <MapPin size={18} className="text-teal-600" />
-                        Alamat Domisili
-                      </h2>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Informasi tempat tinggal dan kota domisili Anda
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => setIsEditAddress(true)}
-                      className="flex items-center gap-1.5 text-xs bg-teal-600 text-white font-semibold rounded-xl px-4 py-2 hover:bg-teal-700 shadow-xs transition cursor-pointer"
-                    >
-                      <Pencil size={13} />
-                      <span>Edit</span>
-                    </button>
-                  </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        <ProfileInformation label="Nama Lengkap" value={profileData.fullName || "—"} />
+        <ProfileInformation label="Tanggal Lahir" value={profileData.birthday || "—"} icon={<Calendar size={15} />} />
+        <ProfileInformation label="Jenis Kelamin" value={profileData.gender === "MALE" ? "Laki-laki" : profileData.gender === "FEMALE" ? "Perempuan" : "—"} icon={<User size={15} />} />
+        <ProfileInformation label="Alamat Email" value={profileData.email || "—"} icon={<Mail size={15} />} />
+        <ProfileInformation label="Nomor Telepon / WA" value={profileData.phone || "—"} icon={<Phone size={15} />} />
+      </div>
+    </div>
 
-                  <div className="border-t border-slate-100" />
+    {/* 🟢 5. CARD ALAMAT DOMISILI */}
+    <div className="bg-white border border-blue-100 rounded-2xl shadow-sm hover:shadow-md transition p-6 space-y-5">
+      <div className="flex flex-row justify-between items-center gap-3">
+        <div>
+          <h2 className="font-bold text-[#234463] text-base sm:text-lg flex items-center gap-2">
+            <MapPin size={18} className="text-teal-600" />
+            Alamat Domisili
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Informasi tempat tinggal dan kota domisili Anda
+          </p>
+        </div>
+        <button
+          onClick={() => setIsEditAddress(true)}
+          className="flex items-center gap-1.5 text-xs bg-teal-600 text-white font-semibold rounded-xl px-4 py-2 hover:bg-teal-700 shadow-xs transition cursor-pointer"
+        >
+          <Pencil size={13} />
+          <span>Edit</span>
+        </button>
+      </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                    <ProfileInformation label="Negara" value={profileData.country || "—"} />
-                    <ProfileInformation label="Kota / Kabupaten" value={profileData.city || "—"} />
-                    <div className="md:col-span-2">
-                      <ProfileInformation label="Alamat Lengkap" value={profileData.address || "—"} />
-                    </div>
-                  </div>
-                </div>
+      <div className="border-t border-slate-100" />
 
-              </div>
-            ) : activeTab === "bookings" ? (
-              /* TAB MY BOOKINGS */
-              <div className="bg-white border border-blue-100 rounded-2xl shadow-sm p-5 sm:p-6">
-                <MyBookings />
-              </div>
-            ) : (
-              /* 🟢 TAB RIWAYAT TES */
-              <TestHistoryTab />
-            )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        <ProfileInformation label="Negara" value={profileData.country || "—"} />
+        <ProfileInformation label="Kota / Kabupaten" value={profileData.city || "—"} />
+        <div className="md:col-span-2">
+          <ProfileInformation label="Alamat Lengkap" value={profileData.address || "—"} />
+        </div>
+      </div>
+    </div>
+
+  </div>
+) : activeTab === "bookings" ? (
+  /* TAB MY BOOKINGS */
+  <div className="bg-white border border-blue-100 rounded-2xl shadow-sm p-5 sm:p-6">
+    <MyBookings />
+  </div>
+) : (
+  /* TAB RIWAYAT TES */
+  <TestHistoryTab />
+)}
 
           </main>
         </div>
