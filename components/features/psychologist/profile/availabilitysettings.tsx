@@ -17,16 +17,22 @@ const DAYS_OF_WEEK = [
 function getNextDateForDay(dayName: string) {
   const targetDay = DAYS_OF_WEEK.find((d) => d.label === dayName)?.dayIndex ?? 1;
   const now = new Date();
-  const currentDay = now.getDay();
+  const currentDay = now.getUTCDay(); // ← pakai UTC
 
   let distance = targetDay - currentDay;
   if (distance < 0) distance += 7;
+  if (distance === 0) distance = 7;
 
-  const resultDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + distance);
+  const resultDate = new Date(Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate() + distance,
+    12, 0, 0 // ← tengah hari UTC
+  ));
 
-  const year = resultDate.getFullYear();
-  const month = String(resultDate.getMonth() + 1).padStart(2, "0");
-  const day = String(resultDate.getDate()).padStart(2, "0");
+  const year = resultDate.getUTCFullYear();
+  const month = String(resultDate.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(resultDate.getUTCDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
 }
@@ -58,17 +64,12 @@ useEffect(() => {
     setLocalSchedules([]); // ← reset dulu sebelum set baru
     const mapped = schedules.map((s) => {
       let dayName = "Senin";
-      if (s.date) {
-        const parts = String(s.date).split("T")[0].split("-");
-        if (parts.length === 3) {
-          const y = parseInt(parts[0], 10);
-          const m = parseInt(parts[1], 10) - 1;
-          const d = parseInt(parts[2], 10);
-          const dateObj = new Date(y, m, d);
-          dayName =
-            DAYS_OF_WEEK.find((item) => item.dayIndex === dateObj.getDay())?.label || "Senin";
-        }
-      }
+  if (s.date) {
+    const dateStr = String(s.date).split("T")[0];
+    const dateObj = new Date(dateStr + "T12:00:00.000Z"); // ← tengah hari UTC, aman di semua timezone
+    dayName =
+      DAYS_OF_WEEK.find((item) => item.dayIndex === dateObj.getUTCDay())?.label || "Senin";
+  }
       return {
         id: s.id || null,
         day: s.day || dayName,
