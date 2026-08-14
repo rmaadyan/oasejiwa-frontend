@@ -647,7 +647,12 @@ export async function getPsychologistByIdPublic(id: string) {
   };
 }
 
-export async function addPsychologistSchedule(payload: { date?: string; day?: string; time: string }) {
+export async function addPsychologistSchedule(payload: {
+  date: string;
+  startTime: string;
+  duration: number;
+  isAvailable?: boolean;
+}){
   const res = await fetch(`${API_BASE_URL}/psychologist/schedule`, {
     method: "POST",
     credentials: "include",

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Plus, Trash2, Save, CalendarDays } from "lucide-react";
-import { updatePsychologistProfile, deletePsychologistSchedule } from "@/lib/api/psychologist";
+import { updatePsychologistProfile, deletePsychologistSchedule, addPsychologistSchedule} from "@/lib/api/psychologist";
 
 const DAYS_OF_WEEK = [
   { label: "Senin", dayIndex: 1 },
@@ -53,36 +53,36 @@ export default function AvailabilitySettings({
   const [loading, setLoading] = useState(false);
   const [localSchedules, setLocalSchedules] = useState<any[]>([]);
 
-  useEffect(() => {
-    if (Array.isArray(schedules) && schedules.length > 0) {
-      setLocalSchedules(
-        schedules.map((s) => {
-          let dayName = "Senin";
-          if (s.date) {
-            const parts = String(s.date).split("T")[0].split("-");
-            if (parts.length === 3) {
-              const y = parseInt(parts[0], 10);
-              const m = parseInt(parts[1], 10) - 1;
-              const d = parseInt(parts[2], 10);
-              const dateObj = new Date(y, m, d);
-              dayName =
-                DAYS_OF_WEEK.find((item) => item.dayIndex === dateObj.getDay())?.label || "Senin";
-            }
-          }
-
-          return {
-            id: s.id || null,   
-            day: s.day || dayName,
-            startTime: s.startTime || s.time || "09:00",
-            duration: s.duration || 60,
-            isAvailable: s.isAvailable ?? true,
-          };
-        })
-      );
-    } else {
-      setLocalSchedules([]);
-    }
-  }, [schedules]);
+useEffect(() => {
+  if (Array.isArray(schedules) && schedules.length > 0) {
+    setLocalSchedules([]); // ← reset dulu sebelum set baru
+    const mapped = schedules.map((s) => {
+      let dayName = "Senin";
+      if (s.date) {
+        const parts = String(s.date).split("T")[0].split("-");
+        if (parts.length === 3) {
+          const y = parseInt(parts[0], 10);
+          const m = parseInt(parts[1], 10) - 1;
+          const d = parseInt(parts[2], 10);
+          const dateObj = new Date(y, m, d);
+          dayName =
+            DAYS_OF_WEEK.find((item) => item.dayIndex === dateObj.getDay())?.label || "Senin";
+        }
+      }
+      return {
+        id: s.id || null,
+        day: s.day || dayName,
+        startTime: s.startTime || s.time || "09:00",
+        duration: s.duration || 60,
+        isAvailable: s.isAvailable ?? true,
+      };
+    });
+    console.log("MAPPED LOCAL SCHEDULES:", mapped);
+    setLocalSchedules(mapped);
+  } else {
+    setLocalSchedules([]);
+  }
+}, [schedules]);
 
   const addSchedule = () => {
     setLocalSchedules([
@@ -114,27 +114,37 @@ const handleDeleteSchedule = async (indexToDelete: number) => {
   }
 };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+const handleSave = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
 
-    try {
-      const formattedSchedules = localSchedules.map((sch) => ({
+  try {
+    // Hanya simpan jadwal BARU saja (yang belum punya id)
+    const newSchedules = localSchedules.filter((sch) => !sch.id);
+
+    if (newSchedules.length === 0) {
+      alert("Tidak ada jadwal baru untuk disimpan.");
+      setLoading(false);
+      return;
+    }
+
+    for (const sch of newSchedules) {
+      await addPsychologistSchedule({
         date: getNextDateForDay(sch.day),
         startTime: sch.startTime || "09:00",
         duration: Number(sch.duration) || 60,
-        isAvailable: Boolean(sch.isAvailable),
-      }));
-
-      await updatePsychologistProfile({ schedules: formattedSchedules });
-      alert("Jadwal Mingguan Praktik berhasil disimpan!");
-      if (onUpdate) await onUpdate();
-    } catch (err: any) {
-      alert(err.message || "Gagal menyimpan jadwal praktik.");
-    } finally {
-      setLoading(false);
+        isAvailable: true,
+      });
     }
-  };
+
+    alert("Jadwal Mingguan Praktik berhasil disimpan!");
+    if (onUpdate) await onUpdate();
+  } catch (err: any) {
+    alert(err.message || "Gagal menyimpan jadwal praktik.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="bg-white p-5 rounded-2xl border-2 border-slate-500 shadow-xs space-y-2 font-poppins text-xs">
