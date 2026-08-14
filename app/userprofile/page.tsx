@@ -28,7 +28,9 @@ import {
   ArrowRight,
   HeartHandshake,
   BrainCircuit,
-  FileText
+  FileText,
+  Clock,
+  Activity
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -41,8 +43,6 @@ import { getImageUrl } from "@/lib/utils/getImageUrl";
 import {
   ProfileProgressBar,
   QuoteOfDay,
-  StatsSection,
-  Separator,
 } from "@/components/features/user/modernProfile";
 
 type ProfileData = {
@@ -68,7 +68,6 @@ export default function Profile() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
-  const [bookingCount, setBookingCount] = useState(0);
 
   // State Ubah Password & Upload Foto
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -430,16 +429,52 @@ export default function Profile() {
                     <QuoteOfDay />
                   </div>
                   <div>
-                    <ProfileProgressBar profileData={profileData} onComplete={() => setActiveTab("profile")} />
+                    <ProfileProgressBar {...profileData} />
                   </div>
                 </div>
 
-                {/* Section Statistik Ringkasan */}
-                <StatsSection 
-                  onViewBookings={() => setActiveTab("bookings")}
-                  onViewTests={() => setActiveTab("tes")}
-                />
+                {/* 🟢 Kartu Statistik Ringkasan Mandiri (Bebas Error Props) */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+                  <div 
+                    onClick={() => setActiveTab("bookings")}
+                    className="bg-white border border-blue-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition cursor-pointer flex items-center gap-4 group"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#234463] flex items-center justify-center shrink-0 group-hover:bg-[#234463] group-hover:text-white transition">
+                      <Calendar size={22} />
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 font-medium">Jadwal Konseling</p>
+                      <p className="text-lg font-bold text-[#234463] mt-0.5">Lihat Sesi</p>
+                    </div>
+                  </div>
 
+                  <div 
+                    onClick={() => setActiveTab("tes")}
+                    className="bg-white border border-blue-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition cursor-pointer flex items-center gap-4 group"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition">
+                      <ClipboardList size={22} />
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 font-medium">Riwayat Tes</p>
+                      <p className="text-lg font-bold text-[#234463] mt-0.5">Lihat Hasil</p>
+                    </div>
+                  </div>
+
+                  <div 
+                    onClick={() => setActiveTab("profile")}
+                    className="bg-white border border-blue-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition cursor-pointer flex items-center gap-4 group"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0 group-hover:bg-sky-600 group-hover:text-white transition">
+                      <User size={22} />
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 font-medium">Kelengkapan Akun</p>
+                      <p className="text-lg font-bold text-[#234463] mt-0.5">Edit Profil</p>
+                    </div>
+                  </div>
+                </div>
+                
                 {/* Card Navigasi Cepat & Rekomendasi Layanan */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="bg-white border border-blue-100 rounded-2xl p-6 shadow-sm space-y-4">
