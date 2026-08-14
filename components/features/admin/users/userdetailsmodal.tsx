@@ -3,11 +3,17 @@
 import { useState, useEffect } from "react";
 import { X, Award, FileText, Mail, Phone } from "lucide-react";
 
+// 🟢 BASE URL Dinamis mengarah ke API Produksi
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  "https://api.oasejiwa.id";
+
 interface UserDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  userId: string | number |null;
-  initialUser?: any; // Fallback data dari baris tabel
+  userId: string | number | null;
+  initialUser?: any;
 }
 
 export default function UserDetailsModal({
@@ -21,7 +27,6 @@ export default function UserDetailsModal({
 
   useEffect(() => {
     if (isOpen) {
-      // Gunakan initialUser dari tabel sebagai default awal agar langsung muncul
       if (initialUser) {
         setUser(initialUser);
       }
@@ -31,8 +36,12 @@ export default function UserDetailsModal({
           setLoading(true);
           try {
             const token = localStorage.getItem("token");
-            const res = await fetch(`http://localhost:3000/admin/users/${userId}`, {
-              headers: { Authorization: `Bearer ${token}` },
+            // 🟢 Gunakan API_BASE_URL dan credentials: "include"
+            const res = await fetch(`${API_BASE_URL}/admin/users/${userId}`, {
+              credentials: "include",
+              headers: {
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              },
             });
             if (res.ok) {
               const data = await res.json();
@@ -52,6 +61,7 @@ export default function UserDetailsModal({
     }
   }, [isOpen, userId, initialUser]);
 
+  // ... (Sisa JSX modal ke bawah tetap sama)
   if (!isOpen) return null;
 
   const roleStr = String(user?.role || "").toUpperCase();

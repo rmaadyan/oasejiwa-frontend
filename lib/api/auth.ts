@@ -1,16 +1,19 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  "https://api.oasejiwa.id";
 
 /** Helper: parse JSON dengan aman — tidak crash jika response adalah HTML */
 async function safeJson(res: Response) {
-    const text = await res.text();
-    try {
-        return JSON.parse(text);
-    } catch {
-        // Server merespons dengan HTML (mis. 404/502), bukan JSON
-        throw new Error(`Server error (${res.status}): Pastikan backend sudah berjalan di ${API_BASE_URL}`);
-    }
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(
+      `Server error (${res.status}): Pastikan backend sudah berjalan di ${API_BASE_URL}`,
+    );
+  }
 }
-
 export async function registerUser(data: any) {
     const res = await fetch(`${API_BASE_URL}/auth/register`, {
         method: "POST",
