@@ -27,6 +27,7 @@ import {
   ArrowRight,
   HeartHandshake,
   BrainCircuit,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -67,10 +68,11 @@ export default function Profile() {
   const [error, setError] = useState<string | null>(null);
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
 
-  // State Avatar Crop & Upload
- const [rawSelectedImage, setRawSelectedImage] = useState<string | null>(null);
-const [isCropperOpen, setIsCropperOpen] = useState(false);
-const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  // State Avatar Crop & Upload (Bersih tanpa duplikasi)
+  const [rawSelectedImage, setRawSelectedImage] = useState<string | null>(null);
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isProcessingHeic, setIsProcessingHeic] = useState(false);
   const [imageLoadError, setImageLoadError] = useState(false);
 
   // State Ubah Password
@@ -160,14 +162,13 @@ const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
     return name.slice(0, 2).toUpperCase();
   };
 
- const [isProcessingHeic, setIsProcessingHeic] = useState(false);
-
+  // 1. Handle Pilih Foto
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
-      setIsProcessingHeic(true); // 👈 Gunakan setIsProcessingHeic
+      setIsProcessingHeic(true);
       const imageSrc = await processSelectedImage(file);
       if (imageSrc) {
         setRawSelectedImage(imageSrc);
@@ -175,44 +176,35 @@ const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
       }
     } catch (err) {
       console.error("Gagal load foto:", err);
-      // Tanpa alert(), proses dialihkan dengan mulus
     } finally {
-      setIsProcessingHeic(false); // 👈 Gunakan setIsProcessingHeic
+      setIsProcessingHeic(false);
       e.target.value = "";
     }
   };
 
-const handleCroppedPhotoUpload = async (croppedBlob: Blob) => {
+  // 2. Handle Upload Setelah Crop (Instan)
+  const handleCroppedPhotoUpload = async (croppedBlob: Blob) => {
     const croppedFile = new File([croppedBlob], `avatar-${Date.now()}.jpg`, {
       type: "image/jpeg",
     });
     const localPreviewUrl = URL.createObjectURL(croppedFile);
 
-    // 🟢 1. Tampilkan langsung preview lokal & reset state error
+    // Optimistic Preview
     setImageLoadError(false);
     setProfileData((prev) => ({ ...prev, avatarUrl: localPreviewUrl }));
     setIsUploadingPhoto(true);
 
     try {
-      // 🟢 2. Upload file
       const res: any = await uploadUserAvatar(croppedFile);
-      
-      // Ambil string URL bersih dari berbagai kemungkinan struktur response backend
       const rawUrl =
         typeof res === "string"
           ? res
           : res?.url || res?.data?.url || res?.avatarUrl || res?.data?.avatarUrl || "";
 
       if (rawUrl) {
-        // Tambahkan timestamp query parameter agar browser tidak mengambil cache gambar lama
-        const finalUrl = rawUrl.startsWith("http") || rawUrl.startsWith("blob:")
-          ? rawUrl
-          : `${rawUrl}?t=${Date.now()}`;
-
         await updateUserProfile({ avatarUrl: rawUrl });
-        
         setImageLoadError(false);
-        setProfileData((prev) => ({ ...prev, avatarUrl: finalUrl }));
+        setProfileData((prev) => ({ ...prev, avatarUrl: rawUrl }));
       }
     } catch (err: any) {
       console.error("Gagal upload avatar:", err);
@@ -470,6 +462,7 @@ const handleCroppedPhotoUpload = async (croppedBlob: Blob) => {
                   <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-white/20 backdrop-blur-md border-2 border-white/50 shadow-inner overflow-hidden flex items-center justify-center text-white font-bold text-3xl">
                     {profileData.avatarUrl && !imageLoadError ? (
                       <img
+                        key={profileData.avatarUrl}
                         src={getImageUrl(profileData.avatarUrl)}
                         alt={profileData.fullName}
                         onError={() => setImageLoadError(true)}
@@ -478,25 +471,29 @@ const handleCroppedPhotoUpload = async (croppedBlob: Blob) => {
                         }`}
                       />
                     ) : (
-                      getInitials(profileData.fullName)
+                      <span>{getInitials(profileData.fullName)}</span>
                     )}
                   </div>
 
                   <label
-  title="Ubah Foto Profil"
-  className={`absolute -bottom-2 -right-2 bg-white text-[#234463] p-2 rounded-xl border border-blue-200 shadow-md hover:bg-blue-50 transition transform hover:scale-105 cursor-pointer ${
-    isProcessingHeic ? "opacity-50 pointer-events-none" : ""
-  }`}
->
-  <Camera size={15} className={isProcessingHeic ? "animate-spin" : ""} />
-  <input
-    type="file"
-    accept="image/jpeg, image/png, image/webp, image/*, .heic, .heif"
-    className="hidden"
-    onChange={handlePhotoSelect}
-    disabled={isUploadingPhoto || isProcessingHeic}
-  />
-</label>
+                    title="Ubah Foto Profil"
+                    className={`absolute -bottom-2 -right-2 bg-white text-[#234463] p-2 rounded-xl border border-blue-200 shadow-md hover:bg-blue-50 transition transform hover:scale-105 cursor-pointer ${
+                      isProcessingHeic || isUploadingPhoto ? "opacity-50 pointer-events-none" : ""
+                    }`}
+                  >
+                    {isProcessingHeic ? (
+                      <Loader2 size={15} className="animate-spin text-[#234463]" />
+                    ) : (
+                      <Camera size={15} />
+                    )}
+                    <input
+                      type="file"
+                      accept="image/jpeg, image/png, image/webp, image/*, .heic, .heif"
+                      className="hidden"
+                      onChange={handlePhotoSelect}
+                      disabled={isUploadingPhoto || isProcessingHeic}
+                    />
+                  </label>
                 </div>
 
                 {/* Info & Ucapan */}

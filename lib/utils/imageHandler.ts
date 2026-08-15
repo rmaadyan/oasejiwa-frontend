@@ -1,4 +1,3 @@
-// Base URL Backend
 let rawUrl =
   process.env.NEXT_PUBLIC_API_URL ||
   process.env.NEXT_PUBLIC_BACKEND_URL ||
@@ -20,7 +19,7 @@ export async function processSelectedImage(file: File): Promise<string> {
     fileName.endsWith(".heic") ||
     fileName.endsWith(".heif");
 
-  // 🟢 1. JIKA BUKAN HEIC (JPG, PNG, WEBP) -> Langsung baca secara instan
+  // 🟢 1. JIKA BUKAN HEIC (JPG, PNG, WEBP, GIF) -> Baca instan
   if (!isHeic) {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -47,11 +46,11 @@ export async function processSelectedImage(file: File): Promise<string> {
         : conversionResult;
 
       return URL.createObjectURL(blob);
-    } catch (clientErr) {
-      console.warn("Client decoding HEIC gagal, mencoba fallback upload server...", clientErr);
+    } catch {
+      console.warn("Client HEIC decode gagal, beralih ke upload server konversi...");
     }
 
-    // 🟢 3. FALLBACK SERVER (Upload langsung ke endpoint upload gambar)
+    // 🟢 3. FALLBACK SERVER (Untuk format Apple HDR 10-bit yang ditolak decoder browser)
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -79,10 +78,10 @@ export async function processSelectedImage(file: File): Promise<string> {
         }
       }
     } catch (serverErr) {
-      console.warn("Fallback upload server gagal:", serverErr);
+      console.error("Server fallback gagal:", serverErr);
     }
   }
 
-  // 🟢 4. Fallback Terakhir
+  // 🟢 4. Fallback URL Objek
   return URL.createObjectURL(file);
 }

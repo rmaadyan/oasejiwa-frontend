@@ -29,12 +29,12 @@ export default function AvatarCropperModal({
     setCroppedAreaPixels(areaPixels);
   }, []);
 
-  // 🟢 Fungsi kompresi super cepat ke resolusi optimal 400x400
   const createCroppedImage = async () => {
     try {
       const image = new Image();
-      image.crossOrigin = "anonymous";
+      image.crossOrigin = "anonymous"; // 👈 Mencegah canvas tainted saat gambar dari CDN/server
       image.src = imageSrc;
+
       await new Promise((resolve, reject) => {
         image.onload = resolve;
         image.onerror = reject;
@@ -45,7 +45,7 @@ export default function AvatarCropperModal({
 
       if (!ctx || !croppedAreaPixels) return;
 
-      // 🟢 Resize ke ukuran pas avatar agar upload super ringan (<100KB)
+      // Resize ke resolusi ideal 400x400 px
       const targetSize = 400;
       canvas.width = targetSize;
       canvas.height = targetSize;
@@ -71,7 +71,7 @@ export default function AvatarCropperModal({
           }
         },
         "image/jpeg",
-        0.82 // Kompresi optimal
+        0.85
       );
     } catch (e) {
       console.error("Gagal crop dan kompres gambar:", e);
@@ -81,7 +81,7 @@ export default function AvatarCropperModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex flex-col items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/80 flex flex-col items-center justify-center p-4">
       <div className="relative w-full max-w-md bg-slate-900 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[490px] border border-slate-700">
         
         {/* Header */}
@@ -95,14 +95,14 @@ export default function AvatarCropperModal({
           </button>
         </div>
 
-        {/* Area Crop: bentuk rounded-2xl disesuaikan dengan kartu profil */}
+        {/* Area Crop: Persegi Serasi dengan Card Profil */}
         <div className="relative flex-1 w-full bg-black">
           <Cropper
             image={imageSrc}
             crop={crop}
             zoom={zoom}
             aspect={1}
-            cropShape="rect" // 🟢 Bentuk kotak serasi dengan kartu profil
+            cropShape="rect"
             showGrid={true}
             onCropChange={onCropChange}
             onZoomChange={setZoom}
@@ -110,7 +110,7 @@ export default function AvatarCropperModal({
           />
         </div>
 
-        {/* Kontrol Zoom & Simpan */}
+        {/* Zoom & Action Buttons */}
         <div className="p-5 bg-slate-900 flex flex-col gap-3.5 z-10">
           <div className="flex items-center gap-3">
             <ZoomOut size={16} className="text-slate-400" />
@@ -145,6 +145,7 @@ export default function AvatarCropperModal({
             </button>
           </div>
         </div>
+
       </div>
     </div>
   );
