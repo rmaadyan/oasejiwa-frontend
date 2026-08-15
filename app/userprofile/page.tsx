@@ -162,20 +162,44 @@ export default function Profile() {
     return name.slice(0, 2).toUpperCase();
   };
 
-  // 1. Handle Pilih Foto
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    let file = e.target.files?.[0];
     if (!file) return;
 
     try {
       setIsProcessingHeic(true);
-      const imageSrc = await processSelectedImage(file);
-      if (imageSrc) {
-        setRawSelectedImage(imageSrc);
-        setIsCropperOpen(true);
+
+      // Konversi jika format HEIC/HEIF dari perangkat iOS/iPhone
+      if (
+        file.type === "image/heic" ||
+        file.type === "image/heif" ||
+        file.name.toLowerCase().endsWith(".heic") ||
+        file.name.toLowerCase().endsWith(".heif")
+      ) {
+        try {
+          // @ts-ignore
+          const heic2any = (await import("heic2any")).default;
+          const convertedBlob = await heic2any({
+            blob: file,
+            toType: "image/jpeg",
+            quality: 0.85,
+          });
+          const singleBlob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+          file = new File([singleBlob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
+            type: "image/jpeg",
+          });
+        } catch (err) {
+          console.error("Gagal konversi HEIC via heic2any:", err);
+        }
       }
+
+      // Ambil gambar ke cropper modal
+      const previewUrl = URL.createObjectURL(file);
+      setRawSelectedImage(previewUrl);
+      setIsCropperOpen(true);
     } catch (err) {
-      console.error("Gagal load foto:", err);
+      console.error("Gagal memproses foto profil:", err);
+      alert("Gagal memproses foto yang dipilih. Silakan coba format JPG atau PNG.");
     } finally {
       setIsProcessingHeic(false);
       e.target.value = "";

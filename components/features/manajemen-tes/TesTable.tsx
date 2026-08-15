@@ -152,10 +152,11 @@ export default function TesTable({
                   : "";
 
                 const totalSoal =
-                  item.jumlah ??
+                  item.pertanyaan?.length ||
+                  (item.jumlah ??
                   (item as any).jumlahSoal ??
                   (item as any).totalSoal ??
-                  0;
+                  0);
 
                 return (
                   <div

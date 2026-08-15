@@ -30,7 +30,7 @@ function loadImageAsBase64(url: string, maxWidth = 256, maxHeight = 256): Promis
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, width, height);
         ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL("image/png"));
+        resolve(canvas.toDataURL("image/jpeg", 0.92));
       } else {
         reject(new Error("Failed canvas context"));
       }
@@ -68,7 +68,7 @@ export async function downloadDass21Pdf(data: Dass21PdfData) {
 
   // Left: Official Logo & Brand Title
   if (logoBase64) {
-    doc.addImage(logoBase64, "PNG", margin, y, 16, 16);
+    doc.addImage(logoBase64, "JPEG", margin, y, 16, 16);
     doc.setTextColor(31, 59, 91);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);

@@ -49,6 +49,7 @@ export default function PsychologistRekamMedisPage() {
     try {
       const data = await getAllPatients({
         search: searchTerm,
+        filter: "all",
       });
 
       let resultList = data.patients || [];
@@ -460,6 +461,7 @@ export default function PsychologistRekamMedisPage() {
         isOpen={isCreatePatientOpen}
         onClose={() => setIsCreatePatientOpen(false)}
         onSuccess={async (newPatient) => {
+          setIsCreatePatientOpen(false);
           await fetchPatients();
         }}
       />

@@ -7,8 +7,8 @@ type SignProps = {
     titleSize?: "sm" | "lg";
 }
 
-export default function AuthLayout({ title, description, children, titleSize = "lg" }: SignProps){
-    return(
+export default function AuthLayout({ title, description, children, titleSize = "lg" }: SignProps) {
+    return (
         <div className="min-h-screen w-full flex items-center justify-center">
             <div className="min-h-screen w-full flex">
                 <div className="hidden lg:flex flex-col w-full justify-center items-center px-6 md:px-16 text-white bg-[url('/bghero/gambar.jpg')] bg-cover bg-center">

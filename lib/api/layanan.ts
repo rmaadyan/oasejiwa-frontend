@@ -1,3 +1,4 @@
+
 let rawUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id";
 
 if (rawUrl.startsWith("https:/") && !rawUrl.startsWith("https://")) {

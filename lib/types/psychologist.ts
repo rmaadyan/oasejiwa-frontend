@@ -149,6 +149,7 @@ export interface PatientsQueryParams {
   search?: string;
   status?: "all" | "active" | "inactive";
   sortBy?: "name" | "lastSession" | "totalSessions";
+  filter?: "my_patients" | "all";
 }
 
 export interface PatientsResponse {

@@ -184,7 +184,7 @@ export async function getPsychologistDashboard(): Promise<any> {
 
     if (!res.ok) return { data: null };
     return await safeParseJson(res, { data: null });
-  } catch (error) {
+  } catch {
     return { data: null };
   }
 }
@@ -269,7 +269,9 @@ export async function getSessionDetails(sessionId: string): Promise<Session | nu
   return await safeParseJson(res, null);
 }
 
-export async function getAllPatients(params: PatientsQueryParams = {}): Promise<PatientsResponse> {
+export async function getAllPatients(
+  params: PatientsQueryParams = {}
+): Promise<PatientsResponse> {
   const { search, status = "all", sortBy = "name" } = params;
   const queryParams = new URLSearchParams();
   if (search) queryParams.set("search", search);
@@ -289,6 +291,29 @@ export async function getAllPatients(params: PatientsQueryParams = {}): Promise<
   }
 
   return await safeParseJson(res, { patients: [], total: 0 });
+}
+
+export async function createPatient(data: any): Promise<any> {
+  const res = await fetch(`${API_BASE_URL}/psychologist/patients`, {
+    method: "POST",
+    credentials: "include",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    let parsed: any = {};
+    try {
+      parsed = JSON.parse(errorText);
+    } catch {}
+    const msg = Array.isArray(parsed.message)
+      ? parsed.message.join(", ")
+      : parsed.message || errorText;
+    throw new Error(`Gagal membuat pasien (${res.status}): ${msg}`);
+  }
+
+  return res.json();
 }
 
 export async function getPatientDetail(patientId: string): Promise<PsychologistPatientDetail | null> {
@@ -471,51 +496,84 @@ export async function updatePsychologistProfile(data: Partial<Psychologist> | an
   return formatPsychologistProfile(result.data || result);
 }
 
-// 🟢 GET ALL PSIKOLOG PUBLIK (ANTI-CACHE DENGAN TIMESTAMP & HEADER KHUSUS)
+// 🟢 GET ALL PSIKOLOG PUBLIK (MENDUKUNG DISPLAY ORDER & ANTI-CACHE)
 export async function getAllPsychologistsPublic() {
-  const res = await fetch(`${API_BASE_URL}/psychologist/public?t=${Date.now()}`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      "Cache-Control": "no-cache, no-store, must-revalidate",
-      Pragma: "no-cache",
-    },
-    cache: "no-store",
-  });
+  try {
+    let res = await fetch(`${API_BASE_URL}/psychologist/public?t=${Date.now()}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+    });
 
-  if (!res.ok) {
-    throw new Error("Gagal memuat data psikolog publik");
+    if (!res.ok) {
+      res = await fetch(`${API_BASE_URL}/psychologists?t=${Date.now()}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
+      });
+    }
+
+    if (!res.ok) {
+      return { data: [] };
+    }
+
+    const result = await safeParseJson(res, { data: [] });
+    const rawData =
+      result.data ||
+      result.psychologists ||
+      (Array.isArray(result) ? result : []);
+
+    const cleanData = (Array.isArray(rawData) ? rawData : [])
+      .filter((p: any) => {
+        const name = p?.name || p?.fullName;
+        const sipp = p?.sipp;
+        const hasValidSipp =
+          sipp && String(sipp).trim() !== "" && String(sipp).trim() !== "-";
+
+        const isActiveStatus =
+          p?.isActive === true ||
+          p?.status === "Aktif" ||
+          p?.status === "ACTIVE" ||
+          (p?.isActive === undefined && p?.status !== "INACTIVE");
+
+        return (
+          p?.id &&
+          name &&
+          name.trim() !== "" &&
+          name !== "Psikolog" &&
+          hasValidSipp &&
+          isActiveStatus
+        );
+      })
+      .map((p: any) => ({
+        ...p,
+        displayOrder: Number(p.displayOrder ?? p.order ?? 0),
+        name: p.fullName || p.name,
+        avatarUrl:
+          p.avatarUrl && p.avatarUrl.trim() !== "" ? p.avatarUrl : null,
+        sipp: p.sipp || "-",
+        str: p.str || "-",
+        about: p.about || "Psikolog Klinik Oase Jiwa",
+        specializations: p.specializations || [],
+      }))
+      .sort((a: any, b: any) => {
+        const orderA = a.displayOrder;
+        const orderB = b.displayOrder;
+        if (orderA !== orderB) {
+          return orderA - orderB;
+        }
+        return 0;
+      });
+
+    return { data: cleanData };
+  } catch (err) {
+    console.error("Gagal fetch data psikolog publik:", err);
+    return { data: [] };
   }
-
-  const result = await safeParseJson(res, { data: [] });
-  const rawData = result.data || result.psychologists || (Array.isArray(result) ? result : []);
-
-  const cleanData = (Array.isArray(rawData) ? rawData : [])
-    .filter((p: any) => {
-      const name = p?.name || p?.fullName;
-      const sipp = p?.sipp;
-      const hasValidSipp = sipp && String(sipp).trim() !== "" && String(sipp).trim() !== "-";
-      const isActiveStatus =
-        p?.isActive === true ||
-        p?.status === "Aktif" ||
-        p?.status === "ACTIVE" ||
-        (p?.isActive === undefined && p?.status !== "INACTIVE");
-
-      return p?.id && name && name.trim() !== "" && name !== "Psikolog" && hasValidSipp && isActiveStatus;
-    })
-    .map((p: any) => ({
-      ...p,
-      displayOrder: Number(p.displayOrder ?? p.order ?? p.urutan ?? 0),
-      name: p.fullName || p.name,
-      avatarUrl: p.avatarUrl && p.avatarUrl.trim() !== "" ? p.avatarUrl : null,
-      sipp: p.sipp || "-",
-      str: p.str || "-",
-      about: p.about || "Psikolog Klinik Oase Jiwa",
-      specializations: p.specializations || [],
-    }))
-    .sort((a: any, b: any) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
-
-  return { data: cleanData };
 }
 
 export async function getPsychologistByIdPublic(id: string) {
@@ -632,7 +690,7 @@ export async function deletePatient(patientId: string): Promise<void> {
   }
 }
 
-// 🟢 FETCH SEMUA PSIKOLOG KHUSUS ADMIN (ANTI-CACHE)
+// 🟢 FETCH SEMUA PSIKOLOG KHUSUS ADMIN (ANTI-CACHE & MENDUKUNG DISPLAY ORDER)
 export async function getAllPsychologistsAdmin() {
   try {
     const res = await fetch(`${API_BASE_URL}/admin/psychologists?t=${Date.now()}`, {

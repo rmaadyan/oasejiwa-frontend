@@ -30,30 +30,30 @@ import { useRequireCompleteProfile } from "@/hooks/use-require-complete-profile"
 // Zod validation schema for Step 2
 const consultationFormSchema = z.object({
   mainReason: z.string().min(10, "Alasan konsultasi minimal 10 karakter"),
-  takingPsychiatricMeds: z.enum(["yes", "no"]),
-  problemDuration: z.enum(["<1month", "1-3months", "3-6months", ">6months"]),
-  symptomFrequency: z.enum(["daily", "weekly", "monthly", "rarely"]),
-  dailyImpact: z.enum(["none", "mild", "moderate", "severe"]),
+  takingPsychiatricMeds: z.enum(["yes", "no"], "Pilih salah satu opsi"),
+  problemDuration: z.enum(["<1month", "1-3months", "3-6months", ">6months"], "Pilih durasi masalah"),
+  symptomFrequency: z.enum(["daily", "weekly", "monthly", "rarely"], "Pilih frekuensi gejala"),
+  dailyImpact: z.enum(["none", "mild", "moderate", "severe"], "Pilih tingkat dampak"),
 
-  hasSimilarHistory: z.enum(["yes", "no"]),
+  hasSimilarHistory: z.enum(["yes", "no"], "Pilih salah satu opsi"),
   similarHistoryDetail: z.string().optional(),
-  hasFamilyHistory: z.enum(["yes", "no"]),
+  hasFamilyHistory: z.enum(["yes", "no"], "Pilih salah satu opsi"),
   familyHistoryDetail: z.string().optional(),
-  hasMedicalTreatment: z.enum(["yes", "no"]),
+  hasMedicalTreatment: z.enum(["yes", "no"], "Pilih salah satu opsi"),
   medicalTreatmentDetail: z.string().optional(),
-  hasTraumaticEvent: z.enum(["yes", "no"]),
+  hasTraumaticEvent: z.enum(["yes", "no"], "Pilih salah satu opsi"),
   traumaticEventDetail: z.string().optional(),
-  sleepQuality: z.enum(["good", "fair", "poor", "disturbed"]),
-  selfHarmThoughts: z.enum(["never", "sometimes", "frequent"]),
+  sleepQuality: z.enum(["good", "fair", "poor", "disturbed"], "Pilih kualitas tidur"),
+  selfHarmThoughts: z.enum(["never", "sometimes", "frequent"], "Pilih salah satu opsi"),
 
-  usesAddictiveSubstances: z.enum(["yes", "no"]),
+  usesAddictiveSubstances: z.enum(["yes", "no"], "Pilih salah satu opsi"),
   addictiveSubstancesDetail: z.string().optional(),
-  eatingPattern: z.enum(["regular", "irregular", "overeating", "undereating"]),
-  exerciseFrequency: z.enum(["never", "rarely", "sometimes", "regularly"]),
-  stressLevel: z.enum(["low", "moderate", "high", "veryHigh"]),
+  eatingPattern: z.enum(["regular", "irregular", "overeating", "undereating"], "Pilih pola makan"),
+  exerciseFrequency: z.enum(["never", "rarely", "sometimes", "regularly"], "Pilih frekuensi olahraga"),
+  stressLevel: z.enum(["low", "moderate", "high", "veryHigh"], "Pilih tingkat stres"),
 
   consultationGoals: z.array(z.string()).min(1, "Pilih minimal satu tujuan"),
-  therapyPreference: z.enum(["directive", "collaborative", "noPreference"]),
+  therapyPreference: z.enum(["directive", "collaborative", "noPreference"], "Pilih preferensi terapi"),
 });
 
 type ConsultationFormData = z.infer<typeof consultationFormSchema>;
@@ -71,19 +71,69 @@ const coupleConsultationFormSchema = z.object({
   dailyImpact: z.enum(["none", "mild", "moderate", "severe"], "Pilih tingkat dampak"),
 
   // C. Riwayat Psikologis & Kesehatan (versi Anda dan pasangan)
-  hasSimilarHistory: z.enum(["yes", "no"]),
+  hasSimilarHistory: z.enum(["yes", "no"], "Pilih salah satu opsi"),
   similarHistoryDetail: z.string().optional(),
-  hasFamilyHistory: z.enum(["yes", "no"]),
+  hasFamilyHistory: z.enum(["yes", "no"], "Pilih salah satu opsi"),
   familyHistoryDetail: z.string().optional(),
-  hasMedicalTreatment: z.enum(["yes", "no"]),
+  hasMedicalTreatment: z.enum(["yes", "no"], "Pilih salah satu opsi"),
   medicalTreatmentDetail: z.string().optional(),
-  hasTraumaticEvent: z.enum(["yes", "no"]),
+  hasTraumaticEvent: z.enum(["yes", "no"], "Pilih salah satu opsi"),
   traumaticEventDetail: z.string().optional(),
   sleepQuality: z.enum(["good", "fair", "poor", "disturbed"], "Pilih kualitas tidur Anda"),
   partnerSleepQuality: z.enum(["good", "fair", "poor", "disturbed"], "Pilih kualitas tidur pasangan"),
 });
 
 type CoupleConsultationFormData = z.infer<typeof coupleConsultationFormSchema>;
+
+// 🟢 Zod validation schema untuk Step 1 (Informasi Klien) - formulir individu.
+// Semua field wajib diisi, KECUALI bagian Riwayat Pendidikan: hanya nama
+// sekolah/perguruan tinggi (educationSD/SMP/SMA/College) yang wajib,
+// sedangkan jurusan & tahun masuk/lulus tetap opsional.
+const clientInfoFormSchema = z.object({
+  fullName: z.string().min(1, "Nama lengkap wajib diisi"),
+  gender: z.enum(["male", "female"], "Pilih jenis kelamin"),
+  birthDate: z.string().min(1, "Tanggal lahir wajib diisi"),
+  birthPlace: z.string().min(1, "Tempat lahir wajib diisi"),
+  address: z.string().min(1, "Alamat wajib diisi"),
+  originAddress: z.string().min(1, "Alamat asal wajib diisi"),
+  phone: z.string().min(1, "Nomor telepon wajib diisi"),
+  email: z.string().min(1, "Email wajib diisi").email("Format email tidak valid"),
+  occupation: z.string().min(1, "Pekerjaan wajib diisi"),
+  maritalStatus: z.enum(["single", "married", "divorced"], "Pilih status pernikahan"),
+  childOrder: z.string().min(1, "Anak ke berapa wajib diisi"),
+  siblingsCount: z.string().min(1, "Jumlah bersaudara wajib diisi"),
+  educationSD: z.string().min(1, "Nama sekolah SD wajib diisi"),
+  educationSMP: z.string().min(1, "Nama sekolah SMP wajib diisi"),
+  educationSMA: z.string().min(1, "Nama sekolah SMA wajib diisi"),
+  educationCollege: z.string().min(1, "Nama perguruan tinggi wajib diisi"),
+  educationSDMajor: z.string().optional(),
+  educationSDYearStart: z.string().optional(),
+  educationSDYearEnd: z.string().optional(),
+  educationSMPMajor: z.string().optional(),
+  educationSMPYearStart: z.string().optional(),
+  educationSMPYearEnd: z.string().optional(),
+  educationSMAMajor: z.string().optional(),
+  educationSMAYearStart: z.string().optional(),
+  educationSMAYearEnd: z.string().optional(),
+  educationCollegeMajor: z.string().optional(),
+  educationCollegeYearStart: z.string().optional(),
+  educationCollegeYearEnd: z.string().optional(),
+});
+
+// 🟢 Zod validation schema untuk Step 1 (Informasi Klien & Pasangan) - formulir pasangan.
+// Semua field wajib diisi (tidak ada bagian riwayat pendidikan pada formulir pasangan).
+const coupleClientInfoFormSchema = z.object({
+  fullName: z.string().min(1, "Nama lengkap wajib diisi"),
+  partnerName: z.string().min(1, "Nama pasangan wajib diisi"),
+  age: z.string().min(1, "Usia wajib diisi"),
+  partnerAge: z.string().min(1, "Usia pasangan wajib diisi"),
+  address: z.string().min(1, "Alamat wajib diisi"),
+  partnerAddress: z.string().min(1, "Alamat pasangan wajib diisi"),
+  phone: z.string().min(1, "Nomor telepon wajib diisi"),
+  email: z.string().min(1, "Email wajib diisi").email("Format email tidak valid"),
+  occupation: z.string().min(1, "Pekerjaan wajib diisi"),
+  partnerOccupation: z.string().min(1, "Pekerjaan pasangan wajib diisi"),
+});
 
 // Consent form schema for Step 3
 const consentFormSchema = z.object({
@@ -648,10 +698,24 @@ function ConsultationFormContent() {
 
   const handleClientDataChange = (field: keyof ClientFormData, value: string) => {
     setClientData((prev) => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
   };
 
   const handleCoupleClientDataChange = (field: keyof CoupleClientFormData, value: string) => {
     setCoupleClientData((prev) => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
   };
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -715,6 +779,44 @@ function ConsultationFormContent() {
         (targetElement as HTMLElement).focus();
       }
     }
+  };
+
+  const validateStep1 = (): boolean => {
+    const result = clientInfoFormSchema.safeParse(clientData);
+    if (!result.success) {
+      const newErrors: Record<string, string> = {};
+      const issues = result.error.issues || [];
+      issues.forEach((err) => {
+        const key = String(err.path[0]);
+        newErrors[key] = err.message;
+      });
+      setErrors(newErrors);
+
+      // 🟢 Auto scroll ke error pertama
+      setTimeout(() => scrollToFirstError(newErrors), 100);
+      return false;
+    }
+    setErrors({});
+    return true;
+  };
+
+  const validateStep1Couple = (): boolean => {
+    const result = coupleClientInfoFormSchema.safeParse(coupleClientData);
+    if (!result.success) {
+      const newErrors: Record<string, string> = {};
+      const issues = result.error.issues || [];
+      issues.forEach((err) => {
+        const key = String(err.path[0]);
+        newErrors[key] = err.message;
+      });
+      setErrors(newErrors);
+
+      // 🟢 Auto scroll ke error pertama
+      setTimeout(() => scrollToFirstError(newErrors), 100);
+      return false;
+    }
+    setErrors({});
+    return true;
   };
 
   const validateStep2 = (): boolean => {
@@ -794,7 +896,9 @@ function ConsultationFormContent() {
     }
 
     if (formStep === 1) {
-      setFormStep(2);
+      if (isCouple ? validateStep1Couple() : validateStep1()) {
+        setFormStep(2);
+      }
     } else if (formStep === 2) {
       if (isCouple ? validateStep2Couple() : validateStep2()) {
         setFormStep(3);
@@ -1032,7 +1136,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
       styleTags.forEach((tag) => tag.remove());
 
       const canvas = await html2canvas(cloneElement, {
-        scale: 2,
+        scale: 1.5,
         backgroundColor: "#ffffff",
         allowTaint: true,
         useCORS: true,
@@ -1127,7 +1231,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
           headerBottomPx
         );
       }
-      const headerImgData = headerCanvas.toDataURL("image/png");
+      const headerImgData = headerCanvas.toDataURL("image/jpeg", 0.85);
 
       for (let page = 0; page < totalPages; page++) {
         if (page > 0) {
@@ -1135,7 +1239,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
         }
 
         // HEADER: ditempel ulang di setiap halaman
-        pdf.addImage(headerImgData, "PNG", margin, margin, contentWidth, headerHeightMm);
+        pdf.addImage(headerImgData, "JPEG", margin, margin, contentWidth, headerHeightMm);
 
         const sourceY = pageBreaksPx[page];
         const sourceH = pageBreaksPx[page + 1] - sourceY;
@@ -1160,12 +1264,12 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
               sourceH
             );
 
-            const pageImgData = pageCanvas.toDataURL("image/png");
+            const pageImgData = pageCanvas.toDataURL("image/jpeg", 0.85);
             const sliceHeightMm = (sourceH * contentWidth) / canvas.width;
 
             pdf.addImage(
               pageImgData,
-              "PNG",
+              "JPEG",
               margin,
               margin + headerHeightMm + headerGapMm,
               contentWidth,
@@ -1891,136 +1995,176 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
   );
 
   const renderStep1Couple = () => {
-    const infoRows: { no: number; label: string; input: React.ReactNode }[] = [
+    const infoRows: { no: number; key: string; label: string; input: React.ReactNode }[] = [
       {
         no: 1,
+        key: "fullName",
         label: "Nama Lengkap",
         input: (
           <input
             type="text"
+            id="field-fullName"
             value={coupleClientData.fullName}
             onChange={(e) => handleCoupleClientDataChange("fullName", e.target.value)}
             placeholder="Nama lengkap Anda"
-            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none"
+            className={`w-full rounded-md border px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none ${
+              errors.fullName ? "border-red-500" : "border-gray-300"
+            }`}
           />
         ),
       },
       {
         no: 2,
+        key: "partnerName",
         label: "Nama Pasangan",
         input: (
           <input
             type="text"
+            id="field-partnerName"
             value={coupleClientData.partnerName}
             onChange={(e) => handleCoupleClientDataChange("partnerName", e.target.value)}
             placeholder="Nama lengkap pasangan Anda"
-            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none"
+            className={`w-full rounded-md border px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none ${
+              errors.partnerName ? "border-red-500" : "border-gray-300"
+            }`}
           />
         ),
       },
       {
         no: 3,
+        key: "age",
         label: "Usia",
         input: (
           <input
             type="number"
             min={0}
+            id="field-age"
             value={coupleClientData.age}
             onChange={(e) => handleCoupleClientDataChange("age", e.target.value)}
             placeholder="cth. 28"
-            className="w-32 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none"
+            className={`w-32 rounded-md border px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none ${
+              errors.age ? "border-red-500" : "border-gray-300"
+            }`}
           />
         ),
       },
       {
         no: 4,
+        key: "partnerAge",
         label: "Usia Pasangan",
         input: (
           <input
             type="number"
             min={0}
+            id="field-partnerAge"
             value={coupleClientData.partnerAge}
             onChange={(e) => handleCoupleClientDataChange("partnerAge", e.target.value)}
             placeholder="cth. 30"
-            className="w-32 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none"
+            className={`w-32 rounded-md border px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none ${
+              errors.partnerAge ? "border-red-500" : "border-gray-300"
+            }`}
           />
         ),
       },
       {
         no: 5,
+        key: "address",
         label: "Alamat",
         input: (
           <textarea
+            id="field-address"
             value={coupleClientData.address}
             onChange={(e) => handleCoupleClientDataChange("address", e.target.value)}
             rows={2}
             placeholder="Alamat domisili Anda saat ini"
-            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none resize-none"
+            className={`w-full rounded-md border px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none resize-none ${
+              errors.address ? "border-red-500" : "border-gray-300"
+            }`}
           />
         ),
       },
       {
         no: 6,
+        key: "partnerAddress",
         label: "Alamat Pasangan",
         input: (
           <textarea
+            id="field-partnerAddress"
             value={coupleClientData.partnerAddress}
             onChange={(e) => handleCoupleClientDataChange("partnerAddress", e.target.value)}
             rows={2}
             placeholder="Alamat domisili pasangan Anda"
-            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none resize-none"
+            className={`w-full rounded-md border px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none resize-none ${
+              errors.partnerAddress ? "border-red-500" : "border-gray-300"
+            }`}
           />
         ),
       },
       {
         no: 7,
+        key: "phone",
         label: "Nomor Telepon",
         input: (
           <input
             type="tel"
+            id="field-phone"
             value={coupleClientData.phone}
             onChange={(e) => handleCoupleClientDataChange("phone", e.target.value)}
             placeholder="08xxxxxxxxxx"
-            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none"
+            className={`w-full rounded-md border px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none ${
+              errors.phone ? "border-red-500" : "border-gray-300"
+            }`}
           />
         ),
       },
       {
         no: 8,
+        key: "email",
         label: "Email",
         input: (
           <input
             type="email"
+            id="field-email"
             value={coupleClientData.email}
             onChange={(e) => handleCoupleClientDataChange("email", e.target.value)}
             placeholder="nama@email.com"
-            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none"
+            className={`w-full rounded-md border px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none ${
+              errors.email ? "border-red-500" : "border-gray-300"
+            }`}
           />
         ),
       },
       {
         no: 9,
+        key: "occupation",
         label: "Pekerjaan",
         input: (
           <input
             type="text"
+            id="field-occupation"
             value={coupleClientData.occupation}
             onChange={(e) => handleCoupleClientDataChange("occupation", e.target.value)}
             placeholder="cth. Karyawan Swasta"
-            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none"
+            className={`w-full rounded-md border px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none ${
+              errors.occupation ? "border-red-500" : "border-gray-300"
+            }`}
           />
         ),
       },
       {
         no: 10,
+        key: "partnerOccupation",
         label: "Pekerjaan Pasangan",
         input: (
           <input
             type="text"
+            id="field-partnerOccupation"
             value={coupleClientData.partnerOccupation}
             onChange={(e) => handleCoupleClientDataChange("partnerOccupation", e.target.value)}
             placeholder="cth. Wiraswasta"
-            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none"
+            className={`w-full rounded-md border px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none ${
+              errors.partnerOccupation ? "border-red-500" : "border-gray-300"
+            }`}
           />
         ),
       },
@@ -2072,7 +2216,12 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
                   <span className="text-gray-500 mr-1">{row.no}.</span>
                   {row.label}
                 </span>
-                <span className="flex-1">{row.input}</span>
+                <span className="flex-1">
+                  {row.input}
+                  {errors[row.key] && (
+                    <p className="text-sm text-red-500 mt-1">{errors[row.key]}</p>
+                  )}
+                </span>
               </div>
             ))}
 
@@ -2097,25 +2246,30 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
   };
 
   const renderStep1 = () => {
-    const infoRows: { no: number; label: string; input: React.ReactNode }[] = [
+    const infoRows: { no: number; key: string; label: string; input: React.ReactNode }[] = [
       {
         no: 1,
+        key: "fullName",
         label: "Nama Lengkap",
         input: (
           <input
             type="text"
+            id="field-fullName"
             value={clientData.fullName}
             onChange={(e) => handleClientDataChange("fullName", e.target.value)}
             placeholder="Nama lengkap Anda"
-            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none"
+            className={`w-full rounded-md border px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none ${
+              errors.fullName ? "border-red-500" : "border-gray-300"
+            }`}
           />
         ),
       },
       {
         no: 2,
+        key: "gender",
         label: "Jenis Kelamin",
         input: (
-          <div className="flex gap-8">
+          <div id="field-gender" className="flex gap-8">
             <OptionPill
               name="clientGender"
               value="male"
@@ -2135,31 +2289,40 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
       },
       {
         no: 3,
+        key: "birthDate",
         label: "Tanggal Lahir",
         input: (
           <input
             type="date"
+            id="field-birthDate"
             value={clientData.birthDate}
             onChange={(e) => handleClientDataChange("birthDate", e.target.value)}
-            className="w-full max-w-xs rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none"
+            className={`w-full max-w-xs rounded-md border px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none ${
+              errors.birthDate ? "border-red-500" : "border-gray-300"
+            }`}
           />
         ),
       },
       {
         no: 4,
+        key: "birthPlace",
         label: "Tempat Lahir",
         input: (
           <input
             type="text"
+            id="field-birthPlace"
             value={clientData.birthPlace}
             onChange={(e) => handleClientDataChange("birthPlace", e.target.value)}
             placeholder="Kota tempat lahir"
-            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none"
+            className={`w-full rounded-md border px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none ${
+              errors.birthPlace ? "border-red-500" : "border-gray-300"
+            }`}
           />
         ),
       },
       {
         no: 5,
+        key: "",
         label: "Usia",
         input: (
           <span className="inline-flex rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-600">
@@ -2171,25 +2334,31 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
       },
       {
         no: 6,
+        key: "childOrder",
         label: "Anak ke",
         input: (
-          <div className="flex items-center gap-2">
+          <div id="field-childOrder" className="flex items-center gap-2">
             <input
               type="number"
               min={1}
               value={clientData.childOrder}
               onChange={(e) => handleClientDataChange("childOrder", e.target.value)}
               placeholder="cth. 2"
-              className="w-20 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none"
+              className={`w-20 rounded-md border px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none ${
+                errors.childOrder ? "border-red-500" : "border-gray-300"
+              }`}
             />
             <span className="text-sm text-gray-600">dari</span>
             <input
               type="number"
               min={1}
+              id="field-siblingsCount"
               value={clientData.siblingsCount}
               onChange={(e) => handleClientDataChange("siblingsCount", e.target.value)}
               placeholder="cth. 3"
-              className="w-20 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none"
+              className={`w-20 rounded-md border px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none ${
+                errors.siblingsCount ? "border-red-500" : "border-gray-300"
+              }`}
             />
             <span className="text-sm text-gray-600">Bersaudara</span>
           </div>
@@ -2197,74 +2366,95 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
       },
       {
         no: 7,
+        key: "address",
         label: "Alamat",
         input: (
           <textarea
+            id="field-address"
             value={clientData.address}
             onChange={(e) => handleClientDataChange("address", e.target.value)}
             rows={2}
             placeholder="Alamat domisili saat ini"
-            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none resize-none"
+            className={`w-full rounded-md border px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none resize-none ${
+              errors.address ? "border-red-500" : "border-gray-300"
+            }`}
           />
         ),
       },
       {
         no: 8,
+        key: "originAddress",
         label: "Alamat Asal",
         input: (
           <textarea
+            id="field-originAddress"
             value={clientData.originAddress}
             onChange={(e) => handleClientDataChange("originAddress", e.target.value)}
             rows={2}
             placeholder="Alamat asal / kampung halaman"
-            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none resize-none"
+            className={`w-full rounded-md border px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none resize-none ${
+              errors.originAddress ? "border-red-500" : "border-gray-300"
+            }`}
           />
         ),
       },
       {
         no: 9,
+        key: "phone",
         label: "Nomor Telepon",
         input: (
           <input
             type="tel"
+            id="field-phone"
             value={clientData.phone}
             onChange={(e) => handleClientDataChange("phone", e.target.value)}
             placeholder="08xxxxxxxxxx"
-            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none"
+            className={`w-full rounded-md border px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none ${
+              errors.phone ? "border-red-500" : "border-gray-300"
+            }`}
           />
         ),
       },
       {
         no: 10,
+        key: "email",
         label: "Email",
         input: (
           <input
             type="email"
+            id="field-email"
             value={clientData.email}
             onChange={(e) => handleClientDataChange("email", e.target.value)}
             placeholder="nama@email.com"
-            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none"
+            className={`w-full rounded-md border px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none ${
+              errors.email ? "border-red-500" : "border-gray-300"
+            }`}
           />
         ),
       },
       {
         no: 11,
+        key: "occupation",
         label: "Pekerjaan",
         input: (
           <input
             type="text"
+            id="field-occupation"
             value={clientData.occupation}
             onChange={(e) => handleClientDataChange("occupation", e.target.value)}
             placeholder="cth. Mahasiswa, Karyawan Swasta"
-            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none"
+            className={`w-full rounded-md border px-3 py-1.5 text-sm text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none ${
+              errors.occupation ? "border-red-500" : "border-gray-300"
+            }`}
           />
         ),
       },
       {
         no: 12,
+        key: "maritalStatus",
         label: "Status Pernikahan",
         input: (
-          <div className="flex flex-wrap gap-6">
+          <div id="field-maritalStatus" className="flex flex-wrap gap-6">
             {[
               { value: "single", label: "Lajang" },
               { value: "married", label: "Menikah" },
@@ -2329,13 +2519,23 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
                   <span className="text-gray-500 mr-1">{row.no}.</span>
                   {row.label}
                 </span>
-                <span className="flex-1">{row.input}</span>
+                <span className="flex-1">
+                  {row.input}
+                  {row.key && errors[row.key] && (
+                    <p className="text-sm text-red-500 mt-1">{errors[row.key]}</p>
+                  )}
+                </span>
               </div>
             ))}
 
             <div className="flex gap-2 px-5 pt-3 border-t border-gray-200 bg-white">
               <span className="w-6 flex-shrink-0 text-gray-500">13.</span>
-              <span className="font-semibold text-[#1f3b5b]">Riwayat Pendidikan</span>
+              <span className="font-semibold text-[#1f3b5b]">
+                Riwayat Pendidikan{" "}
+                <span className="font-normal text-[10px] text-gray-500">
+                  (nama sekolah/perguruan tinggi wajib diisi, kolom lainnya opsional)
+                </span>
+              </span>
             </div>
             <div className="px-5 pb-4 pt-2 bg-white">
               <table className="w-full border-collapse text-xs">
@@ -2401,16 +2601,22 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
                       <td className="border border-gray-300 px-3 py-2 font-medium">
                         {row.jenjang}
                       </td>
-                      <td className="border border-gray-300 px-2 py-1">
+                      <td className="border border-gray-300 px-2 py-1 align-top">
                         <input
                           type="text"
+                          id={`field-${row.field}`}
                           value={clientData[row.field]}
                           onChange={(e) =>
                             handleClientDataChange(row.field, e.target.value)
                           }
                           placeholder="Nama sekolah / perguruan tinggi"
-                          className="w-full rounded-md border border-transparent px-2 py-1.5 text-xs text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none"
+                          className={`w-full rounded-md border px-2 py-1.5 text-xs text-gray-800 focus:border-[#2B5379] focus:ring-2 focus:ring-[#2B5379]/20 outline-none ${
+                            errors[row.field] ? "border-red-500" : "border-transparent"
+                          }`}
                         />
+                        {errors[row.field] && (
+                          <p className="text-[10px] text-red-500 mt-1">{errors[row.field]}</p>
+                        )}
                       </td>
                       <td className="border border-gray-300 px-2 py-1">
                         <input
@@ -2493,7 +2699,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
           B. Alasan Konsultasi
         </div>
         <div className="bg-white px-5 py-5 space-y-6 text-sm">
-          <div>
+          <div id="field-mainReason">
             <p className="font-medium text-slate-700 mb-2">
               1. Alasan utama Anda mencari layanan konseling{" "}
               <span className="text-red-500">*</span>
@@ -2514,7 +2720,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
             )}
           </div>
 
-          <div>
+          <div id="field-takingPsychiatricMeds">
             <p className="font-medium text-slate-700 mb-2">
               2. Apakah Anda sedang mengonsumsi obat psikiatri?{" "}
               <span className="text-red-500">*</span>
@@ -2543,7 +2749,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
             )}
           </div>
 
-          <div>
+          <div id="field-problemDuration">
             <p className="font-medium text-slate-700 mb-2">
               3. Berapa lama Anda mengalami masalah ini?{" "}
               <span className="text-red-500">*</span>
@@ -2570,7 +2776,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
             )}
           </div>
 
-          <div>
+          <div id="field-symptomFrequency">
             <p className="font-medium text-slate-700 mb-2">
               4. Seberapa sering Anda merasakan gejala ini?{" "}
               <span className="text-red-500">*</span>
@@ -2597,7 +2803,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
             )}
           </div>
 
-          <div>
+          <div id="field-dailyImpact">
             <p className="font-medium text-slate-700 mb-2">
               5. Bagaimana perasaan atau dampaknya terhadap kehidupan sehari-hari Anda?{" "}
               <span className="text-red-500">*</span>
@@ -2632,7 +2838,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
           C. Riwayat Psikologis dan Kesehatan
         </div>
         <div className="bg-white px-5 py-5 space-y-6 text-sm">
-          <div>
+          <div id="field-hasSimilarHistory">
             <p className="font-medium text-slate-700 mb-2">
               1. Apakah Anda dan pasangan pernah mengalami hal serupa sebelumnya?
             </p>
@@ -2666,7 +2872,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
             )}
           </div>
 
-          <div>
+          <div id="field-hasFamilyHistory">
             <p className="font-medium text-slate-700 mb-2">
               2. Apakah ada anggota keluarga yang memiliki riwayat gangguan psikologis?
             </p>
@@ -2700,7 +2906,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
             )}
           </div>
 
-          <div>
+          <div id="field-hasMedicalTreatment">
             <p className="font-medium text-slate-700 mb-2">
               3. Apakah Anda atau pasangan sedang menjalani pengobatan medis atau terapi psikologis?
             </p>
@@ -2734,7 +2940,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
             )}
           </div>
 
-          <div>
+          <div id="field-hasTraumaticEvent">
             <p className="font-medium text-slate-700 mb-2">
               4. Apakah Anda atau pasangan pernah mengalami kejadian traumatis (misalnya kehilangan orang terdekat, kecelakaan, kekerasan, dll.)?
             </p>
@@ -2768,7 +2974,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
             )}
           </div>
 
-          <div>
+          <div id="field-sleepQuality">
             <p className="font-medium text-slate-700 mb-2">
               5. Bagaimana kualitas tidur Anda dalam sebulan terakhir?{" "}
               <span className="text-red-500">*</span>
@@ -2795,7 +3001,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
             )}
           </div>
 
-          <div>
+          <div id="field-partnerSleepQuality">
             <p className="font-medium text-slate-700 mb-2">
               6. Bagaimana kualitas tidur pasangan Anda dalam sebulan terakhir?{" "}
               <span className="text-red-500">*</span>
@@ -2848,7 +3054,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
           B. Alasan Konsultasi
         </div>
         <div className="bg-white px-5 py-5 space-y-6 text-sm">
-          <div>
+          <div id="field-mainReason">
             <p className="font-medium text-slate-700 mb-2">
               1. Alasan utama Anda mencari layanan konseling{" "}
               <span className="text-red-500">*</span>
@@ -2869,7 +3075,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
             )}
           </div>
 
-          <div>
+          <div id="field-takingPsychiatricMeds">
             <p className="font-medium text-slate-700 mb-2">
               2. Apakah Anda sedang mengonsumsi obat psikiatri?{" "}
               <span className="text-red-500">*</span>
@@ -2898,7 +3104,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
             )}
           </div>
 
-          <div>
+          <div id="field-problemDuration">
             <p className="font-medium text-slate-700 mb-2">
               3. Berapa lama Anda mengalami masalah ini?{" "}
               <span className="text-red-500">*</span>
@@ -2925,7 +3131,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
             )}
           </div>
 
-          <div>
+          <div id="field-symptomFrequency">
             <p className="font-medium text-slate-700 mb-2">
               4. Seberapa sering Anda merasakan gejala ini?{" "}
               <span className="text-red-500">*</span>
@@ -2952,7 +3158,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
             )}
           </div>
 
-          <div>
+          <div id="field-dailyImpact">
             <p className="font-medium text-slate-700 mb-2">
               5. Bagaimana perasaan atau dampaknya terhadap kehidupan sehari-hari Anda?{" "}
               <span className="text-red-500">*</span>
@@ -2987,7 +3193,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
           C. Riwayat Psikologis dan Kesehatan
         </div>
         <div className="bg-white px-5 py-5 space-y-6 text-sm">
-          <div>
+          <div id="field-hasSimilarHistory">
             <p className="font-medium text-slate-700 mb-2">
               1. Apakah Anda pernah mengalami hal serupa sebelumnya?
             </p>
@@ -3021,7 +3227,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
             )}
           </div>
 
-          <div>
+          <div id="field-hasFamilyHistory">
             <p className="font-medium text-slate-700 mb-2">
               2. Apakah ada anggota keluarga yang memiliki riwayat gangguan psikologis?
             </p>
@@ -3055,7 +3261,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
             )}
           </div>
 
-          <div>
+          <div id="field-hasMedicalTreatment">
             <p className="font-medium text-slate-700 mb-2">
               3. Apakah Anda sedang menjalani pengobatan medis atau terapi psikologis?
             </p>
@@ -3089,7 +3295,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
             )}
           </div>
 
-          <div>
+          <div id="field-hasTraumaticEvent">
             <p className="font-medium text-slate-700 mb-2">
               4. Apakah Anda pernah mengalami kejadian traumatis (misalnya kehilangan orang terdekat, kecelakaan, kekerasan, dll.)?
             </p>
@@ -3123,7 +3329,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
             )}
           </div>
 
-          <div>
+          <div id="field-sleepQuality">
             <p className="font-medium text-slate-700 mb-2">
               5. Bagaimana kualitas tidur Anda dalam sebulan terakhir?{" "}
               <span className="text-red-500">*</span>
@@ -3150,7 +3356,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
             )}
           </div>
 
-          <div>
+          <div id="field-selfHarmThoughts">
             <p className="font-medium text-slate-700 mb-2">
               6. Apakah Anda pernah memiliki pemikiran untuk menyakiti diri sendiri atau orang lain?{" "}
               <span className="text-red-500">*</span>
@@ -3201,7 +3407,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
           D. Kebiasaan dan Gaya Hidup
         </div>
         <div className="bg-white px-5 py-5 space-y-6 text-sm">
-          <div>
+          <div id="field-usesAddictiveSubstances">
             <p className="font-medium text-slate-700 mb-2">
               1. Apakah Anda mengonsumsi alkohol, rokok, atau zat adiktif lainnya?
             </p>
@@ -3235,7 +3441,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
             )}
           </div>
 
-          <div>
+          <div id="field-eatingPattern">
             <p className="font-medium text-slate-700 mb-2">
               2. Bagaimana pola makan Anda sehari-hari?{" "}
               <span className="text-red-500">*</span>
@@ -3262,7 +3468,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
             )}
           </div>
 
-          <div>
+          <div id="field-exerciseFrequency">
             <p className="font-medium text-slate-700 mb-2">
               3. Seberapa sering Anda berolahraga?{" "}
               <span className="text-red-500">*</span>
@@ -3289,7 +3495,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
             )}
           </div>
 
-          <div>
+          <div id="field-stressLevel">
             <p className="font-medium text-slate-700 mb-2">
               4. Bagaimana tingkat stres Anda dalam kehidupan sehari-hari?{" "}
               <span className="text-red-500">*</span>
@@ -3324,7 +3530,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
           E. Tujuan Konsultasi
         </div>
         <div className="bg-white px-5 py-5 space-y-6 text-sm">
-          <div>
+          <div id="field-consultationGoals">
             <p className="font-medium text-slate-700 mb-2">
               1. Apa yang ingin Anda capai dari konsultasi ini?{" "}
               <span className="text-red-500">*</span>
@@ -3359,7 +3565,7 @@ router.push(`/booking/payment-method?bookingId=${booking.data.id}`);
             )}
           </div>
 
-          <div>
+          <div id="field-therapyPreference">
             <p className="font-medium text-slate-700 mb-2">
               2. Preferensi pendekatan terapi <span className="text-red-500">*</span>
             </p>
