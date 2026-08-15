@@ -185,3 +185,30 @@ export async function rejectBooking(id: string | number, reason: string) {
   }
   return res.json();
 }
+
+// 🟢 RESCHEDULE KHUSUS ADMIN (Simpan ke DB & Trigger Notifikasi)
+export async function rescheduleBookingAdmin(
+  id: string | number,
+  payload: { newDate: string; newTime: string; reason?: string }
+) {
+  const res = await authFetch(`${API_BASE_URL}/admin/bookings/${id}/reschedule`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    // Fallback jika route admin belum ada, coba route standar bookings/:id/reschedule
+    const fallbackRes = await authFetch(`${API_BASE_URL}/bookings/${id}/reschedule`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+
+    if (!fallbackRes.ok) {
+      const err = await fallbackRes.json().catch(() => ({}));
+      throw new Error(err.message || "Gagal mengubah jadwal konseling");
+    }
+    return fallbackRes.json();
+  }
+
+  return res.json();
+}

@@ -5,8 +5,8 @@ import CountUp from "@/components/admin/ui/CountUp";
 import { ToastProvider, useToast } from "@/components/admin/ui/Toast";
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { getAdminBookings } from "@/lib/api/booking";
+import { useState, useEffect, useMemo } from "react";
+import { getAdminBookings, rescheduleBookingAdmin } from "@/lib/api/booking";
 
 const paymentStatusMap: Record<string, { label: string; variant: "success" | "warning" | "danger" | "pending" }> = {
   validated: { label: "Tervalidasi", variant: "success" },
@@ -21,17 +21,17 @@ const sessionStatusMap: Record<string, { label: string; variant: "success" | "in
   cancelled: { label: "Dibatalkan", variant: "danger" },
 };
 
-// Available time slots
-const timeSlots = [
-  { id: "09:00", time: "09.00 WIB", available: true },
-  { id: "10:00", time: "10.00 WIB", available: true },
-  { id: "11:00", time: "11.00 WIB", available: false },
-  { id: "13:00", time: "13.00 WIB", available: true },
-  { id: "14:00", time: "14.00 WIB", available: true },
-  { id: "15:00", time: "15.00 WIB", available: false },
-  { id: "16:00", time: "16.00 WIB", available: true },
-  { id: "19:00", time: "19.00 WIB", available: true },
-  { id: "20:00", time: "20.00 WIB", available: true },
+// Available standard time slots
+const ALL_HOURS = [
+  "09:00",
+  "10:00",
+  "11:00",
+  "13:00",
+  "14:00",
+  "15:00",
+  "16:00",
+  "19:00",
+  "20:00",
 ];
 
 // Generate dates for the next 14 days
@@ -62,64 +62,66 @@ function AdminBookingsContent() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const fetchBookings = async () => {
+    try {
+      setIsLoading(true);
+      const res = await getAdminBookings();
+      const data = res.data ?? [];
+
+      const mapped = data.map((b: any) => {
+        let paymentStatus = "pending";
+        if (["APPROVED", "FULLY_PAID", "COMPLETED"].includes(b.status)) {
+          paymentStatus = "validated";
+        } else if (["REJECTED", "CANCELLED"].includes(b.status)) {
+          paymentStatus = "rejected";
+        }
+
+        let sessionStatus = "waiting";
+        if (["APPROVED", "FULLY_PAID"].includes(b.status)) {
+          sessionStatus = "scheduled";
+        } else if (b.status === "COMPLETED") {
+          sessionStatus = "completed";
+        } else if (["REJECTED", "CANCELLED"].includes(b.status)) {
+          sessionStatus = "cancelled";
+        }
+
+        const dateStr = b.scheduledDate
+          ? String(b.scheduledDate).split("T")[0]
+          : "";
+
+        return {
+          id: `BKG-${b.bookingCode ?? b.id}`,
+          originalId: b.id,
+          bookingCode: b.bookingCode,
+          scheduledDate: dateStr,
+          scheduledTime: b.scheduledTime ?? "",
+          psychologistId: b.psychologistId || b.psychologist?.id,
+          datetime: `${dateStr} ${b.scheduledTime ?? ""}`,
+          client: {
+            name: b.user?.email ?? b.user?.fullName ?? "Klien",
+            avatar: "/assets/about-us.jpg",
+          },
+          psychologist: b.psychologist?.fullName ?? b.psychologist?.name ?? "Psikolog",
+          service: b.service?.nama ?? "Layanan",
+          paymentStatus,
+          sessionStatus,
+          rawStatus: b.status,
+          scheduleUpdated: false,
+          totalPrice: b.totalPrice,
+          dpAmount: b.dpAmount,
+        };
+      });
+
+      setBookings(mapped);
+    } catch (e) {
+      console.error("Gagal fetch bookings:", e);
+      setBookings([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchBookings = async () => {
-      try {
-        setIsLoading(true);
-        const res = await getAdminBookings();
-        const data = res.data ?? [];
-
-        const mapped = data.map((b: any) => {
-          // Tentukan paymentStatus berdasarkan status booking
-          let paymentStatus = "pending";
-          if (["APPROVED", "FULLY_PAID", "COMPLETED"].includes(b.status)) {
-            paymentStatus = "validated";
-          } else if (["REJECTED", "CANCELLED"].includes(b.status)) {
-            paymentStatus = "rejected";
-          }
-
-          // Tentukan sessionStatus
-          let sessionStatus = "waiting";
-          if (["APPROVED", "FULLY_PAID"].includes(b.status)) {
-            sessionStatus = "scheduled";
-          } else if (b.status === "COMPLETED") {
-            sessionStatus = "completed";
-          } else if (["REJECTED", "CANCELLED"].includes(b.status)) {
-            sessionStatus = "cancelled";
-          }
-
-          const dateStr = b.scheduledDate
-            ? b.scheduledDate.split("T")[0]
-            : "";
-
-          return {
-            id: `BKG-${b.bookingCode ?? b.id}`,
-            originalId: b.id,
-            bookingCode: b.bookingCode,
-            datetime: `${dateStr} ${b.scheduledTime ?? ""}`,
-            client: {
-              name: b.user?.email ?? "Klien",
-              avatar: "/assets/about-us.jpg",
-            },
-            psychologist: b.psychologist?.fullName ?? "Psikolog",
-            service: b.service?.nama ?? "Layanan",
-            paymentStatus,
-            sessionStatus,
-            rawStatus: b.status,
-            scheduleUpdated: false,
-            totalPrice: b.totalPrice,
-            dpAmount: b.dpAmount,
-          };
-        });
-
-        setBookings(mapped);
-      } catch (e) {
-        console.error("Gagal fetch bookings:", e);
-        setBookings([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
     fetchBookings();
   }, []);
 
@@ -129,24 +131,59 @@ function AdminBookingsContent() {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [rescheduleReason, setRescheduleReason] = useState("");
+  const [isSubmittingReschedule, setIsSubmittingReschedule] = useState(false);
   const availableDates = generateDates();
 
   const handleOpenReschedule = (booking: any) => {
     setSelectedBooking(booking);
-    setSelectedDate("");
+    setSelectedDate(booking.scheduledDate || "");
     setSelectedTime("");
     setRescheduleReason("");
     setIsRescheduleModalOpen(true);
   };
 
-  const handleConfirmReschedule = () => {
+  // 🟢 CEK JAM YANG SUDAH TERPAKAI PADA TANGGAL & PSIKOLOG YANG DIPILIH
+  const occupiedTimesOnSelectedDate = useMemo(() => {
+    if (!selectedDate || !selectedBooking) return [];
+    return bookings
+      .filter(
+        (b) =>
+          b.originalId !== selectedBooking.originalId && // Jangan hitung booking ini sendiri
+          b.scheduledDate === selectedDate &&
+          (b.psychologistId === selectedBooking.psychologistId || b.psychologist === selectedBooking.psychologist) &&
+          b.sessionStatus !== "cancelled" &&
+          b.paymentStatus !== "rejected"
+      )
+      .map((b) => b.scheduledTime.trim());
+  }, [selectedDate, selectedBooking, bookings]);
+
+  // 🟢 KIRIM RESCHEDULE KE BACKEND & UPDATE INSTAN
+  const handleConfirmReschedule = async () => {
     if (!selectedDate || !selectedTime || !rescheduleReason.trim()) {
-      showToast("Lengkapi semua data reschedule", "error");
+      showToast("Lengkapi tanggal, jam, dan alasan reschedule!", "error");
       return;
     }
-    showToast(`Jadwal berhasil diubah untuk booking ${selectedBooking?.id}`, "success");
-    setIsRescheduleModalOpen(false);
-    setSelectedBooking(null);
+
+    try {
+      setIsSubmittingReschedule(true);
+
+      await rescheduleBookingAdmin(selectedBooking.originalId, {
+        newDate: selectedDate,
+        newTime: selectedTime,
+        reason: rescheduleReason,
+      });
+
+      showToast(`Jadwal berhasil diubah dan notifikasi email dikirim ke ${selectedBooking?.client?.name}`, "success");
+      setIsRescheduleModalOpen(false);
+      setSelectedBooking(null);
+
+      // Ambil data fresh seketika
+      await fetchBookings();
+    } catch (err: any) {
+      showToast(err.message || "Gagal mengubah jadwal di server", "error");
+    } finally {
+      setIsSubmittingReschedule(false);
+    }
   };
 
   // Filter logic
@@ -170,7 +207,6 @@ function AdminBookingsContent() {
     );
   });
 
-  // Quick filter counts
   const quickFilterCounts = {
     today: bookings.filter((b) => b.datetime.startsWith(today)).length,
     needValidation: bookings.filter((b) => b.paymentStatus === "pending").length,
@@ -257,14 +293,6 @@ function AdminBookingsContent() {
           <div className="flex flex-col">
             <span className="text-[#234463] font-medium">{formattedDate}</span>
             <span className="text-sm text-[#4B4B4B]">{timePart ?? "-"} WIB</span>
-            {item.scheduleUpdated && (
-              <span className="text-xs text-[#F59E0B] flex items-center gap-1 mt-0.5">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Jadwal Diperbarui
-              </span>
-            )}
           </div>
         );
       },
@@ -330,7 +358,7 @@ function AdminBookingsContent() {
           {item.paymentStatus === "validated" && item.sessionStatus !== "completed" && (
             <button
               onClick={() => handleOpenReschedule(item)}
-              className="p-1.5 text-[#4B4B4B] hover:bg-[#E8F6FF] rounded-lg transition-all"
+              className="p-1.5 text-[#4B4B4B] hover:bg-[#E8F6FF] rounded-lg transition-all cursor-pointer"
               title="Edit Jadwal"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -346,7 +374,6 @@ function AdminBookingsContent() {
   return (
     <div className="min-h-screen bg-[#F5F9FC] p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="mb-8 animate-fadeIn">
           <h1 className="text-2xl md:text-[28px] font-bold text-secondary-heading">
             Manajemen Booking
@@ -446,15 +473,6 @@ function AdminBookingsContent() {
                   {stat.icon}
                 </div>
               </div>
-              {stat.pulse && (
-                <div className="flex items-center gap-2 mt-3">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F59E0B] opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[#F59E0B]" />
-                  </span>
-                  <span className="text-xs text-[#F59E0B]">Perlu perhatian</span>
-                </div>
-              )}
             </Card>
           ))}
         </div>
@@ -462,27 +480,16 @@ function AdminBookingsContent() {
         {/* Filter & Search */}
         <Card className="p-4 mb-6 animate-fadeIn opacity-0 stagger-5">
           <div className="flex flex-col lg:flex-row gap-4">
-            {/* Search */}
             <div className="relative flex-1">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
               <input
                 type="text"
                 placeholder="Cari booking, klien, atau psikolog..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-[#D6E6F2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2B5379]/20 focus:border-[#2B5379] transition-all"
+                className="w-full pl-4 pr-4 py-2.5 border border-[#D6E6F2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2B5379]/20 focus:border-[#2B5379] transition-all"
               />
             </div>
 
-            {/* Status Filter */}
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -493,19 +500,6 @@ function AdminBookingsContent() {
               <option value="validated">Tervalidasi</option>
               <option value="rejected">Ditolak</option>
             </select>
-
-            {/* Date Range */}
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                className="px-4 py-2.5 border border-[#D6E6F2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2B5379]/20 focus:border-[#2B5379] transition-all text-[#4B4B4B]"
-              />
-              <span className="text-[#4B4B4B]">-</span>
-              <input
-                type="date"
-                className="px-4 py-2.5 border border-[#D6E6F2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2B5379]/20 focus:border-[#2B5379] transition-all text-[#4B4B4B]"
-              />
-            </div>
           </div>
         </Card>
 
@@ -549,7 +543,7 @@ function AdminBookingsContent() {
                   <div>
                     <p className="font-medium text-[#234463]">{selectedBooking.client.name}</p>
                     <p className="text-sm text-[#4B4B4B]">
-                      {selectedBooking.datetime} • {selectedBooking.service}
+                      {selectedBooking.datetime} • {selectedBooking.service} ({selectedBooking.psychologist})
                     </p>
                   </div>
                 </div>
@@ -565,8 +559,11 @@ function AdminBookingsContent() {
                 {availableDates.map((dateItem) => (
                   <button
                     key={dateItem.id}
-                    onClick={() => setSelectedDate(dateItem.fullDate)}
-                    className={`flex-shrink-0 w-16 py-3 rounded-xl border-2 transition-all ${
+                    onClick={() => {
+                      setSelectedDate(dateItem.fullDate);
+                      setSelectedTime(""); // Reset jam saat ganti tanggal
+                    }}
+                    className={`flex-shrink-0 w-16 py-3 rounded-xl border-2 transition-all cursor-pointer ${
                       selectedDate === dateItem.fullDate
                         ? "border-[#2B5379] bg-[#2B5379] text-white"
                         : "border-[#D6E6F2] bg-white text-[#4B4B4B] hover:border-[#2B5379]"
@@ -580,49 +577,53 @@ function AdminBookingsContent() {
               </div>
             </div>
 
-            {/* Time Selection */}
+            {/* Time Selection - DISINKRONKAN DENGAN JADWAL TERPAKAI */}
             <div>
               <label className="block text-sm font-medium text-[#234463] mb-3">
-                Pilih Waktu Baru
+                Pilih Waktu Baru {selectedDate && `(${selectedDate})`}
               </label>
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                {timeSlots.map((slot) => (
-                  <button
-                    key={slot.id}
-                    onClick={() => slot.available && setSelectedTime(slot.id)}
-                    disabled={!slot.available}
-                    className={`py-2.5 px-3 rounded-xl text-sm font-medium transition-all ${
-                      selectedTime === slot.id
-                        ? "bg-[#2B5379] text-white"
-                        : slot.available
-                          ? "bg-white border border-[#D6E6F2] text-[#4B4B4B] hover:border-[#2B5379]"
-                          : "bg-gray-100 text-gray-400 cursor-not-allowed line-through"
-                    }`}
-                  >
-                    {slot.time}
-                  </button>
-                ))}
+                {ALL_HOURS.map((hour) => {
+                  const isOccupied = occupiedTimesOnSelectedDate.includes(hour);
+
+                  return (
+                    <button
+                      key={hour}
+                      onClick={() => !isOccupied && setSelectedTime(hour)}
+                      disabled={isOccupied}
+                      className={`py-2.5 px-3 rounded-xl text-xs font-semibold transition-all ${
+                        selectedTime === hour
+                          ? "bg-[#2B5379] text-white shadow-md"
+                          : isOccupied
+                          ? "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed line-through opacity-60"
+                          : "bg-white border border-[#D6E6F2] text-[#234463] hover:border-[#2B5379] hover:bg-blue-50/50 cursor-pointer"
+                      }`}
+                    >
+                      {hour} WIB {isOccupied && "(Penuh)"}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
             {/* Reason */}
             <div>
               <label className="block text-sm font-medium text-[#234463] mb-2">
-                Alasan Perubahan Jadwal
+                Alasan Perubahan Jadwal *
               </label>
               <textarea
                 value={rescheduleReason}
                 onChange={(e) => setRescheduleReason(e.target.value)}
-                placeholder="Masukkan alasan perubahan jadwal..."
-                className="w-full px-4 py-3 border border-[#D6E6F2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2B5379]/20 focus:border-[#2B5379] transition-all resize-none"
+                placeholder="Misal: Penyesuaian jadwal praktik psikolog..."
+                className="w-full px-4 py-3 border border-[#D6E6F2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2B5379]/20 focus:border-[#2B5379] transition-all resize-none text-xs"
                 rows={3}
               />
             </div>
 
             {selectedDate && selectedTime && (
               <div className="bg-[#E8F6FF] p-4 rounded-xl border border-[#2B5379]/20">
-                <p className="text-sm font-medium text-[#2B5379] mb-1">Jadwal Baru:</p>
-                <p className="text-[#234463] font-semibold">
+                <p className="text-xs font-medium text-[#2B5379] mb-1">Jadwal Baru yang Diajukan:</p>
+                <p className="text-[#234463] font-bold text-xs sm:text-sm">
                   {new Date(selectedDate).toLocaleDateString("id-ID", {
                     weekday: "long",
                     day: "numeric",
@@ -638,19 +639,17 @@ function AdminBookingsContent() {
                 variant="outline"
                 onClick={() => setIsRescheduleModalOpen(false)}
                 className="flex-1"
+                disabled={isSubmittingReschedule}
               >
                 Batal
               </Button>
               <Button
                 variant="primary"
                 onClick={handleConfirmReschedule}
-                disabled={!selectedDate || !selectedTime || !rescheduleReason.trim()}
-                className="flex-1"
+                disabled={!selectedDate || !selectedTime || !rescheduleReason.trim() || isSubmittingReschedule}
+                className="flex-1 bg-[#234463] text-white"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Konfirmasi Perubahan
+                {isSubmittingReschedule ? "Menyimpan & Notifikasi..." : "Konfirmasi Perubahan"}
               </Button>
             </div>
           </div>
