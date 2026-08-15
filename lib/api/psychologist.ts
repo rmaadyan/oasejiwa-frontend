@@ -754,9 +754,10 @@ export async function deletePatient(patientId: string): Promise<void> {
 }
 
 // 🟢 1. FETCH SEMUA PSIKOLOG KHUSUS ADMIN
+// 🟢 FETCH SEMUA PSIKOLOG KHUSUS ADMIN (DENGAN DISPLAY ORDER & ANTI-CACHE)
 export async function getAllPsychologistsAdmin() {
   try {
-    const res = await fetch(`${API_BASE_URL}/admin/psychologists`, {
+    const res = await fetch(`${API_BASE_URL}/admin/psychologists?t=${Date.now()}`, {
       cache: "no-store",
       credentials: "include",
       headers: getAuthHeaders(),
@@ -771,19 +772,22 @@ export async function getAllPsychologistsAdmin() {
       result?.psychologists ||
       (Array.isArray(result) ? result : []);
 
-    const cleanData = (Array.isArray(rawList) ? rawList : []).map((p: any) => ({
-      ...p,
-      id: p.id || p.userId || String(Math.random()),
-      name: p.fullName || p.name || p.user?.fullName || "Psikolog",
-      email: p.user?.email || p.email || "-",
-      phone: p.user?.userProfile?.phone || p.phoneNumber || p.phone || "-",
-      phoneNumber: p.user?.userProfile?.phone || p.phoneNumber || p.phone || "-",
-      avatarUrl: p.avatarUrl || p.photo || p.user?.avatarUrl || null,
-      sipp: p.sipp && p.sipp.trim() !== "" ? p.sipp : "-",
-      str: p.str && p.str.trim() !== "" ? p.str : "-",
-      specializations: p.specializations || p.specialization || [],
-      status: p.status || "Aktif",
-    }));
+    const cleanData = (Array.isArray(rawList) ? rawList : [])
+      .map((p: any) => ({
+        ...p,
+        id: p.id || p.userId || String(Math.random()),
+        displayOrder: Number(p.displayOrder ?? p.order ?? p.urutan ?? 0), // 👈 WAJIB DISERTAKAN
+        name: p.fullName || p.name || p.user?.fullName || "Psikolog",
+        email: p.user?.email || p.email || "-",
+        phone: p.user?.userProfile?.phone || p.phoneNumber || p.phone || "-",
+        phoneNumber: p.user?.userProfile?.phone || p.phoneNumber || p.phone || "-",
+        avatarUrl: p.avatarUrl || p.photo || p.user?.avatarUrl || null,
+        sipp: p.sipp && p.sipp.trim() !== "" ? p.sipp : "-",
+        str: p.str && p.str.trim() !== "" ? p.str : "-",
+        specializations: p.specializations || p.specialization || [],
+        status: p.status || "Aktif",
+      }))
+      .sort((a: any, b: any) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
 
     return { data: cleanData };
   } catch (error) {
