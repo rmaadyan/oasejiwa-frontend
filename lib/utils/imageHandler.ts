@@ -5,22 +5,32 @@ export async function processSelectedImage(file: File): Promise<string> {
   const isHeic =
     fileType === "image/heic" ||
     fileType === "image/heif" ||
-    fileType === "" || // Beberapa browser mendeteksi HEIC dengan MIME kosong
+    fileType.includes("hei") ||
     fileName.endsWith(".heic") ||
     fileName.endsWith(".heif");
 
-  // 🟢 1. Tangani Format HEIC (iPhone)
-  if (isHeic && (fileName.endsWith(".heic") || fileName.endsWith(".heif") || fileType.includes("hei"))) {
+  // 🟢 1. Coba render langsung (Untuk iPhone / Mac / Safari yang sudah mendukung HEIC secara native)
+  if (isHeic) {
     try {
-      const heic2anyPkg = await import("heic2any");
-      const heic2any = heic2anyPkg.default || heic2anyPkg;
+      const nativeUrl = URL.createObjectURL(file);
+      const canRenderNatively = await testImageRendering(nativeUrl);
+      if (canRenderNatively) {
+        return nativeUrl;
+      }
+    } catch {
+      // Jika browser tidak bisa render langsung, lanjutkan ke heic2any converter di bawah
+    }
 
-      // Konversi File ke ArrayBuffer -> Blob murni
-      const arrayBuffer = await file.arrayBuffer();
-      const rawBlob = new Blob([arrayBuffer]);
+    // 🟢 2. Konversi menggunakan heic2any untuk Windows / Chrome / Android
+    try {
+      const heic2anyModule = await import("heic2any");
+      const heic2any = heic2anyModule.default || heic2anyModule;
+
+      // Beri tipe MIME eksplisit "image/heic" agar tidak ditolak di Windows
+      const heicBlob = new Blob([file], { type: "image/heic" });
 
       const conversionResult = await heic2any({
-        blob: rawBlob,
+        blob: heicBlob,
         toType: "image/jpeg",
         quality: 0.85,
       });
@@ -29,16 +39,16 @@ export async function processSelectedImage(file: File): Promise<string> {
         ? conversionResult[0]
         : conversionResult;
 
-      // Pastikan type jpeg terpasang valid
-      const finalJpegBlob = new Blob([singleBlob], { type: "image/jpeg" });
-      return URL.createObjectURL(finalJpegBlob);
-    } catch (err) {
-      console.error("Gagal decode HEIC:", err);
-      throw new Error("Gagal memproses format foto HEIC. Pastikan file tidak rusak atau gunakan format JPG/PNG.");
+      return URL.createObjectURL(singleBlob);
+    } catch (err: any) {
+      console.error("Detail error konversi HEIC:", err);
+      throw new Error(
+        "Gagal memproses file HEIC. Silakan gunakan format JPG, PNG, atau ubah pengaturan kamera HP ke Most Compatible (JPEG)."
+      );
     }
   }
 
-  // 🟢 2. Format Reguler (JPG, PNG, WEBP)
+  // 🟢 3. Format Normal (JPG, PNG, WEBP)
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
@@ -50,5 +60,15 @@ export async function processSelectedImage(file: File): Promise<string> {
     };
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
+  });
+}
+
+// Helper untuk mengecek apakah browser bisa membuka gambar secara native
+function testImageRendering(url: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.src = url;
   });
 }
