@@ -176,23 +176,43 @@ const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 };
 
 const handleCroppedPhotoUpload = async (croppedBlob: Blob) => {
-  const file = new File([croppedBlob], "avatar.jpg", { type: "image/jpeg" });
-  const previewUrl = URL.createObjectURL(file);
+    const croppedFile = new File([croppedBlob], `avatar-${Date.now()}.jpg`, {
+      type: "image/jpeg",
+    });
+    const localPreviewUrl = URL.createObjectURL(croppedFile);
 
-  // Pasang preview langsung ke layar tanpa jeda
-  setProfileData((prev) => ({ ...prev, avatarUrl: previewUrl }));
-  setIsUploadingPhoto(true);
+    // 🟢 1. Tampilkan langsung preview lokal & reset state error
+    setImageLoadError(false);
+    setProfileData((prev) => ({ ...prev, avatarUrl: localPreviewUrl }));
+    setIsUploadingPhoto(true);
 
-  try {
-    const uploadedUrl = await uploadUserAvatar(file);
-    await updateUserProfile({ avatarUrl: uploadedUrl });
-    setProfileData((prev) => ({ ...prev, avatarUrl: uploadedUrl }));
-  } catch (err: any) {
-    console.error("Gagal upload avatar:", err);
-  } finally {
-    setIsUploadingPhoto(false);
-  }
-};
+    try {
+      // 🟢 2. Upload file
+      const res: any = await uploadUserAvatar(croppedFile);
+      
+      // Ambil string URL bersih dari berbagai kemungkinan struktur response backend
+      const rawUrl =
+        typeof res === "string"
+          ? res
+          : res?.url || res?.data?.url || res?.avatarUrl || res?.data?.avatarUrl || "";
+
+      if (rawUrl) {
+        // Tambahkan timestamp query parameter agar browser tidak mengambil cache gambar lama
+        const finalUrl = rawUrl.startsWith("http") || rawUrl.startsWith("blob:")
+          ? rawUrl
+          : `${rawUrl}?t=${Date.now()}`;
+
+        await updateUserProfile({ avatarUrl: rawUrl });
+        
+        setImageLoadError(false);
+        setProfileData((prev) => ({ ...prev, avatarUrl: finalUrl }));
+      }
+    } catch (err: any) {
+      console.error("Gagal upload avatar:", err);
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
 
   const handleChangePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

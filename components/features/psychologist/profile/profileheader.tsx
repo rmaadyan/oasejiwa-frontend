@@ -50,8 +50,8 @@ export default function ProfileHeader({
       const imageSrc = await processSelectedImage(file);
       setRawSelectedImage(imageSrc);
       setIsCropperOpen(true);
-    } catch (err) {
-      console.error("Gagal membaca foto:", err);
+    } catch (err: any) {
+      alert(err.message || "Gagal memproses gambar.");
     } finally {
       e.target.value = "";
     }
