@@ -5,7 +5,12 @@ const API_BASE_URL = rawUrl || "https://api.oasejiwa.id";
 
 function getAuthToken(): string {
   if (typeof window !== "undefined") {
-    return localStorage.getItem("auth_token") || "";
+    return (
+      localStorage.getItem("auth_token") ||
+      localStorage.getItem("accessToken") ||
+      localStorage.getItem("token") ||
+      ""
+    );
   }
   return "";
 }
@@ -152,7 +157,7 @@ function authFetch(url: string, options: RequestInit = {}) {
 
 export async function submitTesResult(tesId: string | number, payload: any) {
   try {
-    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const token = getAuthToken();
     if (!token) {
       // User is Guest (not logged in). Do not invoke authenticated backend submit endpoint.
       return { guest: true, success: true };
