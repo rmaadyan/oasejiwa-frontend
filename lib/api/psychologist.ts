@@ -583,12 +583,12 @@ export async function updatePsychologistProfile(
 }
 
 export async function getAllPsychologistsPublic() {
-  const res = await fetch(`${API_BASE_URL}/psychologist/public`, {
+  const res = await fetch(`${API_BASE_URL}/psychologist/public?t=${Date.now()}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
     },
-    cache: "no-store", // 👈 Menghindari cache lama di Next.js
+    cache: "no-store", // 👈 Wajib no-store
   });
 
   if (!res.ok) {
@@ -608,7 +608,6 @@ export async function getAllPsychologistsPublic() {
       const hasValidSipp =
         sipp && String(sipp).trim() !== "" && String(sipp).trim() !== "-";
 
-      // Status Aktif
       const isActiveStatus =
         p?.isActive === true ||
         p?.status === "Aktif" ||
@@ -626,7 +625,7 @@ export async function getAllPsychologistsPublic() {
     })
     .map((p: any) => ({
       ...p,
-      displayOrder: Number(p.displayOrder ?? p.order ?? 0), // 👈 Ambil displayOrder
+      displayOrder: Number(p.displayOrder ?? p.order ?? 0),
       name: p.fullName || p.name,
       avatarUrl:
         p.avatarUrl && p.avatarUrl.trim() !== "" ? p.avatarUrl : null,
@@ -635,20 +634,10 @@ export async function getAllPsychologistsPublic() {
       about: p.about || "Psikolog Klinik Oase Jiwa",
       specializations: p.specializations || [],
     }))
-    .sort((a: any, b: any) => {
-      // 🟢 Urutkan berdasarkan displayOrder yang sudah diatur admin
-      const orderA = a.displayOrder;
-      const orderB = b.displayOrder;
-
-      if (orderA !== orderB) {
-        return orderA - orderB;
-      }
-      return 0; // Pertahankan urutan array dari database
-    });
+    .sort((a: any, b: any) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
 
   return { data: cleanData };
 }
-
 // 🟢 GET BY ID PUBLIC
 export async function getPsychologistByIdPublic(id: string) {
   let res = await fetch(`${API_BASE_URL}/psychologists/public/${id}`, { cache: "no-store" });
