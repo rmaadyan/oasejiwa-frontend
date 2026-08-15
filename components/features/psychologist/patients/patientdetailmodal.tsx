@@ -115,8 +115,10 @@ export default function PatientDetailModal({
   // Real Test Results from backend (NO dummy fallbacks)
   const tesResults = patient?.tesResults || [];
 
-  // Session History (NO hardcoded mock fallbacks)
-  const sessionNotesList = (patient as any)?.sessionNotesList?.length
+  // Session History (Primary source: patient.sessionHistory from bookings/sessions)
+  const sessionHistoryList = (patient as any)?.sessionHistory?.length
+    ? (patient as any).sessionHistory
+    : (patient as any)?.sessionNotesList?.length
     ? (patient as any).sessionNotesList
     : (patient as any)?.sessionNotes?.length
     ? (patient as any).sessionNotes
@@ -242,7 +244,7 @@ export default function PatientDetailModal({
                 }`}
               >
                 <Clock className="w-4 h-4" />
-                <span>Riwayat Sesi ({sessionNotesList.length})</span>
+                <span>Riwayat Sesi ({sessionHistoryList.length})</span>
               </button>
             </div>
 
@@ -318,27 +320,40 @@ export default function PatientDetailModal({
                   {/* Diagnosis */}
                   <div className="p-4 rounded-xl border border-blue-200 bg-blue-50/50 space-y-2">
                     <div className="flex items-center gap-2 text-blue-900 font-bold text-xs">
-                      <ClipboardList className="w-4 h-4 text-blue-600" />
-                      <span>Diagnosis Psikologis</span>
+                      <FileText className="w-4 h-4 text-blue-600" />
+                      <span>Diagnosis Medis</span>
                     </div>
-                    <ul className="pl-4 list-disc text-slate-800 space-y-1 text-xs">
-                      {Array.isArray(diagnosis)
-                        ? diagnosis.map((d: string, idx: number) => <li key={idx}>{d}</li>)
-                        : <li>{String(diagnosis)}</li>}
-                    </ul>
+                    <div className="space-y-1 pl-6">
+                      {diagnosis.map((d: string, i: number) => (
+                        <p key={i} className="text-slate-800 font-medium">{d}</p>
+                      ))}
+                    </div>
                   </div>
 
-                  {/* Obat Saat Ini */}
-                  <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/50 space-y-2">
-                    <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
-                      <FileText className="w-4 h-4 text-amber-600" />
-                      <span>Obat Saat Ini</span>
+                  {/* Current Medication */}
+                  <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/50 space-y-2">
+                    <div className="flex items-center gap-2 text-emerald-900 font-bold text-xs">
+                      <Activity className="w-4 h-4 text-emerald-600" />
+                      <span>Pengobatan / Obat Saat Ini</span>
                     </div>
-                    <ul className="pl-4 list-disc text-slate-800 space-y-1 text-xs">
-                      {Array.isArray(currentMedication)
-                        ? currentMedication.map((m: string, idx: number) => <li key={idx}>{m}</li>)
-                        : <li>{String(currentMedication)}</li>}
-                    </ul>
+                    <div className="space-y-1 pl-6">
+                      {currentMedication.map((m: string, i: number) => (
+                        <p key={i} className="text-slate-800 font-medium">{m}</p>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Allergies */}
+                  <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/50 space-y-2 md:col-span-2">
+                    <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
+                      <AlertTriangle className="w-4 h-4 text-amber-600" />
+                      <span>Alergi Obat / Makanan</span>
+                    </div>
+                    <div className="space-y-1 pl-6">
+                      {allergies.map((a: string, i: number) => (
+                        <p key={i} className="text-slate-800 font-medium">{a}</p>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -463,51 +478,67 @@ export default function PatientDetailModal({
                   <span>Riwayat Sesi Konsultasi & Catatan</span>
                 </h3>
 
-                {sessionNotesList.length === 0 ? (
+                {sessionHistoryList.length === 0 ? (
                   <div className="p-8 text-center bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-500 font-medium">
                     Belum ada riwayat sesi.
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {sessionNotesList.map((sn: any, idx: number) => (
-                      <div
-                        key={sn.id || idx}
-                        className="p-4 rounded-xl border border-slate-200 bg-white space-y-2 text-xs"
-                      >
-                        <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                          <span className="font-bold text-[#19355E] text-xs">
-                            Sesi Konsultasi ke-{sn.sessionNumber || idx + 1}
-                          </span>
-                          <span className="text-slate-500 font-medium text-[11px]">
-                            {sn.createdAt
-                              ? new Date(sn.createdAt).toLocaleDateString("id-ID", {
-                                  day: "numeric",
-                                  month: "long",
-                                  year: "numeric",
-                                })
-                              : "-"}
-                          </span>
-                        </div>
+                    {sessionHistoryList.map((sn: any, idx: number) => {
+                      const sessionDate = sn.date || sn.createdAt;
+                      const serviceName = sn.service || sn.namaLayanan || "Konseling";
+                      return (
+                        <div
+                          key={sn.id || idx}
+                          className="p-4 rounded-xl border border-slate-200 bg-white space-y-2 text-xs"
+                        >
+                          <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-[#19355E] text-xs">
+                                Sesi Konsultasi ke-{sn.sessionNumber || idx + 1}
+                              </span>
+                              {serviceName && (
+                                <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-semibold text-[10px]">
+                                  {serviceName}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-slate-500 font-medium text-[11px]">
+                              {sessionDate
+                                ? new Date(sessionDate).toLocaleDateString("id-ID", {
+                                    day: "numeric",
+                                    month: "long",
+                                    year: "numeric",
+                                  })
+                                : "-"}
+                            </span>
+                          </div>
 
-                        <div className="space-y-1 text-slate-700 leading-relaxed">
-                          {sn.subjective && (
-                            <p>
-                              <strong className="text-slate-900">Subjective:</strong> {sn.subjective}
-                            </p>
-                          )}
-                          {sn.assessment && (
-                            <p>
-                              <strong className="text-slate-900">Assessment:</strong> {sn.assessment}
-                            </p>
-                          )}
-                          {sn.plan && (
-                            <p>
-                              <strong className="text-slate-900">Plan:</strong> {sn.plan}
-                            </p>
-                          )}
+                          <div className="space-y-1 text-slate-700 leading-relaxed">
+                            {sn.subjective ? (
+                              <p>
+                                <strong className="text-slate-900">Subjective:</strong> {sn.subjective}
+                              </p>
+                            ) : null}
+                            {sn.assessment ? (
+                              <p>
+                                <strong className="text-slate-900">Assessment:</strong> {sn.assessment}
+                              </p>
+                            ) : null}
+                            {sn.plan ? (
+                              <p>
+                                <strong className="text-slate-900">Plan:</strong> {sn.plan}
+                              </p>
+                            ) : null}
+                            {!sn.subjective && !sn.assessment && !sn.plan && (
+                              <p className="text-slate-500 italic">
+                                Sesi konsultasi terjadwal. Catatan klinis belum ditambahkan.
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
