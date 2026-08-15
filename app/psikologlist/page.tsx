@@ -1,9 +1,5 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-export const fetchCache = "force-no-store";
-export const revalidate = 0;
-
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BadgeCheck, User, Award, GraduationCap, Briefcase, FileText } from "lucide-react";
@@ -155,7 +151,7 @@ export default function PsikologList() {
                   )}
                 </div>
 
-                {/* 2. NAMA & DESKRIPSI (TETAP DI TENGAH) */}
+                {/* 2. NAMA & DESKRIPSI */}
                 <div className="text-center">
                   <h2 className="text-lg sm:text-xl font-bold text-[#1E3A5F] leading-snug">
                     {psikolog.name}
@@ -167,7 +163,7 @@ export default function PsikologList() {
 
                 <div className="w-full border-t border-[#C3E0FA] my-1" />
 
-                {/* 3. KOTAK SIPP & STR (SEJAJAR DI DESKTOP, VERTIKAL DI HP) */}
+                {/* 3. KOTAK SIPP & STR */}
                 <div className="w-full bg-white/80 rounded-2xl p-3 border border-[#C3E0FA] grid grid-cols-1 md:grid-cols-2 gap-2.5 shadow-xs items-center">
                   {/* SIPP */}
                   <div className="flex items-start gap-2 min-w-0 text-left">
@@ -202,7 +198,7 @@ export default function PsikologList() {
                   </div>
                 </div>
 
-                {/* 4. DETAIL SPESIALISASI, PENDIDIKAN, & PENGALAMAN (RATA KIRI RAPI) */}
+                {/* 4. DETAIL SPESIALISASI, PENDIDIKAN, & PENGALAMAN */}
                 <div className="w-full text-left space-y-3 pt-1 text-xs sm:text-sm">
                   {/* SPESIALISASI */}
                   <div className="flex items-start gap-2.5">
