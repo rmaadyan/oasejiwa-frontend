@@ -49,6 +49,7 @@ export default function PsychologistRekamMedisPage() {
     try {
       const data = await getAllPatients({
         search: searchTerm,
+        filter: "all",
       });
 
       let resultList = data.patients || [];

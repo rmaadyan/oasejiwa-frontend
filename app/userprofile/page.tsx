@@ -174,6 +174,7 @@ export default function Profile() {
     ) {
       try {
         // 🟢 Import heic2any hanya saat dijalankan di browser
+        // @ts-ignore
         const heic2any = (await import("heic2any")).default;
         
         const convertedBlob = await heic2any({

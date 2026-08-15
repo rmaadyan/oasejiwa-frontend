@@ -325,12 +325,13 @@ export async function getSessionDetails(
 export async function getAllPatients(
   params: PatientsQueryParams = {}
 ): Promise<PatientsResponse> {
-  const { search, status = "all", sortBy = "name" } = params;
+  const { search, status = "all", sortBy = "name", filter } = params;
   const queryParams = new URLSearchParams();
 
   if (search) queryParams.set("search", search);
   if (status !== "all") queryParams.set("status", status);
   if (sortBy) queryParams.set("sortBy", sortBy);
+  if (filter) queryParams.set("filter", filter);
 
   const queryString = queryParams.toString();
 
@@ -349,6 +350,29 @@ export async function getAllPatients(
   }
 
   return await safeParseJson(res, { patients: [], total: 0 });
+}
+
+export async function createPatient(data: any): Promise<any> {
+  const res = await fetch(`${API_BASE_URL}/psychologist/patients`, {
+    method: "POST",
+    credentials: "include",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    let parsed: any = {};
+    try {
+      parsed = JSON.parse(errorText);
+    } catch {}
+    const msg = Array.isArray(parsed.message)
+      ? parsed.message.join(", ")
+      : parsed.message || errorText;
+    throw new Error(`Gagal membuat pasien (${res.status}): ${msg}`);
+  }
+
+  return res.json();
 }
 
 export async function getPatientDetail(
@@ -583,70 +607,78 @@ export async function updatePsychologistProfile(
 }
 
 export async function getAllPsychologistsPublic() {
-  const res = await fetch(`${API_BASE_URL}/psychologist/public`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    cache: "no-store", // 👈 Menghindari cache lama di Next.js
-  });
-
-  if (!res.ok) {
-    throw new Error("Gagal memuat data psikolog publik");
-  }
-
-  const result = await safeParseJson(res, { data: [] });
-  const rawData =
-    result.data ||
-    result.psychologists ||
-    (Array.isArray(result) ? result : []);
-
-  const cleanData = (Array.isArray(rawData) ? rawData : [])
-    .filter((p: any) => {
-      const name = p?.name || p?.fullName;
-      const sipp = p?.sipp;
-      const hasValidSipp =
-        sipp && String(sipp).trim() !== "" && String(sipp).trim() !== "-";
-
-      // Status Aktif
-      const isActiveStatus =
-        p?.isActive === true ||
-        p?.status === "Aktif" ||
-        p?.status === "ACTIVE" ||
-        (p?.isActive === undefined && p?.status !== "INACTIVE");
-
-      return (
-        p?.id &&
-        name &&
-        name.trim() !== "" &&
-        name !== "Psikolog" &&
-        hasValidSipp &&
-        isActiveStatus
-      );
-    })
-    .map((p: any) => ({
-      ...p,
-      displayOrder: Number(p.displayOrder ?? p.order ?? 0), // 👈 Ambil displayOrder
-      name: p.fullName || p.name,
-      avatarUrl:
-        p.avatarUrl && p.avatarUrl.trim() !== "" ? p.avatarUrl : null,
-      sipp: p.sipp || "-",
-      str: p.str || "-",
-      about: p.about || "Psikolog Klinik Oase Jiwa",
-      specializations: p.specializations || [],
-    }))
-    .sort((a: any, b: any) => {
-      // 🟢 Urutkan berdasarkan displayOrder yang sudah diatur admin
-      const orderA = a.displayOrder;
-      const orderB = b.displayOrder;
-
-      if (orderA !== orderB) {
-        return orderA - orderB;
-      }
-      return 0; // Pertahankan urutan array dari database
+  try {
+    let res = await fetch(`${API_BASE_URL}/psychologist/public`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
     });
 
-  return { data: cleanData };
+    if (!res.ok) {
+      res = await fetch(`${API_BASE_URL}/psychologists`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
+      });
+    }
+
+    if (!res.ok) {
+      return { data: [] };
+    }
+
+    const result = await safeParseJson(res, { data: [] });
+    const rawData =
+      result.data ||
+      result.psychologists ||
+      (Array.isArray(result) ? result : []);
+
+    const cleanData = (Array.isArray(rawData) ? rawData : [])
+      .filter((p: any) => {
+        const name = p?.name || p?.fullName;
+        // Status Aktif
+        const isActiveStatus =
+          p?.isActive === true ||
+          p?.status === "Aktif" ||
+          p?.status === "ACTIVE" ||
+          (p?.isActive === undefined && p?.status !== "INACTIVE");
+
+        return (
+          p?.id &&
+          name &&
+          name.trim() !== "" &&
+          name !== "Psikolog" &&
+          isActiveStatus
+        );
+      })
+      .map((p: any) => ({
+        ...p,
+        displayOrder: Number(p.displayOrder ?? p.order ?? 0),
+        name: p.fullName || p.name,
+        avatarUrl:
+          p.avatarUrl && p.avatarUrl.trim() !== "" ? p.avatarUrl : null,
+        sipp: p.sipp || "-",
+        str: p.str || "-",
+        about: p.about || "Psikolog Klinik Oase Jiwa",
+        specializations: p.specializations || [],
+      }))
+      .sort((a: any, b: any) => {
+        const orderA = a.displayOrder;
+        const orderB = b.displayOrder;
+        if (orderA !== orderB) {
+          return orderA - orderB;
+        }
+        return 0;
+      });
+
+    return { data: cleanData };
+  } catch (err) {
+    console.error("Gagal fetch data psikolog publik:", err);
+    return { data: [] };
+  }
 }
 
 // 🟢 GET BY ID PUBLIC

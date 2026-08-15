@@ -23,6 +23,7 @@ export default function PatientsPage() {
       const res: any = await getAllPatients({
         search: searchTerm,
         sortBy: sortBy,
+        filter: "my_patients",
       });
 
       const extractedPatients = Array.isArray(res)

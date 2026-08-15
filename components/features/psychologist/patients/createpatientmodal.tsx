@@ -3,6 +3,7 @@
 import { X, User, Phone, AlertTriangle, AlertCircle, ShieldAlert } from "lucide-react";
 import { useState } from "react";
 import { getRiskConfig } from "@/lib/types/psychologist";
+import { createPatient } from "@/lib/api/psychologist";
 
 interface CreatePatientModalProps {
   isOpen: boolean;
@@ -99,57 +100,7 @@ export default function CreatePatientModal({
     setSubmitting(true);
 
     try {
-      const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id").replace(/\/+$/, "");
-      const token =
-        typeof window !== "undefined"
-          ? localStorage.getItem("auth_token") || localStorage.getItem("token") || ""
-          : "";
-
-      const res = await fetch(`${API_BASE_URL}/psychologist/patients`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(formData),
-      });
-
-      let createdPatient: any = null;
-      if (res.ok) {
-        createdPatient = await res.json();
-      } else {
-        const errJson: any = await res.json().catch(() => ({}));
-        console.warn("Backend notice:", errJson);
-      }
-
-      if (!createdPatient) {
-        createdPatient = {
-          id: `patient-${Date.now()}`,
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          age: Number(formData.age) || 0,
-          gender: formData.gender,
-          address: formData.address,
-          birthday: formData.birthday,
-          maritalStatus: formData.maritalStatus,
-          occupation: formData.occupation,
-          emergencyContact: {
-            name: formData.emergencyContactName,
-            phone: formData.emergencyContactPhone,
-            relation: formData.emergencyContactRelation,
-          },
-          diagnosis: formData.diagnosis ? [formData.diagnosis] : [],
-          currentMedication: formData.medication ? [formData.medication] : [],
-          allergies: formData.allergies ? [formData.allergies] : [],
-          riskLevel: formData.riskLevel,
-          riskReason: formData.riskReason,
-          totalSessions: 1,
-          firstSessionDate: new Date().toISOString().split("T")[0],
-          lastSessionDate: new Date().toISOString().split("T")[0],
-          hasSessionNotes: true,
-        };
-      }
+      const createdPatient = await createPatient(formData);
 
       if (typeof onSuccess === "function") {
         await onSuccess(createdPatient);
@@ -157,10 +108,7 @@ export default function CreatePatientModal({
       onClose();
     } catch (err: any) {
       console.error("Error creating patient:", err);
-      if (typeof onSuccess === "function") {
-        await onSuccess({ name: formData.name, email: formData.email });
-      }
-      onClose();
+      alert(err.message || "Gagal membuat pasien baru.");
     } finally {
       setSubmitting(false);
     }

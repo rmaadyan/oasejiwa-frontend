@@ -90,30 +90,35 @@ export default function PatientDetailModal({
 
   const totalSessions = patient?.totalSessions || 0;
 
-  // Clinical & Medical Data
+  // Clinical & Medical Data (NO hardcoded mock fallbacks)
   const activeNote = (patient as any)?.sessionNotes?.[0] || {};
-  const diagnosis = activeNote.diagnosis || ["Gangguan Kecemasan Umum (GAD)"];
-  const currentMedication = activeNote.currentMedication || ["Sertraline 50 mg (1x sehari)"];
-  const allergies = activeNote.allergies || ["Tidak ada alergi yang diketahui"];
+  const diagnosis = (patient as any)?.diagnosis?.length
+    ? (patient as any).diagnosis
+    : activeNote.diagnosis?.length
+    ? activeNote.diagnosis
+    : ["Belum ada diagnosis."];
+
+  const currentMedication = (patient as any)?.currentMedication?.length
+    ? (patient as any).currentMedication
+    : activeNote.currentMedication?.length
+    ? activeNote.currentMedication
+    : ["Tidak ada obat yang dicatat."];
+
+  const allergies = (patient as any)?.allergies?.length
+    ? (patient as any).allergies
+    : activeNote.allergies?.length
+    ? activeNote.allergies
+    : ["Tidak ada alergi yang dicatat."];
 
   // Real Test Results from backend (NO dummy fallbacks)
   const tesResults = patient?.tesResults || [];
 
-  // Session History
+  // Session History (NO hardcoded mock fallbacks)
   const sessionNotesList = (patient as any)?.sessionNotesList?.length
     ? (patient as any).sessionNotesList
     : (patient as any)?.sessionNotes?.length
     ? (patient as any).sessionNotes
-    : [
-        {
-          id: "sn-1",
-          sessionNumber: 1,
-          createdAt: "2026-07-31T09:00:00Z",
-          subjective: "Pasien mengeluhkan kecemasan berlebihan terkait pekerjaan.",
-          assessment: "Gejala GAD sedang.",
-          plan: "CBT dasar dan latihan pernapasan diafragma.",
-        },
-      ];
+    : [];
 
   return (
     <div
@@ -456,47 +461,53 @@ export default function PatientDetailModal({
                   <span>Riwayat Sesi Konsultasi & Catatan</span>
                 </h3>
 
-                <div className="space-y-3">
-                  {sessionNotesList.map((sn: any, idx: number) => (
-                    <div
-                      key={sn.id || idx}
-                      className="p-4 rounded-xl border border-slate-200 bg-white space-y-2 text-xs"
-                    >
-                      <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                        <span className="font-bold text-[#19355E] text-xs">
-                          Sesi Konsultasi ke-{sn.sessionNumber || idx + 1}
-                        </span>
-                        <span className="text-slate-500 font-medium text-[11px]">
-                          {sn.createdAt
-                            ? new Date(sn.createdAt).toLocaleDateString("id-ID", {
-                                day: "numeric",
-                                month: "long",
-                                year: "numeric",
-                              })
-                            : "31 Juli 2026"}
-                        </span>
-                      </div>
+                {sessionNotesList.length === 0 ? (
+                  <div className="p-8 text-center bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-500 font-medium">
+                    Belum ada riwayat sesi.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {sessionNotesList.map((sn: any, idx: number) => (
+                      <div
+                        key={sn.id || idx}
+                        className="p-4 rounded-xl border border-slate-200 bg-white space-y-2 text-xs"
+                      >
+                        <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                          <span className="font-bold text-[#19355E] text-xs">
+                            Sesi Konsultasi ke-{sn.sessionNumber || idx + 1}
+                          </span>
+                          <span className="text-slate-500 font-medium text-[11px]">
+                            {sn.createdAt
+                              ? new Date(sn.createdAt).toLocaleDateString("id-ID", {
+                                  day: "numeric",
+                                  month: "long",
+                                  year: "numeric",
+                                })
+                              : "-"}
+                          </span>
+                        </div>
 
-                      <div className="space-y-1 text-slate-700 leading-relaxed">
-                        {sn.subjective && (
-                          <p>
-                            <strong className="text-slate-900">Subjective:</strong> {sn.subjective}
-                          </p>
-                        )}
-                        {sn.assessment && (
-                          <p>
-                            <strong className="text-slate-900">Assessment:</strong> {sn.assessment}
-                          </p>
-                        )}
-                        {sn.plan && (
-                          <p>
-                            <strong className="text-slate-900">Plan:</strong> {sn.plan}
-                          </p>
-                        )}
+                        <div className="space-y-1 text-slate-700 leading-relaxed">
+                          {sn.subjective && (
+                            <p>
+                              <strong className="text-slate-900">Subjective:</strong> {sn.subjective}
+                            </p>
+                          )}
+                          {sn.assessment && (
+                            <p>
+                              <strong className="text-slate-900">Assessment:</strong> {sn.assessment}
+                            </p>
+                          )}
+                          {sn.plan && (
+                            <p>
+                              <strong className="text-slate-900">Plan:</strong> {sn.plan}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </>
