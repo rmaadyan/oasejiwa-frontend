@@ -151,11 +151,15 @@ export default function CreatePatientModal({
         };
       }
 
-      onSuccess(createdPatient);
+      if (typeof onSuccess === "function") {
+        await onSuccess(createdPatient);
+      }
       onClose();
     } catch (err: any) {
       console.error("Error creating patient:", err);
-      onSuccess({ name: formData.name, email: formData.email });
+      if (typeof onSuccess === "function") {
+        await onSuccess({ name: formData.name, email: formData.email });
+      }
       onClose();
     } finally {
       setSubmitting(false);

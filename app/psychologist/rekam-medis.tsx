@@ -460,6 +460,7 @@ export default function PsychologistRekamMedisPage() {
         isOpen={isCreatePatientOpen}
         onClose={() => setIsCreatePatientOpen(false)}
         onSuccess={async (newPatient) => {
+          setIsCreatePatientOpen(false);
           await fetchPatients();
         }}
       />
