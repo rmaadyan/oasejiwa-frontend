@@ -36,6 +36,7 @@ import MyBookings from "@/components/features/user/profileManagement/MyBookings"
 import TestHistoryTab from "@/components/features/user/profileManagement/TestHistoryTab";
 import { logoutUser } from "@/lib/api/auth";
 import { getImageUrl } from "@/lib/utils/getImageUrl";
+import { processSelectedImage } from "@/lib/utils/imageHandler";
 import AvatarCropperModal from "@/components/features/user/AvatarCropperModal";
 import {
   ProfileProgressBar,
@@ -67,9 +68,9 @@ export default function Profile() {
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
 
   // State Avatar Crop & Upload
-  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
-  const [rawSelectedImage, setRawSelectedImage] = useState<string | null>(null);
-  const [isCropperOpen, setIsCropperOpen] = useState(false);
+ const [rawSelectedImage, setRawSelectedImage] = useState<string | null>(null);
+const [isCropperOpen, setIsCropperOpen] = useState(false);
+const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [imageLoadError, setImageLoadError] = useState(false);
 
   // State Ubah Password
@@ -159,62 +160,39 @@ export default function Profile() {
     return name.slice(0, 2).toUpperCase();
   };
 
-  // 🟢 1. Handler saat memilih file (Mendukung konversi HEIC & buka modal crop)
-  // 🟢 Handler saat memilih file (Dynamic Import heic2any agar tidak crash saat build SSR)
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    let file = e.target.files?.[0];
-    if (!file) return;
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    // Cek format HEIC dari iPhone
-    if (
-      file.type === "image/heic" ||
-      file.type === "image/heif" ||
-      file.name.toLowerCase().endsWith(".heic") ||
-      file.name.toLowerCase().endsWith(".heif")
-    ) {
-      try {
-        // 🟢 Import heic2any hanya saat dijalankan di browser
-        const heic2any = (await import("heic2any")).default;
-        
-        const convertedBlob = await heic2any({
-          blob: file,
-          toType: "image/jpeg",
-          quality: 0.85,
-        });
-        const singleBlob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
-        file = new File([singleBlob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
-          type: "image/jpeg",
-        });
-      } catch (err) {
-        console.error("Gagal konversi HEIC:", err);
-      }
-    }
-
-    const previewUrl = URL.createObjectURL(file);
-    setRawSelectedImage(previewUrl);
+  try {
+    const imageSrc = await processSelectedImage(file);
+    setRawSelectedImage(imageSrc);
     setIsCropperOpen(true);
+  } catch (err) {
+    console.error("Gagal load foto:", err);
+  } finally {
     e.target.value = "";
-  };
-  // 🟢 2. Handler upload setelah crop (Instan seperti WA, tanpa alert pop-up)
-  const handleCroppedPhotoUpload = async (croppedBlob: Blob) => {
-    const croppedFile = new File([croppedBlob], "avatar.jpg", { type: "image/jpeg" });
-    const localPreviewUrl = URL.createObjectURL(croppedFile);
+  }
+};
 
-    // Optimistic UI: langsung ganti tampilan foto profil
-    setImageLoadError(false);
-    setProfileData((prev) => ({ ...prev, avatarUrl: localPreviewUrl }));
-    setIsUploadingPhoto(true);
+const handleCroppedPhotoUpload = async (croppedBlob: Blob) => {
+  const file = new File([croppedBlob], "avatar.jpg", { type: "image/jpeg" });
+  const previewUrl = URL.createObjectURL(file);
 
-    try {
-      const uploadedUrl = await uploadUserAvatar(croppedFile);
-      await updateUserProfile({ avatarUrl: uploadedUrl });
-      setProfileData((prev) => ({ ...prev, avatarUrl: uploadedUrl }));
-    } catch (err: any) {
-      console.error("Gagal simpan avatar:", err);
-    } finally {
-      setIsUploadingPhoto(false);
-    }
-  };
+  // Pasang preview langsung ke layar tanpa jeda
+  setProfileData((prev) => ({ ...prev, avatarUrl: previewUrl }));
+  setIsUploadingPhoto(true);
+
+  try {
+    const uploadedUrl = await uploadUserAvatar(file);
+    await updateUserProfile({ avatarUrl: uploadedUrl });
+    setProfileData((prev) => ({ ...prev, avatarUrl: uploadedUrl }));
+  } catch (err: any) {
+    console.error("Gagal upload avatar:", err);
+  } finally {
+    setIsUploadingPhoto(false);
+  }
+};
 
   const handleChangePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
