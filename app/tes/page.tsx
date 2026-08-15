@@ -53,10 +53,10 @@ function getTesImage(tes: TesItem): string {
 const FALLBACK_TES_ITEMS: TesItem[] = [
   {
     id: 2,
-    nama: "DASS-42",
-    jumlah: 42,
+    nama: "Skala Kecemasan (DASS-21)",
+    jumlah: 21,
     status: "Aktif",
-    deskripsi: "Kuesioner ini dirancang untuk membantu Anda mengenali kondisi emosional Anda saat ini (depresi, kecemasan, dan stres) secara mandiri.",
+    deskripsi: "Depression Anxiety Stress Scale — subskala kecemasan. Mengukur tingkat kecemasan dalam 2 minggu terakhir.",
     penjelasanHasil: "",
     jenis: "Tes Kesehatan Mental",
     coverUrl: "https://res.cloudinary.com/dxmxxw7xh/image/upload/v1777575213/oasejiwa/tes/ysoxbuwhb3o5bgxbkmmq.jpg",
