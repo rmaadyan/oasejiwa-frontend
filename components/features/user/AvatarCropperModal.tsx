@@ -32,12 +32,12 @@ export default function AvatarCropperModal({
   const createCroppedImage = async () => {
     try {
       const image = new Image();
-      image.crossOrigin = "anonymous"; // 👈 Mencegah canvas tainted saat gambar dari CDN/server
+      image.crossOrigin = "anonymous"; // 👈 WAJIB ADA
       image.src = imageSrc;
 
       await new Promise((resolve, reject) => {
         image.onload = resolve;
-        image.onerror = reject;
+        image.onerror = (e) => reject(e);
       });
 
       const canvas = document.createElement("canvas");
@@ -45,7 +45,6 @@ export default function AvatarCropperModal({
 
       if (!ctx || !croppedAreaPixels) return;
 
-      // Resize ke resolusi ideal 400x400 px
       const targetSize = 400;
       canvas.width = targetSize;
       canvas.height = targetSize;
@@ -77,7 +76,6 @@ export default function AvatarCropperModal({
       console.error("Gagal crop dan kompres gambar:", e);
     }
   };
-
   if (!isOpen) return null;
 
   return (

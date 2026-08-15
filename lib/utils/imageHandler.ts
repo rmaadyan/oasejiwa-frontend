@@ -19,7 +19,7 @@ export async function processSelectedImage(file: File): Promise<string> {
     fileName.endsWith(".heic") ||
     fileName.endsWith(".heif");
 
-  // 🟢 1. JIKA BUKAN HEIC (JPG, PNG, WEBP, GIF) -> Baca instan
+  // 🟢 1. JIKA FORMAT REGULER (JPG, PNG, WEBP, GIF)
   if (!isHeic) {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -29,28 +29,24 @@ export async function processSelectedImage(file: File): Promise<string> {
     });
   }
 
-  // 🟢 2. JIKA HEIC: Coba decode di browser client (heic2any)
+  // 🟢 2. JIKA FORMAT HEIC: Coba decode di browser dengan heic-to
   if (typeof window !== "undefined") {
     try {
-      const heic2anyPkg = await import("heic2any");
-      const heic2any = heic2anyPkg.default || heic2anyPkg;
-
-      const conversionResult = await heic2any({
+      const { heicTo } = await import("heic-to");
+      const jpegBlob = await heicTo({
         blob: file,
-        toType: "image/jpeg",
+        type: "image/jpeg",
         quality: 0.85,
       });
 
-      const blob = Array.isArray(conversionResult)
-        ? conversionResult[0]
-        : conversionResult;
-
-      return URL.createObjectURL(blob);
-    } catch {
-      console.warn("Client HEIC decode gagal, beralih ke upload server konversi...");
+      if (jpegBlob) {
+        return URL.createObjectURL(jpegBlob);
+      }
+    } catch (clientErr) {
+      console.warn("Client decode heic-to gagal, mengalihkan ke backend server...", clientErr);
     }
 
-    // 🟢 3. FALLBACK SERVER (Untuk format Apple HDR 10-bit yang ditolak decoder browser)
+    // 🟢 3. FALLBACK SERVER (Upload langsung ke server backend untuk dikonversi menjadi JPG)
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -78,10 +74,9 @@ export async function processSelectedImage(file: File): Promise<string> {
         }
       }
     } catch (serverErr) {
-      console.error("Server fallback gagal:", serverErr);
+      console.error("Gagal konversi gambar via server:", serverErr);
     }
   }
 
-  // 🟢 4. Fallback URL Objek
-  return URL.createObjectURL(file);
+  throw new Error("Format gambar ini tidak dapat dibaca oleh browser.");
 }
