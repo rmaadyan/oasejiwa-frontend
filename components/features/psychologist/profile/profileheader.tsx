@@ -1,6 +1,6 @@
 "use client";
 
-import { User, Camera } from "lucide-react";
+import { User, Camera, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import type { Psychologist } from "@/lib/types/psychologist";
 import { updatePsychologistProfile, uploadImage } from "@/lib/api/psychologist";
@@ -23,6 +23,7 @@ export default function ProfileHeader({
     psychologist.photo || (psychologist as any).avatarUrl || ""
   );
   const [isUploading, setIsUploading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [rawSelectedImage, setRawSelectedImage] = useState<string | null>(null);
   const [isCropperOpen, setIsCropperOpen] = useState(false);
 
@@ -47,12 +48,14 @@ export default function ProfileHeader({
     if (!file) return;
 
     try {
+      setIsProcessing(true);
       const imageSrc = await processSelectedImage(file);
       setRawSelectedImage(imageSrc);
       setIsCropperOpen(true);
     } catch (err: any) {
-      alert(err.message || "Gagal memproses gambar.");
+      alert(err.message || "Gagal memproses file foto");
     } finally {
+      setIsProcessing(false);
       e.target.value = "";
     }
   };
@@ -64,14 +67,14 @@ export default function ProfileHeader({
     });
     const localPreviewUrl = URL.createObjectURL(croppedFile);
 
-    // Optimistic UI: langsung tampilkan preview
+    // Optimistic UI: langsung ganti tampilan preview
     setPhotoUrl(localPreviewUrl);
     setIsUploading(true);
 
     try {
-      // Unggah file binary hasil kompresi crop
+      // Unggah file gambar
       const uploadedUrl = await uploadImage(croppedFile);
-      
+
       // Simpan URL ke profil psikolog
       await updatePsychologistProfile({
         avatarUrl: uploadedUrl,
@@ -85,7 +88,7 @@ export default function ProfileHeader({
       }
     } catch (err: any) {
       console.error("Gagal memperbarui foto profil:", err);
-      // Fallback ke foto awal jika gagal
+      // Rollback jika gagal
       setPhotoUrl(psychologist.photo || (psychologist as any).avatarUrl || "");
     } finally {
       setIsUploading(false);
@@ -97,33 +100,39 @@ export default function ProfileHeader({
       <div className="flex flex-col md:flex-row items-center gap-6">
         
         {/* Avatar & Tombol Ubah Foto */}
-        <div className="relative group w-28 h-28 md:w-32 md:h-32 bg-white rounded-2xl flex items-center justify-center overflow-hidden shrink-0 shadow-md border-4 border-white">
-          {photoUrl ? (
-            <img
-              src={getImageUrl(photoUrl)}
-              alt={psychologist.name}
-              className={`w-full h-full object-cover transition-opacity ${
-                isUploading ? "opacity-50 animate-pulse" : "opacity-100"
-              }`}
-            />
-          ) : (
-            <User className="w-14 h-14 text-[#2B5379]" />
-          )}
+        <div className="relative shrink-0 group">
+          <div className="w-28 h-28 md:w-32 md:h-32 bg-white rounded-2xl flex items-center justify-center overflow-hidden shadow-md border-4 border-white">
+            {photoUrl ? (
+              <img
+                src={getImageUrl(photoUrl)}
+                alt={psychologist.name}
+                className={`w-full h-full object-cover transition-opacity ${
+                  isUploading ? "opacity-50 animate-pulse" : "opacity-100"
+                }`}
+              />
+            ) : (
+              <User className="w-14 h-14 text-[#2B5379]" />
+            )}
+          </div>
 
+          {/* Tombol Kamera */}
           <label
             title="Ubah Foto Profil"
-            className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition duration-200 cursor-pointer"
+            className={`absolute -bottom-2 -right-2 bg-white text-[#234463] p-2.5 rounded-xl border border-blue-200 shadow-md hover:bg-blue-50 transition transform hover:scale-105 cursor-pointer ${
+              isProcessing || isUploading ? "opacity-60 pointer-events-none" : ""
+            }`}
           >
-            <Camera className="w-6 h-6 mb-1" />
-            <span className="text-[10px] font-semibold">
-              {isUploading ? "Mengunggah..." : "Ubah Foto"}
-            </span>
+            {isProcessing ? (
+              <Loader2 size={15} className="animate-spin text-[#234463]" />
+            ) : (
+              <Camera size={15} />
+            )}
             <input
               type="file"
               accept="image/*, .heic, .heif"
               className="hidden"
               onChange={handlePhotoSelect}
-              disabled={isUploading}
+              disabled={isUploading || isProcessing}
             />
           </label>
         </div>

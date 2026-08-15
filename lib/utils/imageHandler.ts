@@ -5,34 +5,40 @@ export async function processSelectedImage(file: File): Promise<string> {
   const isHeic =
     fileType === "image/heic" ||
     fileType === "image/heif" ||
+    fileType === "" || // Beberapa browser mendeteksi HEIC dengan MIME kosong
     fileName.endsWith(".heic") ||
     fileName.endsWith(".heif");
 
-  // 🟢 Jika format HEIC/HEIF (iPhone / Kamera Modern)
-  if (isHeic && typeof window !== "undefined") {
+  // 🟢 1. Tangani Format HEIC (iPhone)
+  if (isHeic && (fileName.endsWith(".heic") || fileName.endsWith(".heif") || fileType.includes("hei"))) {
     try {
-      const heic2anyModule = await import("heic2any");
-      const heic2any = heic2anyModule.default || heic2anyModule;
+      const heic2anyPkg = await import("heic2any");
+      const heic2any = heic2anyPkg.default || heic2anyPkg;
 
-      // Konversi buffer HEIC menjadi Blob JPEG murni
+      // Konversi File ke ArrayBuffer -> Blob murni
+      const arrayBuffer = await file.arrayBuffer();
+      const rawBlob = new Blob([arrayBuffer]);
+
       const conversionResult = await heic2any({
-        blob: file,
+        blob: rawBlob,
         toType: "image/jpeg",
         quality: 0.85,
       });
 
-      const blob = Array.isArray(conversionResult)
+      const singleBlob = Array.isArray(conversionResult)
         ? conversionResult[0]
         : conversionResult;
 
-      return URL.createObjectURL(blob);
+      // Pastikan type jpeg terpasang valid
+      const finalJpegBlob = new Blob([singleBlob], { type: "image/jpeg" });
+      return URL.createObjectURL(finalJpegBlob);
     } catch (err) {
-      console.error("Gagal melakukan konversi HEIC via heic2any:", err);
-      throw new Error("Format foto HEIC tidak dapat dibaca. Silakan gunakan format JPG atau PNG.");
+      console.error("Gagal decode HEIC:", err);
+      throw new Error("Gagal memproses format foto HEIC. Pastikan file tidak rusak atau gunakan format JPG/PNG.");
     }
   }
 
-  // 🟢 Untuk format standar (JPG, PNG, WEBP, GIF)
+  // 🟢 2. Format Reguler (JPG, PNG, WEBP)
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {

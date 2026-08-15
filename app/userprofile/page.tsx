@@ -160,20 +160,25 @@ const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
     return name.slice(0, 2).toUpperCase();
   };
 
-  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
+  const [isProcessingHeic, setIsProcessingHeic] = useState(false);
 
-  try {
-    const imageSrc = await processSelectedImage(file);
-    setRawSelectedImage(imageSrc);
-    setIsCropperOpen(true);
-  } catch (err) {
-    console.error("Gagal load foto:", err);
-  } finally {
-    e.target.value = "";
-  }
-};
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsProcessingHeic(true);
+      const imageSrc = await processSelectedImage(file);
+      setRawSelectedImage(imageSrc);
+      setIsCropperOpen(true);
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "Gagal memproses gambar.");
+    } finally {
+      setIsProcessingHeic(false);
+      e.target.value = "";
+    }
+  };
 
 const handleCroppedPhotoUpload = async (croppedBlob: Blob) => {
     const croppedFile = new File([croppedBlob], `avatar-${Date.now()}.jpg`, {
@@ -476,18 +481,20 @@ const handleCroppedPhotoUpload = async (croppedBlob: Blob) => {
                   </div>
 
                   <label
-                    title="Ubah Foto Profil"
-                    className="absolute -bottom-2 -right-2 bg-white text-[#234463] p-2 rounded-xl border border-blue-200 shadow-md hover:bg-blue-50 transition transform hover:scale-105 cursor-pointer"
-                  >
-                    <Camera size={15} />
-                    <input
-                      type="file"
-                      accept="image/*, .heic, .heif"
-                      className="hidden"
-                      onChange={handlePhotoSelect}
-                      disabled={isUploadingPhoto}
-                    />
-                  </label>
+  title="Ubah Foto Profil"
+  className={`absolute -bottom-2 -right-2 bg-white text-[#234463] p-2 rounded-xl border border-blue-200 shadow-md hover:bg-blue-50 transition transform hover:scale-105 cursor-pointer ${
+    isProcessingHeic ? "opacity-50 pointer-events-none" : ""
+  }`}
+>
+  <Camera size={15} className={isProcessingHeic ? "animate-spin" : ""} />
+  <input
+    type="file"
+    accept="image/*, .heic, .heif"
+    className="hidden"
+    onChange={handlePhotoSelect}
+    disabled={isUploadingPhoto || isProcessingHeic}
+  />
+</label>
                 </div>
 
                 {/* Info & Ucapan */}
