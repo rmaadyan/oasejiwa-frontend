@@ -2,7 +2,7 @@ import TeamMemberCard from "@/components/ui/TeamMemberCard";
 
 const teamMembers = [
   {
-    imageSrc: "/assets/about-us/founder.JPG",
+    imageSrc: "/assets/about-us/ANDI.jpeg",
     name: "Andi Zainuddin Japeri, M. Psi., Psikolog.",
     role: "CEO (Chief Executive Officer)",
     experience:

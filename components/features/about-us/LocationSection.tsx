@@ -104,7 +104,7 @@ export default function LocationSection() {
           {/* Image */}
           <div className="relative w-full aspect-[4/3] rounded-[30px] overflow-hidden shadow-xl hover:shadow-2xl transition-shadow duration-300 group">
             <Image
-              src="/assets/about-us/oasejiwa.jpg"
+              src="/assets/landingpage/IMG_2260.JPG"
               alt="Our Location"
               fill
               className="object-cover transition-transform duration-500 group-hover:scale-105"

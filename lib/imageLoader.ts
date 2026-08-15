@@ -37,9 +37,9 @@ export async function loadBgheroImages(): Promise<string[]> {
 const ABOUT_PATH = "/assets/landingpage";
 
 export const aboutImages: string[] = [
-  `${ABOUT_PATH}/IMG_4500.jpg`,
-  `${ABOUT_PATH}/IMG_4501.jpg`,
-  `${ABOUT_PATH}/IMG_4507.jpg`,
+  `${ABOUT_PATH}/IMG_0570.jpg`,
+  `${ABOUT_PATH}/IMG_0563.jpg`,
+  `${ABOUT_PATH}/IMG_2260.JPG`,
 ];
 
 // ============================================
