@@ -160,22 +160,24 @@ const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
     return name.slice(0, 2).toUpperCase();
   };
 
-  const [isProcessingHeic, setIsProcessingHeic] = useState(false);
+ const [isProcessingHeic, setIsProcessingHeic] = useState(false);
 
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
-      setIsProcessingHeic(true);
+      setIsProcessingHeic(true); // 👈 Gunakan setIsProcessingHeic
       const imageSrc = await processSelectedImage(file);
-      setRawSelectedImage(imageSrc);
-      setIsCropperOpen(true);
-    } catch (err: any) {
-      console.error(err);
-      alert(err.message || "Gagal memproses gambar.");
+      if (imageSrc) {
+        setRawSelectedImage(imageSrc);
+        setIsCropperOpen(true);
+      }
+    } catch (err) {
+      console.error("Gagal load foto:", err);
+      // Tanpa alert(), proses dialihkan dengan mulus
     } finally {
-      setIsProcessingHeic(false);
+      setIsProcessingHeic(false); // 👈 Gunakan setIsProcessingHeic
       e.target.value = "";
     }
   };

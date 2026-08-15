@@ -42,7 +42,7 @@ export default function ProfileHeader({
     });
   };
 
-  // 🟢 1. Saat memilih file gambar (Mendukung HEIC dan buka Modal Crop)
+  // 🟢 1. Saat memilih file gambar (Mendukung HEIC dan buka Modal Crop tanpa popup alert)
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -50,24 +50,26 @@ export default function ProfileHeader({
     try {
       setIsProcessing(true);
       const imageSrc = await processSelectedImage(file);
-      setRawSelectedImage(imageSrc);
-      setIsCropperOpen(true);
-    } catch (err: any) {
-      alert(err.message || "Gagal memproses file foto");
+      if (imageSrc) {
+        setRawSelectedImage(imageSrc);
+        setIsCropperOpen(true);
+      }
+    } catch (err) {
+      console.error("Gagal memproses file foto:", err);
     } finally {
       setIsProcessing(false);
       e.target.value = "";
     }
   };
 
-  // 🟢 2. Saat selesai di-crop (Upload instan, terkompresi, tanpa alert popup & reload)
+  // 🟢 2. Saat selesai di-crop (Upload instan, terkompresi, tanpa alert popup & tanpa reload)
   const handleCroppedPhotoUpload = async (croppedBlob: Blob) => {
     const croppedFile = new File([croppedBlob], "psychologist-avatar.jpg", {
       type: "image/jpeg",
     });
     const localPreviewUrl = URL.createObjectURL(croppedFile);
 
-    // Optimistic UI: langsung ganti tampilan preview
+    // Optimistic UI: langsung ganti tampilan preview secara lokal
     setPhotoUrl(localPreviewUrl);
     setIsUploading(true);
 
