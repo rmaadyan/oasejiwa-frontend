@@ -1,5 +1,5 @@
 // 🟢 SANITASI API_BASE_URL (Perbaikan URL cacat, prefix /api, & trailing slash)
-let rawUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id";
+let rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
 // Perbaiki jika ada URL cacat 'https:/' akibat environment variable
 if (rawUrl.startsWith("https:/") && !rawUrl.startsWith("https://")) {
