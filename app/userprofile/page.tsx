@@ -491,7 +491,7 @@ const handleCroppedPhotoUpload = async (croppedBlob: Blob) => {
   <Camera size={15} className={isProcessingHeic ? "animate-spin" : ""} />
   <input
     type="file"
-    accept="image/*, .heic, .heif"
+    accept="image/jpeg, image/png, image/webp, image/*, .heic, .heif"
     className="hidden"
     onChange={handlePhotoSelect}
     disabled={isUploadingPhoto || isProcessingHeic}

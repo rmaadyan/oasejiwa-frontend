@@ -1,4 +1,13 @@
-import { API_BASE_URL } from "@/lib/api/psychologist";
+// Base URL Backend
+let rawUrl =
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  "https://api.oasejiwa.id";
+
+if (rawUrl.startsWith("https:/") && !rawUrl.startsWith("https://")) {
+  rawUrl = rawUrl.replace("https:/", "https://");
+}
+const API_BASE_URL = rawUrl.replace(/\/$/, "");
 
 export async function processSelectedImage(file: File): Promise<string> {
   const fileName = file.name.toLowerCase();
@@ -11,7 +20,7 @@ export async function processSelectedImage(file: File): Promise<string> {
     fileName.endsWith(".heic") ||
     fileName.endsWith(".heif");
 
-  // 1. Jika bukan HEIC, baca langsung via DataURL
+  // 🟢 1. JIKA BUKAN HEIC (JPG, PNG, WEBP) -> Langsung baca secara instan
   if (!isHeic) {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -21,68 +30,59 @@ export async function processSelectedImage(file: File): Promise<string> {
     });
   }
 
-  // 2. Cek apakah browser HP bisa render file ini secara langsung (Native ObjectURL)
-  const localUrl = URL.createObjectURL(file);
-  const canRenderDirectly = await testImageElement(localUrl);
-  if (canRenderDirectly) {
-    return localUrl;
-  }
+  // 🟢 2. JIKA HEIC: Coba decode di browser client (heic2any)
+  if (typeof window !== "undefined") {
+    try {
+      const heic2anyPkg = await import("heic2any");
+      const heic2any = heic2anyPkg.default || heic2anyPkg;
 
-  // 3. Coba konversi via heic2any
-  try {
-    const heic2anyModule = await import("heic2any");
-    const heic2any = heic2anyModule.default || heic2anyModule;
+      const conversionResult = await heic2any({
+        blob: file,
+        toType: "image/jpeg",
+        quality: 0.85,
+      });
 
-    const conversionResult = await heic2any({
-      blob: file,
-      toType: "image/jpeg",
-      quality: 0.85,
-    });
+      const blob = Array.isArray(conversionResult)
+        ? conversionResult[0]
+        : conversionResult;
 
-    const blob = Array.isArray(conversionResult) ? conversionResult[0] : conversionResult;
-    return URL.createObjectURL(blob);
-  } catch (err) {
-    console.warn("Client decoding gagal, mencoba fallback upload server...", err);
-  }
-
-  // 4. Fallback: Upload ke server untuk konversi otomatis tanpa memunculkan alert error
-  try {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const token =
-      typeof window !== "undefined"
-        ? localStorage.getItem("token") || localStorage.getItem("accessToken") || ""
-        : "";
-
-    const res = await fetch(`${API_BASE_URL}/upload/image`, {
-      method: "POST",
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: formData,
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      const serverUrl = data.url || data.data?.url || "";
-      if (serverUrl) {
-        return serverUrl.startsWith("http") ? serverUrl : `${API_BASE_URL}${serverUrl}`;
-      }
+      return URL.createObjectURL(blob);
+    } catch (clientErr) {
+      console.warn("Client decoding HEIC gagal, mencoba fallback upload server...", clientErr);
     }
-  } catch (serverErr) {
-    console.warn("Server fallback failed:", serverErr);
+
+    // 🟢 3. FALLBACK SERVER (Upload langsung ke endpoint upload gambar)
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const token =
+        localStorage.getItem("token") ||
+        localStorage.getItem("accessToken") ||
+        "";
+
+      const res = await fetch(`${API_BASE_URL}/upload/image`, {
+        method: "POST",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: formData,
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const serverUrl = data.url || data.data?.url || "";
+        if (serverUrl) {
+          return serverUrl.startsWith("http")
+            ? serverUrl
+            : `${API_BASE_URL}${serverUrl.startsWith("/") ? "" : "/"}${serverUrl}`;
+        }
+      }
+    } catch (serverErr) {
+      console.warn("Fallback upload server gagal:", serverErr);
+    }
   }
 
-  // 5. Fallback terakhir: Kembalikan Object URL lokal agar UI cropper tetap terbuka
-  return localUrl;
-}
-
-function testImageElement(url: string): Promise<boolean> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => resolve(true);
-    img.onerror = () => resolve(false);
-    img.src = url;
-  });
+  // 🟢 4. Fallback Terakhir
+  return URL.createObjectURL(file);
 }
