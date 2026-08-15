@@ -577,29 +577,55 @@ function AdminBookingsContent() {
               </div>
             </div>
 
-            {/* Time Selection - DISINKRONKAN DENGAN JADWAL TERPAKAI */}
+            {/* Time Selection */}
             <div>
               <label className="block text-sm font-medium text-[#234463] mb-3">
                 Pilih Waktu Baru {selectedDate && `(${selectedDate})`}
               </label>
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                 {ALL_HOURS.map((hour) => {
-                  const isOccupied = occupiedTimesOnSelectedDate.includes(hour);
+                  // Format jam agar perbandingan string akurat ("09:00" vs "09:00:00" / "09:00 WIB")
+                  const cleanBookingTime = (selectedBooking?.scheduledTime || "").replace(".00", ":00").replace(" WIB", "").trim();
+
+                  // 1. Cek apakah ini jam yang sama persis dengan booking yang sedang dipilih
+                  const isCurrentSchedule =
+                    selectedBooking?.scheduledDate === selectedDate &&
+                    (cleanBookingTime === hour || cleanBookingTime.startsWith(hour));
+
+                  // 2. Cek apakah jam ini sudah dibooking oleh pasien lain pada psikolog & tanggal yang sama
+                  const isOccupiedByOther = bookings.some((b) => {
+                    const bTime = (b.scheduledTime || "").replace(".00", ":00").replace(" WIB", "").trim();
+                    return (
+                      b.originalId !== selectedBooking?.originalId &&
+                      b.scheduledDate === selectedDate &&
+                      (b.psychologistId === selectedBooking?.psychologistId || b.psychologist === selectedBooking?.psychologist) &&
+                      b.sessionStatus !== "cancelled" &&
+                      b.paymentStatus !== "rejected" &&
+                      (bTime === hour || bTime.startsWith(hour))
+                    );
+                  });
+
+                  const isDisabled = isCurrentSchedule || isOccupiedByOther;
 
                   return (
                     <button
                       key={hour}
-                      onClick={() => !isOccupied && setSelectedTime(hour)}
-                      disabled={isOccupied}
-                      className={`py-2.5 px-3 rounded-xl text-xs font-semibold transition-all ${
+                      type="button"
+                      onClick={() => !isDisabled && setSelectedTime(hour)}
+                      disabled={isDisabled}
+                      className={`py-2.5 px-2 rounded-xl text-xs font-semibold transition-all flex flex-col items-center justify-center gap-0.5 ${
                         selectedTime === hour
                           ? "bg-[#2B5379] text-white shadow-md"
-                          : isOccupied
+                          : isCurrentSchedule
+                          ? "bg-amber-50 text-amber-700 border border-amber-300 cursor-not-allowed opacity-80"
+                          : isOccupiedByOther
                           ? "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed line-through opacity-60"
                           : "bg-white border border-[#D6E6F2] text-[#234463] hover:border-[#2B5379] hover:bg-blue-50/50 cursor-pointer"
                       }`}
                     >
-                      {hour} WIB {isOccupied && "(Penuh)"}
+                      <span>{hour} WIB</span>
+                      {isCurrentSchedule && <span className="text-[10px] font-medium text-amber-800">(Saat Ini)</span>}
+                      {isOccupiedByOther && <span className="text-[10px] font-normal text-slate-500">(Penuh)</span>}
                     </button>
                   );
                 })}
