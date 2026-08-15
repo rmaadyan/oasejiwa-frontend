@@ -19,15 +19,12 @@ export default function LayananLandingPage() {
   const jenisRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
 
-  useEffect(() => {
-  const fetchData = async () => {
+  const fetchLayanan = async () => {
     try {
-      // 🟢 GUNAKAN getAllLayananPublic()
       const data = await getAllLayananPublic();
       const aktif = data
         .filter((l: LayananItem) => l.status === "Aktif")
-        // 🟢 Jaga-jaga: urutkan lagi di client sesuai field `urutan`
-        .sort((a: LayananItem, b: LayananItem) => (a.urutan ?? 0) - (b.urutan ?? 0));
+        .sort((a: LayananItem, b: LayananItem) => (Number(a.urutan) || 0) - (Number(b.urutan) || 0));
       setLayananAktif(aktif);
     } catch (err) {
       console.error(err);
@@ -37,8 +34,23 @@ export default function LayananLandingPage() {
     }
   };
 
-  fetchData();
-}, []);
+  useEffect(() => {
+    fetchLayanan();
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        fetchLayanan();
+      }
+    };
+
+    window.addEventListener("focus", fetchLayanan);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      window.removeEventListener("focus", fetchLayanan);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, []);
 
   const handleScrollToJenis = () => {
     if (jenisRef.current) {
@@ -74,123 +86,113 @@ export default function LayananLandingPage() {
     <>
       <Navbar />
       <div className="bg-white font-poppins">
-        {/* HERO */}
         {/* HERO LAYANAN */}
-<section className="pt-28 sm:pt-32 pb-12 sm:pb-16 px-4 sm:px-6 lg:px-12 overflow-hidden">
-  <div className="mx-auto grid grid-cols-1 md:grid-cols-12 gap-8 items-center max-w-7xl">
-    
-    {/* 1. TEKS PENYAPA (Kiri Atas di Laptop, Urutan 1 di HP) */}
-    <div className="md:col-span-5 md:row-start-1 animate-fade-in-left">
-      <h1 className="text-[32px] sm:text-[38px] lg:text-[46px] font-semibold leading-[1.15] text-[#000000]">
-        Apakah <span className="text-[#234463]">kamu</span>
-        <br />
-        baik-baik saja hari ini?
-      </h1>
+        <section className="pt-28 sm:pt-32 pb-12 sm:pb-16 px-4 sm:px-6 lg:px-12 overflow-hidden">
+          <div className="mx-auto grid grid-cols-1 md:grid-cols-12 gap-8 items-center max-w-7xl">
+            <div className="md:col-span-5 md:row-start-1 animate-fade-in-left">
+              <h1 className="text-[32px] sm:text-[38px] lg:text-[46px] font-semibold leading-[1.15] text-[#000000]">
+                Apakah <span className="text-[#234463]">kamu</span>
+                <br />
+                baik-baik saja hari ini?
+              </h1>
 
-      <div className="mt-4 space-y-3 text-[15px] lg:text-[17px] leading-relaxed text-[#4B4B4B]">
-        <p>
-          Setiap orang punya cara berbeda untuk pulih dan bertumbuh. Di sini,
-          kamu bisa memilih layanan yang paling sesuai: psikotes, konseling,
-          atau sesi edukatif bersama professional.
-        </p>
-        <p className="text-[#4B4B4B]/80">
-          Gulir ke bawah untuk melihat layanan yang tersedia dan mulai dari
-          langkah yang paling ringan untukmu.
-        </p>
-      </div>
-    </div>
+              <div className="mt-4 space-y-3 text-[15px] lg:text-[17px] leading-relaxed text-[#4B4B4B]">
+                <p>
+                  Setiap orang punya cara berbeda untuk pulih dan bertumbuh. Di sini,
+                  kamu bisa memilih layanan yang paling sesuai: psikotes, konseling,
+                  atau sesi edukatif bersama professional.
+                </p>
+                <p className="text-[#4B4B4B]/80">
+                  Gulir ke bawah untuk melihat layanan yang tersedia dan mulai dari
+                  langkah yang paling ringan untukmu.
+                </p>
+              </div>
+            </div>
 
-    {/* 2. GRID 5 GAMBAR (Kanan Full di Laptop, Urutan 2 di HP) */}
-    <div className="md:col-span-7 md:row-span-2 md:col-start-6 animate-fade-in-right py-2">
-      <div className="grid grid-cols-4 gap-2 sm:gap-4 items-center w-full">
-        {/* Foto 1 */}
-        <div className="flex items-center justify-center">
-          <div className="aspect-[3/4] w-full overflow-hidden rounded-2xl sm:rounded-[26px] bg-slate-100 shadow-md">
-            <img
-              src="/assets/foto-1.jpg"
-              alt="Konseling 1"
-              className="h-full w-full object-cover"
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = SVG_FALLBACK;
-              }}
-            />
+            <div className="md:col-span-7 md:row-span-2 md:col-start-6 animate-fade-in-right py-2">
+              <div className="grid grid-cols-4 gap-2 sm:gap-4 items-center w-full">
+                <div className="flex items-center justify-center">
+                  <div className="aspect-[3/4] w-full overflow-hidden rounded-2xl sm:rounded-[26px] bg-slate-100 shadow-md">
+                    <img
+                      src="/assets/foto-1.jpg"
+                      alt="Konseling 1"
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = SVG_FALLBACK;
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col justify-center gap-2 sm:gap-4">
+                  <div className="aspect-[4/3] w-full overflow-hidden rounded-xl sm:rounded-[22px] bg-slate-100 shadow-md">
+                    <img
+                      src="/assets/foto-2.jpg"
+                      alt="Konseling Pasangan"
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = SVG_FALLBACK;
+                      }}
+                    />
+                  </div>
+                  <div className="aspect-[4/3] w-full overflow-hidden rounded-xl sm:rounded-[22px] bg-slate-100 shadow-md">
+                    <img
+                      src="/assets/foto-5.jpg"
+                      alt="Konseling Individu"
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = SVG_FALLBACK;
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-center">
+                  <div className="aspect-[3/4] sm:aspect-[1/1.9] w-full overflow-hidden rounded-2xl sm:rounded-[30px] bg-slate-100 shadow-md">
+                    <img
+                      src="/assets/foto-3.jpg"
+                      alt="Psikolog dan Klien"
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = SVG_FALLBACK;
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-center">
+                  <div className="aspect-[3/4] w-full overflow-hidden rounded-2xl sm:rounded-[26px] bg-slate-100 shadow-md">
+                    <img
+                      src="/assets/foto-4.jpeg"
+                      alt="Konseling Anak"
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = SVG_FALLBACK;
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="md:col-span-5 md:row-start-2">
+              <button
+                type="button"
+                onClick={handleScrollToJenis}
+                className="w-full md:w-auto rounded-xl bg-[#234463] px-8 py-3.5 text-[15px] font-semibold text-white hover:bg-[#2B5379] hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 cursor-pointer text-center"
+              >
+                Jelajahi Layanan
+              </button>
+            </div>
           </div>
-        </div>
+        </section>
 
-        {/* Foto 2 & 5 */}
-        <div className="flex flex-col justify-center gap-2 sm:gap-4">
-          <div className="aspect-[4/3] w-full overflow-hidden rounded-xl sm:rounded-[22px] bg-slate-100 shadow-md">
-            <img
-              src="/assets/foto-2.jpg"
-              alt="Konseling Pasangan"
-              className="h-full w-full object-cover"
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = SVG_FALLBACK;
-              }}
-            />
-          </div>
-          <div className="aspect-[4/3] w-full overflow-hidden rounded-xl sm:rounded-[22px] bg-slate-100 shadow-md">
-            <img
-              src="/assets/foto-5.jpg"
-              alt="Konseling Individu"
-              className="h-full w-full object-cover"
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = SVG_FALLBACK;
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Foto 3 */}
-        <div className="flex items-center justify-center">
-          <div className="aspect-[3/4] sm:aspect-[1/1.9] w-full overflow-hidden rounded-2xl sm:rounded-[30px] bg-slate-100 shadow-md">
-            <img
-              src="/assets/foto-3.jpg"
-              alt="Psikolog dan Klien"
-              className="h-full w-full object-cover"
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = SVG_FALLBACK;
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Foto 4 */}
-        <div className="flex items-center justify-center">
-          <div className="aspect-[3/4] w-full overflow-hidden rounded-2xl sm:rounded-[26px] bg-slate-100 shadow-md">
-            <img
-              src="/assets/foto-4.jpeg"
-              alt="Konseling Anak"
-              className="h-full w-full object-cover"
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = SVG_FALLBACK;
-              }}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-
-    {/* 3. TOMBOL JELAJAHI LAYANAN (Kiri Bawah di Laptop, Urutan 3 di HP) */}
-    <div className="md:col-span-5 md:row-start-2">
-      <button
-        type="button"
-        onClick={handleScrollToJenis}
-        className="w-full md:w-auto rounded-xl bg-[#234463] px-8 py-3.5 text-[15px] font-semibold text-white hover:bg-[#2B5379] hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 cursor-pointer text-center"
-      >
-        Jelajahi Layanan
-      </button>
-    </div>
-
-  </div>
-</section>
-
-        {/* SECTION PER JENIS LAYANAN */}
+        {/* SECTION DAFTAR LAYANAN */}
         <section ref={jenisRef} className="bg-[#F0F4F8] pb-20 pt-8">
           <div className="mx-auto flex max-w-7xl flex-col gap-12 px-6 lg:px-16">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7">
@@ -208,7 +210,6 @@ export default function LayananLandingPage() {
                     className="bg-[#DDEEFC] border-2 border-[#B3D7F8] rounded-3xl p-7 shadow-md hover:shadow-xl hover:border-[#234463] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
                   >
                     <div className="flex flex-col items-center text-center">
-                      {/* GAMBAR COVER LAYANAN */}
                       <div className="w-full h-44 rounded-2xl overflow-hidden border-4 border-white shadow-md mb-4 bg-slate-100">
                         <img
                           src={imageSrc}
@@ -221,17 +222,13 @@ export default function LayananLandingPage() {
                         />
                       </div>
 
-                      {/* JUDUL */}
                       <h3 className="text-xl font-bold text-[#1E3A5F] leading-snug line-clamp-2 min-h-[56px] flex items-center justify-center">
                         {layanan.nama}
                       </h3>
 
-                      {/* GARIS PEMBATAS */}
                       <div className="w-full border-t border-[#C3E0FA] my-3"></div>
 
-                      {/* KONTEN DETAIL (DURASI & HARGA) */}
                       <div className="w-full space-y-3 text-left">
-                        {/* DURASI */}
                         <div className="bg-white/60 p-2.5 rounded-xl border border-[#C3E0FA] flex items-center gap-3">
                           <div className="w-8 h-8 bg-[#234463] rounded-lg flex items-center justify-center shrink-0">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -246,7 +243,6 @@ export default function LayananLandingPage() {
                           </div>
                         </div>
 
-                        {/* HARGA */}
                         <div className="bg-white/60 p-2.5 rounded-xl border border-[#C3E0FA] flex items-center gap-3">
                           <div className="w-8 h-8 bg-[#234463] rounded-lg flex items-center justify-center shrink-0">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -263,7 +259,6 @@ export default function LayananLandingPage() {
                       </div>
                     </div>
 
-                    {/* TOMBOL LIHAT DETAIL */}
                     <button
                       type="button"
                       onClick={() => handleLihatDetail(layanan.id)}

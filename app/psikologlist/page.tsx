@@ -26,43 +26,57 @@ export default function PsikologList() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const fetchData = async () => {
+    try {
+      const result = await getAllPsychologistsPublic();
+      const rawData = (result as any)?.data || result || [];
+      const rawList = Array.isArray(rawData) ? rawData : [];
+
+      const cleanList: Psikolog[] = rawList
+        .filter((p: any) => {
+          const name = p?.name || p?.fullName;
+          return p?.id && name && name.trim() !== "" && name !== "Psikolog";
+        })
+        .map((p: any) => ({
+          id: p.id,
+          displayOrder: Number(p.displayOrder ?? p.order ?? p.urutan ?? 0),
+          name: p.name || p.fullName,
+          avatarUrl: p.avatarUrl && p.avatarUrl.trim() !== "" ? p.avatarUrl : null,
+          sipp: p.sipp || "-",
+          str: p.str || "-",
+          about: p.about || "Psikolog Klinik Oase Jiwa",
+          specializations: p.specializations || [],
+          latestEducation: p.latestEducation || "",
+          experiences: p.experiences || [],
+        }));
+
+      // 🟢 Urutkan pasti berdasarkan displayOrder
+      cleanList.sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+      setPsikologList(cleanList);
+    } catch (err: any) {
+      setError(err.message || "Gagal memuat data psikolog");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const result = await getAllPsychologistsPublic();
-        const rawData = (result as any)?.data || result || [];
-        const rawList = Array.isArray(rawData) ? rawData : [];
+    fetchData();
 
-        const cleanList: Psikolog[] = rawList
-          .filter((p: any) => {
-            const name = p?.name || p?.fullName;
-            return p?.id && name && name.trim() !== "" && name !== "Psikolog";
-          })
-          .map((p: any) => ({
-            id: p.id,
-            displayOrder: Number(p.displayOrder ?? 0),
-            name: p.name || p.fullName,
-            avatarUrl: p.avatarUrl && p.avatarUrl.trim() !== "" ? p.avatarUrl : null,
-            sipp: p.sipp || "-",
-            str: p.str || "-",
-            about: p.about || "Psikolog Klinik Oase Jiwa",
-            specializations: p.specializations || [],
-            latestEducation: p.latestEducation || "",
-            experiences: p.experiences || [],
-          }));
-
-        // 🟢 Urutkan secara pasti berdasarkan displayOrder dari admin
-        cleanList.sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
-
-        setPsikologList(cleanList);
-      } catch (err: any) {
-        setError(err.message || "Gagal memuat data psikolog");
-      } finally {
-        setIsLoading(false);
+    // 🟢 Event listener: update otomatis saat tab di-klik / jendela kembali aktif
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchData();
       }
     };
 
-    fetchData();
+    window.addEventListener("focus", fetchData);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("focus", fetchData);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   useEffect(() => {
@@ -134,9 +148,7 @@ export default function PsikologList() {
               key={psikolog.id}
               className="bg-[#DDEEFC] border-2 border-[#B3D7F8] rounded-3xl p-6 sm:p-7 shadow-md hover:shadow-xl hover:border-[#234463] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
             >
-              {/* BAGIAN ATAS KARTU */}
               <div className="space-y-4">
-                {/* 1. FOTO AVATAR */}
                 <div className="flex justify-center">
                   {psikolog.avatarUrl ? (
                     <img
@@ -151,7 +163,6 @@ export default function PsikologList() {
                   )}
                 </div>
 
-                {/* 2. NAMA & DESKRIPSI */}
                 <div className="text-center">
                   <h2 className="text-lg sm:text-xl font-bold text-[#1E3A5F] leading-snug">
                     {psikolog.name}
@@ -163,9 +174,7 @@ export default function PsikologList() {
 
                 <div className="w-full border-t border-[#C3E0FA] my-1" />
 
-                {/* 3. KOTAK SIPP & STR */}
                 <div className="w-full bg-white/80 rounded-2xl p-3 border border-[#C3E0FA] grid grid-cols-1 md:grid-cols-2 gap-2.5 shadow-xs items-center">
-                  {/* SIPP */}
                   <div className="flex items-start gap-2 min-w-0 text-left">
                     <BadgeCheck className="w-4 h-4 text-[#234463] shrink-0 mt-0.5" />
                     <div className="min-w-0 flex-1">
@@ -181,7 +190,6 @@ export default function PsikologList() {
                     </div>
                   </div>
 
-                  {/* STR */}
                   <div className="flex items-start gap-2 min-w-0 text-left md:border-l md:border-[#C3E0FA] md:pl-2.5 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
                     <FileText className="w-4 h-4 text-[#234463] shrink-0 mt-0.5" />
                     <div className="min-w-0 flex-1">
@@ -198,9 +206,7 @@ export default function PsikologList() {
                   </div>
                 </div>
 
-                {/* 4. DETAIL SPESIALISASI, PENDIDIKAN, & PENGALAMAN */}
                 <div className="w-full text-left space-y-3 pt-1 text-xs sm:text-sm">
-                  {/* SPESIALISASI */}
                   <div className="flex items-start gap-2.5">
                     <Award className="w-4 h-4 text-[#234463] shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0 text-left">
@@ -213,7 +219,6 @@ export default function PsikologList() {
                     </div>
                   </div>
 
-                  {/* PENDIDIKAN */}
                   {psikolog.latestEducation && (
                     <div className="flex items-start gap-2.5">
                       <GraduationCap className="w-4 h-4 text-[#234463] shrink-0 mt-0.5" />
@@ -226,7 +231,6 @@ export default function PsikologList() {
                     </div>
                   )}
 
-                  {/* PENGALAMAN KERJA */}
                   {psikolog.experiences && psikolog.experiences.length > 0 && (
                     <div className="flex items-start gap-2.5">
                       <Briefcase className="w-4 h-4 text-[#234463] shrink-0 mt-0.5" />
@@ -248,7 +252,6 @@ export default function PsikologList() {
                 </div>
               </div>
 
-              {/* 5. TOMBOL LIHAT DETAIL & JADWAL */}
               <button
                 type="button"
                 onClick={() => handleLihatDetail(psikolog.id)}
