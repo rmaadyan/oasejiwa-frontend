@@ -71,19 +71,21 @@ export default function PatientDetailModal({
   if (!isOpen) return null;
 
   // Fallbacks for data presentation
-  const name = patient?.name || "Budi Santoso";
-  const age = patient?.age || 28;
+  const name = patient?.name || "-";
+  const age = patient?.age ? `${patient.age} Tahun` : "-";
   const gender =
     patient?.gender === "FEMALE" || patient?.gender === "female"
       ? "Perempuan"
-      : "Laki-Laki";
+      : patient?.gender === "MALE" || patient?.gender === "male"
+      ? "Laki-Laki"
+      : "-";
 
-  const email = patient?.email || "budi.santoso@example.com";
-  const phone = patient?.phone || "+62 812-3456-7890";
-  const address = patient?.address || "Jl. Soekarno Hatta No. 45, Malang";
-  const birthday = patient?.birthday ? String(patient.birthday) : "15 Mei 1998";
-  const maritalStatus = patient?.maritalStatus || "Belum Menikah";
-  const occupation = patient?.occupation || "Software Engineer";
+  const email = patient?.email || "-";
+  const phone = patient?.phone || "-";
+  const address = patient?.address || "-";
+  const birthday = patient?.birthday ? String(patient.birthday) : "-";
+  const maritalStatus = patient?.maritalStatus || "-";
+  const occupation = patient?.occupation || "-";
 
   const rawRisk = patient?.riskLevel || patient?.latestRiskLevel;
   const riskLevel = rawRisk ? String(rawRisk).toLowerCase() : null;
@@ -102,7 +104,7 @@ export default function PatientDetailModal({
     ? (patient as any).currentMedication
     : activeNote.currentMedication?.length
     ? activeNote.currentMedication
-    : ["Tidak ada obat yang dicatat."];
+    : ["Belum ada obat yang tercatat."];
 
   const allergies = (patient as any)?.allergies?.length
     ? (patient as any).allergies
@@ -167,7 +169,7 @@ export default function PatientDetailModal({
                 )}
               </div>
               <p className="text-xs text-slate-500 font-medium mt-0.5">
-                {age} Tahun &nbsp;•&nbsp; {gender} &nbsp;•&nbsp; {totalSessions} Sesi Konsultasi
+                {age} &nbsp;•&nbsp; {gender} &nbsp;•&nbsp; {totalSessions} Sesi Konsultasi
               </p>
             </div>
           </div>
