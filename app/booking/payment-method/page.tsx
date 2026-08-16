@@ -27,7 +27,6 @@ function Content() {
         setPaymentMethods(data.paymentMethods ?? [
           { id: "qris", name: "QRIS (Kode Barcode / QR)", category: "qris", description: "Scan via GoPay, OVO, ShopeePay, Dana, BCA Mobile, Livin, dll" },
           { id: "mandiri", name: "Bank Mandiri", category: "bank" },
-          { id: "bca", name: "Bank BCA", category: "bank" },
         ]);
       })
       .catch(console.error)
