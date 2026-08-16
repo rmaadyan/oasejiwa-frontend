@@ -209,12 +209,6 @@ function PsikologDetailContent() {
               </div>
             )}
 
-            <button
-              onClick={() => router.push(`/booking?psychologistId=${psikolog.id}`)}
-              className="w-full py-2.5 bg-[#234463] hover:bg-[#1E3A5F] active:scale-98 text-white font-bold rounded-xl shadow-xs transition cursor-pointer text-xs"
-            >
-              Booking Konseling Sekarang
-            </button>
           </div>
 
         </div>
