@@ -42,7 +42,7 @@ export default function ProfileHeader({
     });
   };
 
-  // 1. Pilih foto
+  // Pada ProfileHeader Psikolog:
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -54,8 +54,10 @@ export default function ProfileHeader({
         setRawSelectedImage(imageSrc);
         setIsCropperOpen(true);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Gagal memproses file foto psikolog:", err);
+      // 🟢 Tambahkan alert agar psikolog tahu jika file rusak/tidak didukung
+      alert(err.message || "Gagal memproses foto yang dipilih. Silakan coba format JPG atau PNG.");
     } finally {
       setIsProcessing(false);
       e.target.value = "";

@@ -9,16 +9,17 @@ if (rawUrl.startsWith("https:/") && !rawUrl.startsWith("https://")) {
 const API_BASE_URL = rawUrl.replace(/\/$/, "");
 
 export async function processSelectedImage(file: File): Promise<string> {
-  const fileName = file.name.toLowerCase();
-  const fileType = file.type.toLowerCase();
+  const fileName = (file.name || "").toLowerCase();
+  const fileType = (file.type || "").toLowerCase();
 
   const isHeic =
     fileType === "image/heic" ||
     fileType === "image/heif" ||
+    fileType.includes("hei") ||
     fileName.endsWith(".heic") ||
     fileName.endsWith(".heif");
 
-  // 1. Format Gambar Reguler (JPG, PNG, WebP, GIF)
+  // 1. Jika Gambar Biasa (JPG, PNG, WebP, GIF)
   if (!isHeic) {
     try {
       return URL.createObjectURL(file);
@@ -32,27 +33,25 @@ export async function processSelectedImage(file: File): Promise<string> {
     }
   }
 
-  // 2. Format HEIC: Coba decode di browser
+  // 2. Jika Gambar Format HEIC (iPhone)
   if (typeof window !== "undefined") {
-    // Jalur A: Coba decode client heic2any / heic-to
+    // Jalur A: Coba decode client heic-to
     try {
-      const heic2anyModule = await import("heic2any");
-      const heic2any = (heic2anyModule as any).default || heic2anyModule;
-      const converted = await heic2any({
+      const { heicTo } = await import("heic-to");
+      const jpegBlob = await heicTo({
         blob: file,
-        toType: "image/jpeg",
-        quality: 0.8,
+        type: "image/jpeg",
+        quality: 0.9,
       });
 
-      const blobResult = Array.isArray(converted) ? converted[0] : converted;
-      if (blobResult) {
-        return URL.createObjectURL(blobResult);
+      if (jpegBlob) {
+        return URL.createObjectURL(jpegBlob);
       }
-    } catch {
-      // Decode client gagal (ERR_LIBHEIF format not supported), lanjut ke fallback server
+    } catch (err) {
+      console.warn("Client heic-to gagal, mengalihkan ke endpoint upload backend...", err);
     }
 
-    // Jalur B: Fallback konversi instan via endpoint upload backend
+    // Jalur B: Fallback Backend Upload (Langsung jadikan URL JPG aman agar canvas crop tidak hitam)
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -79,17 +78,17 @@ export async function processSelectedImage(file: File): Promise<string> {
             : `${API_BASE_URL}${serverUrl.startsWith("/") ? "" : "/"}${serverUrl}`;
         }
       }
-    } catch {
-      // Fallback ke Object URL
+    } catch (serverErr) {
+      console.warn("Fallback upload backend gagal:", serverErr);
     }
 
-    // Jalur C: Fallback aman agar proses form dan preview tidak crash
+    // Jalur C: Fallback Blob Asli
     try {
       return URL.createObjectURL(file);
     } catch {
-      // fallback
+      // ignore
     }
   }
 
-  return "";
+  throw new Error("Format gambar ini tidak dapat dibaca oleh browser. Gunakan format JPG atau PNG.");
 }
