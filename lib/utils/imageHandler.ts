@@ -18,7 +18,7 @@ export async function processSelectedImage(file: File): Promise<string> {
     fileName.endsWith(".heic") ||
     fileName.endsWith(".heif");
 
-  // 🟢 1. JIKA FORMAT REGULER (JPG, PNG, WEBP, GIF, SVG)
+  // 1. Format Gambar Reguler (JPG, PNG, WebP, GIF)
   if (!isHeic) {
     try {
       return URL.createObjectURL(file);
@@ -32,32 +32,16 @@ export async function processSelectedImage(file: File): Promise<string> {
     }
   }
 
-  // 🟢 2. JIKA FORMAT HEIC DARI IPHONE
+  // 2. Format HEIC: Coba decode di browser
   if (typeof window !== "undefined") {
-    // A. Coba decoder 'heic-to'
-    try {
-      const { heicTo } = await import("heic-to");
-      const jpegBlob = await heicTo({
-        blob: file,
-        type: "image/jpeg",
-        quality: 0.85,
-      });
-
-      if (jpegBlob) {
-        return URL.createObjectURL(jpegBlob);
-      }
-    } catch {
-      // Abaikan dan lanjut ke decoder berikutnya
-    }
-
-    // B. Coba decoder alternatif 'heic2any' (dengan parameter single object yang valid)
+    // Jalur A: Coba decode client heic2any / heic-to
     try {
       const heic2anyModule = await import("heic2any");
-      const heic2any = heic2anyModule.default || heic2anyModule;
+      const heic2any = (heic2anyModule as any).default || heic2anyModule;
       const converted = await heic2any({
         blob: file,
         toType: "image/jpeg",
-        quality: 0.85,
+        quality: 0.8,
       });
 
       const blobResult = Array.isArray(converted) ? converted[0] : converted;
@@ -65,10 +49,10 @@ export async function processSelectedImage(file: File): Promise<string> {
         return URL.createObjectURL(blobResult);
       }
     } catch {
-      // Abaikan jika client decode gagal
+      // Decode client gagal (ERR_LIBHEIF format not supported), lanjut ke fallback server
     }
 
-    // C. Fallback: Upload langsung ke Backend VPS jika client decode browser tidak support
+    // Jalur B: Fallback konversi instan via endpoint upload backend
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -96,10 +80,10 @@ export async function processSelectedImage(file: File): Promise<string> {
         }
       }
     } catch {
-      // Abaikan kegagalan jaringan backend
+      // Fallback ke Object URL
     }
 
-    // D. Safe Fallback Terakhir: Buat Blob URL langsung dari file asli agar UI tidak macet
+    // Jalur C: Fallback aman agar proses form dan preview tidak crash
     try {
       return URL.createObjectURL(file);
     } catch {
@@ -107,5 +91,5 @@ export async function processSelectedImage(file: File): Promise<string> {
     }
   }
 
-  throw new Error("Format gambar tidak dapat dibaca oleh browser.");
+  return "";
 }
