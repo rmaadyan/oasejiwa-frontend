@@ -99,7 +99,7 @@ if (role === "ADMIN" || role === "SUPERADMIN") {
     if (redirectUrl) {
         router.replace(redirectUrl);
     } else {
-        router.replace("/userprofile?tab=bookings"); // Default pasien diarahkan ke booking
+        router.replace("/userprofile"); // Default pasien diarahkan ke booking
     }
 }
         } catch (err: any) {
