@@ -16,7 +16,9 @@ import {
     Eye, 
     ArrowUp, 
     ArrowDown,
-    GripVertical
+    GripVertical,
+    ArrowUpDown,
+    Check
 } from "lucide-react";
 import Link from "next/link";
 import { getAllPsychologistsAdmin, API_BASE_URL } from "@/lib/api/psychologist";
@@ -30,6 +32,12 @@ export default function PsikologManagementPage() {
     const [loadingFetch, setLoadingFetch] = useState(true);
     const [sendingReminderId, setSendingReminderId] = useState<string | null>(null);
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
+    // 🟢 STATE MODE URUTAN (PERSIS SEPERTI MANAJEMEN LAYANAN)
+    const [manualMode, setManualMode] = useState(false);
+    const [orderChanged, setOrderChanged] = useState(false);
+    const [savingOrder, setSavingOrder] = useState(false);
+    const [originalOrder, setOriginalOrder] = useState<any[]>([]);
 
     const fetchPsikologs = async () => {
         setLoadingFetch(true);
@@ -48,9 +56,13 @@ export default function PsikologManagementPage() {
                     phoneNumber: item.phoneNumber || item.phone || item.user?.phoneNumber || "-",
                     sipp: item.sipp || "-",
                     str: item.str || "-",
+                    displayOrder: Number(item.displayOrder ?? item.order ?? 0),
                     isProfileComplete: item.user?.isProfileComplete ?? isComplete,
                 };
             });
+
+            // Urutkan berdasarkan displayOrder
+            formatted.sort((a: any, b: any) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
 
             setPsikologList(formatted);
         } catch (err) {
@@ -64,15 +76,67 @@ export default function PsikologManagementPage() {
         fetchPsikologs();
     }, []);
 
-    // 🟢 Fitur Tombol Naik / Turun
-    // 🟢 1. Fungsi untuk mengirim urutan baru ke backend
-    const saveOrderToBackend = async (list: any[]) => {
-        const token = typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
-        const orderedIds = list.map((item) => item.id);
+    // 🟢 AKTIFKAN / BATALKAN MODE URUTAN MANUAL
+    const handleToggleManualMode = () => {
+        if (!manualMode) {
+            setSearchQuery("");
+            setOriginalOrder([...psikologList]); // Simpan urutan awal untuk fallback Batal
+            setOrderChanged(false);
+            setManualMode(true);
+        } else {
+            // Batal: kembalikan ke urutan awal tanpa fetch ulang
+            setPsikologList(originalOrder);
+            setOrderChanged(false);
+            setManualMode(false);
+        }
+    };
 
-        console.log("Mengirim urutan baru ID:", orderedIds);
+    // 🟢 1. Geser Urutan Naik / Turun
+    const handleMoveOrder = (index: number, direction: "up" | "down") => {
+        const targetIndex = direction === "up" ? index - 1 : index + 1;
+        if (targetIndex < 0 || targetIndex >= psikologList.length) return;
+
+        const updatedList = [...psikologList];
+        const temp = updatedList[index];
+        updatedList[index] = updatedList[targetIndex];
+        updatedList[targetIndex] = temp;
+
+        setPsikologList(updatedList);
+        setOrderChanged(true);
+    };
+
+    // 🟢 2. Drag & Drop Urutan
+    const handleDragStart = (index: number) => {
+        if (!manualMode) return;
+        setDraggedIndex(index);
+    };
+
+    const handleDragOver = (e: React.DragEvent, index: number) => {
+        e.preventDefault();
+        if (!manualMode || draggedIndex === null || draggedIndex === index) return;
+
+        const updatedList = [...psikologList];
+        const itemToMove = updatedList[draggedIndex];
+
+        updatedList.splice(draggedIndex, 1);
+        updatedList.splice(index, 0, itemToMove);
+
+        setDraggedIndex(index);
+        setPsikologList(updatedList);
+        setOrderChanged(true);
+    };
+
+    const handleDragEnd = () => {
+        setDraggedIndex(null);
+    };
+
+    // 🟢 3. SIMPAN URUTAN BARU KE BACKEND
+    const handleSaveOrder = async () => {
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") || "" : "";
+        const orderedIds = psikologList.map((item) => item.id);
 
         try {
+            setSavingOrder(true);
             const res = await fetch(`${API_BASE_URL}/admin/psychologists/reorder`, {
                 method: "PATCH",
                 headers: {
@@ -84,56 +148,20 @@ export default function PsikologManagementPage() {
             });
 
             const result = await res.json();
-            console.log("Respon server reorder:", result);
 
             if (!res.ok) {
                 alert(result.message || "Gagal menyimpan urutan ke server");
+            } else {
+                setOrderChanged(false);
+                setManualMode(false);
+                await fetchPsikologs(); // Perbarui data seketika
             }
         } catch (err: any) {
             console.error("Gagal request reorder:", err);
+            alert("Terjadi kesalahan saat menyimpan urutan");
+        } finally {
+            setSavingOrder(false);
         }
-    };
-
-    // 🟢 2. Tombol Panah Naik / Turun (Sekarang kirim data ke server)
-    const handleMoveOrder = async (index: number, direction: "up" | "down") => {
-        const targetIndex = direction === "up" ? index - 1 : index + 1;
-        if (targetIndex < 0 || targetIndex >= psikologList.length) return;
-
-        const updatedList = [...psikologList];
-        const temp = updatedList[index];
-        updatedList[index] = updatedList[targetIndex];
-        updatedList[targetIndex] = temp;
-
-        // Update tampilan langsung
-        setPsikologList(updatedList);
-
-        // 👈 SIMPAN KE DATABASE
-        await saveOrderToBackend(updatedList);
-    };
-
-    // 🟢 3. Fitur Drag & Drop (Sekarang kirim data ke server saat dilepas)
-    const handleDragStart = (index: number) => {
-        setDraggedIndex(index);
-    };
-
-    const handleDragOver = (e: React.DragEvent, index: number) => {
-        e.preventDefault();
-        if (draggedIndex === null || draggedIndex === index) return;
-
-        const updatedList = [...psikologList];
-        const itemToMove = updatedList[draggedIndex];
-
-        updatedList.splice(draggedIndex, 1);
-        updatedList.splice(index, 0, itemToMove);
-
-        setDraggedIndex(index);
-        setPsikologList(updatedList);
-    };
-
-    const handleDragEnd = async () => {
-        setDraggedIndex(null);
-        // 👈 SIMPAN KE DATABASE SETELAH DRAG SELESAI
-        await saveOrderToBackend(psikologList);
     };
 
     const handleSuccessAdd = () => {
@@ -212,36 +240,79 @@ export default function PsikologManagementPage() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-5">
                 <div>
                     <h1 className="text-2xl sm:text-3xl font-bold text-[#234463]">Manajemen Psikolog</h1>
-                    <p className="text-sm text-slate-500 mt-1">Kelola pendaftaran, pembaruan data, dan urutan tampilan psikolog</p>
+                    <p className="text-sm text-slate-500 mt-1">
+                        {manualMode
+                            ? "Geser (drag) atau gunakan tombol panah untuk mengatur urutan tampil di halaman publik."
+                            : "Kelola pendaftaran, pembaruan data, dan urutan tampilan psikolog"}
+                    </p>
                 </div>
 
-                <button
-                    onClick={() => setIsAddModalOpen(true)}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-[#234463] text-white font-medium text-sm rounded-xl hover:bg-[#2B5379] transition shadow-md cursor-pointer active:scale-95 shrink-0"
-                >
-                    <Plus size={18} />
-                    <span>Tambah Psikolog Baru</span>
-                </button>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                    {/* 🟢 TOMBOL ATUR URUTAN & SIMPAN URUTAN (SAMA PERSIS DENGAN LAYANAN) */}
+                    {manualMode ? (
+                        <>
+                            <button
+                                type="button"
+                                onClick={handleToggleManualMode}
+                                disabled={savingOrder}
+                                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
+                            >
+                                <X size={16} />
+                                <span>Batal</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleSaveOrder}
+                                disabled={!orderChanged || savingOrder}
+                                className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-sm font-semibold text-white transition disabled:opacity-50 cursor-pointer shadow-md"
+                            >
+                                <Check size={16} />
+                                <span>{savingOrder ? "Menyimpan..." : "Simpan Urutan"}</span>
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <button
+                                type="button"
+                                onClick={handleToggleManualMode}
+                                disabled={psikologList.length < 2}
+                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#234463]/30 text-sm font-semibold text-[#234463] hover:bg-blue-50 transition disabled:opacity-40 cursor-pointer"
+                            >
+                                <ArrowUpDown size={16} />
+                                <span>Atur Urutan</span>
+                            </button>
+                            <button
+                                onClick={() => setIsAddModalOpen(true)}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-[#234463] text-white font-medium text-sm rounded-xl hover:bg-[#2B5379] transition shadow-md cursor-pointer active:scale-95 shrink-0"
+                            >
+                                <Plus size={18} />
+                                <span>Tambah Psikolog Baru</span>
+                            </button>
+                        </>
+                    )}
+                </div>
             </div>
 
             {/* FILTER & SEARCH BAR */}
-            <div className="flex items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs w-full">
-                <div className="relative flex-1 max-w-md">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input
-                        type="text"
-                        placeholder="Cari psikolog berdasarkan nama, SIPP, atau No. HP..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#234463] transition"
-                    />
+            {!manualMode && (
+                <div className="flex items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs w-full">
+                    <div className="relative flex-1 max-w-md">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <input
+                            type="text"
+                            placeholder="Cari psikolog berdasarkan nama, SIPP, atau No. HP..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#234463] transition"
+                        />
+                    </div>
+                    <div className="text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-2 rounded-lg shrink-0">
+                        Total Psikolog: {filteredList.length}
+                    </div>
                 </div>
-                <div className="text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-2 rounded-lg shrink-0">
-                    Total Psikolog: {filteredList.length}
-                </div>
-            </div>
+            )}
 
-            {/* TABEL DAFTAR PSIKOLOG (MENDUKUNG DRAG & DROP) */}
+            {/* TABEL DAFTAR PSIKOLOG */}
             <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden w-full">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm border-collapse">
@@ -265,14 +336,14 @@ export default function PsikologManagementPage() {
                                     <td colSpan={6} className="text-center py-8 text-slate-400">Belum ada data psikolog.</td>
                                 </tr>
                             ) : (
-                                filteredList.map((item, index) => {
+                                (manualMode ? psikologList : filteredList).map((item, index) => {
                                     const isComplete = item.sipp && item.sipp !== "-" && item.sipp !== "";
                                     const isDraggingThis = draggedIndex === index;
 
                                     return (
                                         <tr 
                                             key={item.id} 
-                                            draggable
+                                            draggable={manualMode}
                                             onDragStart={() => handleDragStart(index)}
                                             onDragOver={(e) => handleDragOver(e, index)}
                                             onDragEnd={handleDragEnd}
@@ -282,38 +353,44 @@ export default function PsikologManagementPage() {
                                                     : "hover:bg-slate-50/80"
                                             }`}
                                         >
-                                            {/* 🟢 Kolom Drag Grip & Tombol Panah Urutan */}
+                                            {/* Kolom Urutan & Drag Grip */}
                                             <td className="p-4 pl-6 text-center">
                                                 <div className="flex items-center justify-center gap-1.5">
-                                                    <span 
-                                                        title="Tarik & Geser untuk Mengatur Urutan"
-                                                        className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-[#234463] p-1 rounded-md hover:bg-slate-100"
-                                                    >
-                                                        <GripVertical size={16} />
-                                                    </span>
+                                                    {manualMode && (
+                                                        <span 
+                                                            title="Tarik & Geser untuk Mengatur Urutan"
+                                                            className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-[#234463] p-1 rounded-md hover:bg-slate-100"
+                                                        >
+                                                            <GripVertical size={16} />
+                                                        </span>
+                                                    )}
 
                                                     <span className="w-5 text-xs font-bold text-slate-600">
                                                         #{index + 1}
                                                     </span>
 
-                                                    <div className="flex flex-col gap-0.5 ml-1">
-                                                        <button
-                                                            disabled={index === 0}
-                                                            onClick={() => handleMoveOrder(index, "up")}
-                                                            className="text-slate-400 hover:text-[#234463] disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer"
-                                                            title="Pindah ke Atas"
-                                                        >
-                                                            <ArrowUp size={12} />
-                                                        </button>
-                                                        <button
-                                                            disabled={index === filteredList.length - 1}
-                                                            onClick={() => handleMoveOrder(index, "down")}
-                                                            className="text-slate-400 hover:text-[#234463] disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer"
-                                                            title="Pindah ke Bawah"
-                                                        >
-                                                            <ArrowDown size={12} />
-                                                        </button>
-                                                    </div>
+                                                    {manualMode && (
+                                                        <div className="flex flex-col gap-0.5 ml-1">
+                                                            <button
+                                                                type="button"
+                                                                disabled={index === 0}
+                                                                onClick={() => handleMoveOrder(index, "up")}
+                                                                className="text-slate-400 hover:text-[#234463] disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer"
+                                                                title="Pindah ke Atas"
+                                                            >
+                                                                <ArrowUp size={12} />
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                disabled={index === psikologList.length - 1}
+                                                                onClick={() => handleMoveOrder(index, "down")}
+                                                                className="text-slate-400 hover:text-[#234463] disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer"
+                                                                title="Pindah ke Bawah"
+                                                            >
+                                                                <ArrowDown size={12} />
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </td>
 
@@ -356,8 +433,8 @@ export default function PsikologManagementPage() {
                                                     {!isComplete && (
                                                         <button
                                                             onClick={() => handleSendReminder(item.id, item.email)}
-                                                            disabled={sendingReminderId === item.id}
-                                                            className="p-2 text-amber-600 hover:bg-amber-50 rounded-xl transition cursor-pointer flex items-center gap-1 text-xs font-medium border border-amber-200/60"
+                                                            disabled={sendingReminderId === item.id || manualMode}
+                                                            className="p-2 text-amber-600 hover:bg-amber-50 rounded-xl transition cursor-pointer flex items-center gap-1 text-xs font-medium border border-amber-200/60 disabled:opacity-40"
                                                             title="Kirim Email Pengingat Update Profil"
                                                         >
                                                             <Mail size={15} />
@@ -371,7 +448,7 @@ export default function PsikologManagementPage() {
                                                         href={`/psikologdetail?id=${item.id}`}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="p-2 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition cursor-pointer"
+                                                        className={`p-2 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition cursor-pointer ${manualMode ? 'pointer-events-none opacity-40' : ''}`}
                                                         title="Lihat Tampilan di Website Publik"
                                                     >
                                                         <Eye size={16} />
@@ -379,14 +456,16 @@ export default function PsikologManagementPage() {
 
                                                     <button
                                                         onClick={() => setEditingPsikolog(item)}
-                                                        className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition cursor-pointer"
+                                                        disabled={manualMode}
+                                                        className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition cursor-pointer disabled:opacity-40"
                                                         title="Edit Data Psikolog"
                                                     >
                                                         <Pencil size={16} />
                                                     </button>
                                                     <button
                                                         onClick={() => setDeletingId(item.id)}
-                                                        className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition cursor-pointer"
+                                                        disabled={manualMode}
+                                                        className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition cursor-pointer disabled:opacity-40"
                                                         title="Hapus Akun Psikolog"
                                                     >
                                                         <Trash2 size={16} />

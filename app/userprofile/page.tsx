@@ -27,6 +27,7 @@ import {
   ArrowRight,
   HeartHandshake,
   BrainCircuit,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -36,6 +37,7 @@ import MyBookings from "@/components/features/user/profileManagement/MyBookings"
 import TestHistoryTab from "@/components/features/user/profileManagement/TestHistoryTab";
 import { logoutUser } from "@/lib/api/auth";
 import { getImageUrl } from "@/lib/utils/getImageUrl";
+import { processSelectedImage } from "@/lib/utils/imageHandler";
 import AvatarCropperModal from "@/components/features/user/AvatarCropperModal";
 import {
   ProfileProgressBar,
@@ -66,10 +68,11 @@ export default function Profile() {
   const [error, setError] = useState<string | null>(null);
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
 
-  // State Avatar Crop & Upload
-  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  // State Avatar Crop & Upload (Bersih tanpa duplikasi)
   const [rawSelectedImage, setRawSelectedImage] = useState<string | null>(null);
   const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isProcessingHeic, setIsProcessingHeic] = useState(false);
   const [imageLoadError, setImageLoadError] = useState(false);
 
   // State Ubah Password
@@ -159,59 +162,54 @@ export default function Profile() {
     return name.slice(0, 2).toUpperCase();
   };
 
-  // 🟢 1. Handler saat memilih file (Mendukung konversi HEIC & buka modal crop)
-  // 🟢 Handler saat memilih file (Dynamic Import heic2any agar tidak crash saat build SSR)
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    let file = e.target.files?.[0];
+    const file = e.target.files?.[0];
     if (!file) return;
 
-    // Cek format HEIC dari iPhone
-    if (
-      file.type === "image/heic" ||
-      file.type === "image/heif" ||
-      file.name.toLowerCase().endsWith(".heic") ||
-      file.name.toLowerCase().endsWith(".heif")
-    ) {
-      try {
-        // 🟢 Import heic2any hanya saat dijalankan di browser
-        // @ts-ignore
-        const heic2any = (await import("heic2any")).default;
-        
-        const convertedBlob = await heic2any({
-          blob: file,
-          toType: "image/jpeg",
-          quality: 0.85,
-        });
-        const singleBlob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
-        file = new File([singleBlob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
-          type: "image/jpeg",
-        });
-      } catch (err) {
-        console.error("Gagal konversi HEIC:", err);
-      }
-    }
+    try {
+      setIsProcessingHeic(true);
 
-    const previewUrl = URL.createObjectURL(file);
-    setRawSelectedImage(previewUrl);
-    setIsCropperOpen(true);
-    e.target.value = "";
+      // Gunakan helper processSelectedImage yang sudah memiliki fallback lengkap
+      const imageSrc = await processSelectedImage(file);
+      if (imageSrc) {
+        setRawSelectedImage(imageSrc);
+        setIsCropperOpen(true);
+      }
+    } catch (err: any) {
+      console.error("Gagal memproses foto profil:", err);
+      alert(err.message || "Gagal memproses foto yang dipilih. Silakan coba format JPG atau PNG.");
+    } finally {
+      setIsProcessingHeic(false);
+      e.target.value = "";
+    }
   };
-  // 🟢 2. Handler upload setelah crop (Instan seperti WA, tanpa alert pop-up)
+
+  // 2. Handle Upload Setelah Crop (Instan)
   const handleCroppedPhotoUpload = async (croppedBlob: Blob) => {
-    const croppedFile = new File([croppedBlob], "avatar.jpg", { type: "image/jpeg" });
+    const croppedFile = new File([croppedBlob], `avatar-${Date.now()}.jpg`, {
+      type: "image/jpeg",
+    });
     const localPreviewUrl = URL.createObjectURL(croppedFile);
 
-    // Optimistic UI: langsung ganti tampilan foto profil
+    // Optimistic Preview
     setImageLoadError(false);
     setProfileData((prev) => ({ ...prev, avatarUrl: localPreviewUrl }));
     setIsUploadingPhoto(true);
 
     try {
-      const uploadedUrl = await uploadUserAvatar(croppedFile);
-      await updateUserProfile({ avatarUrl: uploadedUrl });
-      setProfileData((prev) => ({ ...prev, avatarUrl: uploadedUrl }));
+      const res: any = await uploadUserAvatar(croppedFile);
+      const rawUrl =
+        typeof res === "string"
+          ? res
+          : res?.url || res?.data?.url || res?.avatarUrl || res?.data?.avatarUrl || "";
+
+      if (rawUrl) {
+        await updateUserProfile({ avatarUrl: rawUrl });
+        setImageLoadError(false);
+        setProfileData((prev) => ({ ...prev, avatarUrl: rawUrl }));
+      }
     } catch (err: any) {
-      console.error("Gagal simpan avatar:", err);
+      console.error("Gagal upload avatar:", err);
     } finally {
       setIsUploadingPhoto(false);
     }
@@ -466,6 +464,7 @@ export default function Profile() {
                   <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-white/20 backdrop-blur-md border-2 border-white/50 shadow-inner overflow-hidden flex items-center justify-center text-white font-bold text-3xl">
                     {profileData.avatarUrl && !imageLoadError ? (
                       <img
+                        key={profileData.avatarUrl}
                         src={getImageUrl(profileData.avatarUrl)}
                         alt={profileData.fullName}
                         onError={() => setImageLoadError(true)}
@@ -474,21 +473,27 @@ export default function Profile() {
                         }`}
                       />
                     ) : (
-                      getInitials(profileData.fullName)
+                      <span>{getInitials(profileData.fullName)}</span>
                     )}
                   </div>
 
                   <label
                     title="Ubah Foto Profil"
-                    className="absolute -bottom-2 -right-2 bg-white text-[#234463] p-2 rounded-xl border border-blue-200 shadow-md hover:bg-blue-50 transition transform hover:scale-105 cursor-pointer"
+                    className={`absolute -bottom-2 -right-2 bg-white text-[#234463] p-2 rounded-xl border border-blue-200 shadow-md hover:bg-blue-50 transition transform hover:scale-105 cursor-pointer ${
+                      isProcessingHeic || isUploadingPhoto ? "opacity-50 pointer-events-none" : ""
+                    }`}
                   >
-                    <Camera size={15} />
+                    {isProcessingHeic ? (
+                      <Loader2 size={15} className="animate-spin text-[#234463]" />
+                    ) : (
+                      <Camera size={15} />
+                    )}
                     <input
                       type="file"
-                      accept="image/*, .heic, .heif"
+                      accept="image/jpeg, image/png, image/webp, image/*, .heic, .heif"
                       className="hidden"
                       onChange={handlePhotoSelect}
-                      disabled={isUploadingPhoto}
+                      disabled={isUploadingPhoto || isProcessingHeic}
                     />
                   </label>
                 </div>

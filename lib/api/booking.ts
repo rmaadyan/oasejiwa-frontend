@@ -185,3 +185,21 @@ export async function rejectBooking(id: string | number, reason: string) {
   }
   return res.json();
 }
+
+// 🟢 RESCHEDULE KHUSUS ADMIN (Simpan ke DB & Trigger Notifikasi)
+export async function rescheduleBookingAdmin(
+  id: string | number,
+  payload: { newDate: string; newTime: string; reason?: string }
+) {
+  const res = await authFetch(`${API_BASE_URL}/admin/bookings/${id}/reschedule`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || `Gagal reschedule booking (Status: ${res.status})`);
+  }
+
+  return res.json();
+}

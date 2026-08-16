@@ -75,33 +75,33 @@ export default function SignIn() {
             localStorage.setItem("accessToken", token);
 
             // Cek Parameter Redirect di URL
-            const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
-            const redirectUrl = searchParams ? searchParams.get("redirect") : null;
+            // Cek Parameter Redirect / CallbackUrl di URL
+const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+const redirectUrl = searchParams ? (searchParams.get("redirect") || searchParams.get("callbackUrl")) : null;
 
-            // 🟢 Navigasi Berdasarkan Role
-            if (role === "ADMIN" || role === "SUPERADMIN") {
-                // Jika Admin, hanya ikuti redirectUrl jika mengarah ke halaman /admin
-                if (redirectUrl && redirectUrl.startsWith("/admin")) {
-                    router.replace(redirectUrl);
-                } else {
-                    router.replace("/admin");
-                }
-            } else if (role === "PSYCHOLOGIST") {
-                if (user.isFirstLogin) {
-                    router.replace("/auth/change-password-psychologist");
-                } else if (redirectUrl && redirectUrl.startsWith("/psychologist")) {
-                    router.replace(redirectUrl);
-                } else {
-                    router.replace("/psychologist/profile");
-                }
-            } else {
-                // Role Pasien / Regular User
-                if (redirectUrl) {
-                    router.replace(redirectUrl);
-                } else {
-                    router.replace("/");
-                }
-            }
+// 🟢 Navigasi Berdasarkan Role
+if (role === "ADMIN" || role === "SUPERADMIN") {
+    if (redirectUrl && redirectUrl.startsWith("/admin")) {
+        router.replace(redirectUrl);
+    } else {
+        router.replace("/admin");
+    }
+} else if (role === "PSYCHOLOGIST") {
+    if (user.isFirstLogin) {
+        router.replace("/auth/change-password-psychologist");
+    } else if (redirectUrl && redirectUrl.startsWith("/psychologist")) {
+        router.replace(redirectUrl);
+    } else {
+        router.replace("/psychologist/profile");
+    }
+} else {
+    // Role Pasien / Regular User
+    if (redirectUrl) {
+        router.replace(redirectUrl);
+    } else {
+        router.replace("/userprofile?tab=bookings"); // Default pasien diarahkan ke booking
+    }
+}
         } catch (err: any) {
             if (err.message?.includes("EMAIL_NOT_VERIFIED")) {
                 setRegisteredEmail(email);

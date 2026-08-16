@@ -1,20 +1,18 @@
-// 🟢 SANITASI API_BASE_URL (Perbaikan URL cacat, prefix /api, & trailing slash)
-let rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
-// Perbaiki jika ada URL cacat 'https:/' akibat environment variable
+let rawUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id";
+
 if (rawUrl.startsWith("https:/") && !rawUrl.startsWith("https://")) {
   rawUrl = rawUrl.replace("https:/", "https://");
 }
 
 export const API_BASE_URL = rawUrl.replace(/\/$/, "");
 
-// 🟢 HELPER AMAN UNTUK PARSING JSON/TEXT
 async function safeParseJson(res: Response, fallbackValue: any = null) {
   const text = await res.text();
   if (!text || text.trim() === "") return fallbackValue;
   try {
     return JSON.parse(text);
-  } catch (err) {
+  } catch {
     return fallbackValue;
   }
 }
@@ -32,7 +30,7 @@ function mapBackendToLayananItem(raw: any) {
     harga: raw.harga,
     status: raw.status,
     coverUrl: raw.gambar,
-    urutan: raw.urutan ?? 0, // 🟢 posisi urutan dari backend
+    urutan: Number(raw.urutan ?? 0),
   };
 }
 
@@ -47,24 +45,28 @@ function mapToBackendPayload(data: any) {
     harga: data.harga,
     status: data.status,
     gambar: data.coverUrl || undefined,
-    ...(data.urutan !== undefined ? { urutan: data.urutan } : {}), // 🟢 ikut dikirim kalau ada
+    ...(data.urutan !== undefined ? { urutan: data.urutan } : {}),
   };
 }
 
-// 🟢 Sort helper: urutkan berdasarkan field urutan, fallback ke id kalau sama/kosong
 function sortByUrutan(list: any[]) {
   return [...list].sort((a, b) => {
-    const ua = a.urutan ?? 0;
-    const ub = b.urutan ?? 0;
+    const ua = Number(a.urutan ?? 0);
+    const ub = Number(b.urutan ?? 0);
     if (ua !== ub) return ua - ub;
     return (a.id ?? 0) - (b.id ?? 0);
   });
 }
 
+// 🟢 GET ALL LAYANAN (DENGAN ANTI-CACHE REALTIME)
 export async function getAllLayanan() {
-  const res = await fetch(`${API_BASE_URL}/layanan`, {
+  const res = await fetch(`${API_BASE_URL}/layanan?t=${Date.now()}`, {
     cache: "no-store",
     credentials: "include",
+    headers: {
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+      Pragma: "no-cache",
+    },
   });
   if (!res.ok) throw new Error("Gagal fetch data layanan");
   const data = await safeParseJson(res, []);
@@ -73,8 +75,12 @@ export async function getAllLayanan() {
 }
 
 export async function getAllLayananPublic() {
-  const res = await fetch(`${API_BASE_URL}/layanan`, {
+  const res = await fetch(`${API_BASE_URL}/layanan?t=${Date.now()}`, {
     cache: "no-store",
+    headers: {
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+      Pragma: "no-cache",
+    },
   });
   if (!res.ok) throw new Error("Gagal fetch data layanan");
   const data = await safeParseJson(res, []);
@@ -83,7 +89,7 @@ export async function getAllLayananPublic() {
 }
 
 export async function getLayananById(id: string) {
-  const res = await fetch(`${API_BASE_URL}/layanan/${id}`, {
+  const res = await fetch(`${API_BASE_URL}/layanan/${id}?t=${Date.now()}`, {
     cache: "no-store",
     credentials: "include",
   });
@@ -118,10 +124,6 @@ export async function updateLayanan(id: string, data: any) {
   return await safeParseJson(res, {});
 }
 
-// 🟢 Simpan urutan baru untuk banyak layanan sekaligus.
-// Karena backend belum punya endpoint bulk-reorder, kita pakai ulang
-// updateLayanan() yang sudah terbukti jalan (dipakai form edit) —
-// supaya cara autentikasinya konsisten dan tidak kena 403.
 export async function reorderLayanan(items: any[]) {
   await Promise.all(items.map((item) => updateLayanan(String(item.id), item)));
 }
