@@ -15,22 +15,26 @@ export async function processSelectedImage(file: File): Promise<string> {
   const isHeic =
     fileType === "image/heic" ||
     fileType === "image/heif" ||
-    fileType.includes("hei") ||
     fileName.endsWith(".heic") ||
     fileName.endsWith(".heif");
 
-  // 🟢 1. JIKA FORMAT REGULER (JPG, PNG, WEBP, GIF)
+  // 🟢 1. JIKA FORMAT REGULER (JPG, PNG, WEBP, GIF, SVG)
   if (!isHeic) {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => resolve(URL.createObjectURL(file));
-      reader.readAsDataURL(file);
-    });
+    try {
+      return URL.createObjectURL(file);
+    } catch {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
   }
 
-  // 🟢 2. JIKA FORMAT HEIC: Coba decode di browser dengan heic-to
+  // 🟢 2. JIKA FORMAT HEIC DARI IPHONE
   if (typeof window !== "undefined") {
+    // A. Coba decoder 'heic-to'
     try {
       const { heicTo } = await import("heic-to");
       const jpegBlob = await heicTo({
@@ -42,11 +46,29 @@ export async function processSelectedImage(file: File): Promise<string> {
       if (jpegBlob) {
         return URL.createObjectURL(jpegBlob);
       }
-    } catch (clientErr) {
-      console.warn("Client decode heic-to gagal, mengalihkan ke backend server...", clientErr);
+    } catch {
+      // Abaikan dan lanjut ke decoder berikutnya
     }
 
-    // 🟢 3. FALLBACK SERVER (Upload langsung ke server backend untuk dikonversi menjadi JPG)
+    // B. Coba decoder alternatif 'heic2any' (dengan parameter single object yang valid)
+    try {
+      const heic2anyModule = await import("heic2any");
+      const heic2any = heic2anyModule.default || heic2anyModule;
+      const converted = await heic2any({
+        blob: file,
+        toType: "image/jpeg",
+        quality: 0.85,
+      });
+
+      const blobResult = Array.isArray(converted) ? converted[0] : converted;
+      if (blobResult) {
+        return URL.createObjectURL(blobResult);
+      }
+    } catch {
+      // Abaikan jika client decode gagal
+    }
+
+    // C. Fallback: Upload langsung ke Backend VPS jika client decode browser tidak support
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -73,10 +95,17 @@ export async function processSelectedImage(file: File): Promise<string> {
             : `${API_BASE_URL}${serverUrl.startsWith("/") ? "" : "/"}${serverUrl}`;
         }
       }
-    } catch (serverErr) {
-      console.error("Gagal konversi gambar via server:", serverErr);
+    } catch {
+      // Abaikan kegagalan jaringan backend
+    }
+
+    // D. Safe Fallback Terakhir: Buat Blob URL langsung dari file asli agar UI tidak macet
+    try {
+      return URL.createObjectURL(file);
+    } catch {
+      // fallback
     }
   }
 
-  throw new Error("Format gambar ini tidak dapat dibaca oleh browser.");
+  throw new Error("Format gambar tidak dapat dibaca oleh browser.");
 }
