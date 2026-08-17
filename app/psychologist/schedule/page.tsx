@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import FilterBar from "@/components/features/psychologist/schedule/filterbar";
-import ScheduleCalendar from "@/components/features/psychologist/schedule/schedulecalendar";
 import ScheduleList from "@/components/features/psychologist/schedule/schedulelist";
 import SessionDetailModal from "@/components/features/psychologist/schedule/sessiondetailmodal";
 import {
@@ -14,17 +12,15 @@ import type { Session } from "@/lib/types/psychologist";
 
 export default function SchedulePage() {
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState<"calendar" | "list">("list");
   const [activeTab, setActiveTab] = useState<"ALL" | "UPCOMING" | "COMPLETED" | "CANCELLED">("ALL");
-  const [selectedCalendarDate, setSelectedCalendarDate] = useState<string | undefined>(undefined);
   const [scheduleData, setScheduleData] = useState<any>(null);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const fetchSchedule = async (dateFilter?: string) => {
+  const fetchSchedule = async () => {
     setLoading(true);
     try {
-      const data = await getAllSessions({ date: dateFilter });
+      const data = await getAllSessions();
       setScheduleData(data);
     } catch (error) {
       console.error("Failed to fetch schedule:", error);
@@ -34,8 +30,8 @@ export default function SchedulePage() {
   };
 
   useEffect(() => {
-    fetchSchedule(view === "calendar" ? selectedCalendarDate : undefined);
-  }, [view, selectedCalendarDate]);
+    fetchSchedule();
+  }, []);
 
   const sessions: Session[] = Array.isArray(scheduleData?.sessions)
     ? scheduleData.sessions
@@ -94,7 +90,6 @@ export default function SchedulePage() {
         </div>
       </div>
 
-      {/* TAB NAVIGASI AGAR TIDAK BOROS TEMPAT */}
       <div className="flex gap-2 border-b border-gray-200 pb-2">
         <button
           onClick={() => setActiveTab("ALL")}
