@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import PsychologistDashboard from "@/app/psychologist/dashboard";
-import SchedulePage from "@/app/psychologist/schedule";
+import SchedulePage from "@/app/psychologist/schedule/page";
 import PatientsPage from "@/app/psychologist/patients";
 import ProfilePage from "@/app/psychologist/profile";
 import PsychologistRekamMedisPage from "@/app/psychologist/rekam-medis";
