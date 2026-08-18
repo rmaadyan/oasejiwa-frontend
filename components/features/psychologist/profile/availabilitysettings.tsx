@@ -98,54 +98,76 @@ useEffect(() => {
   };
 
 
-const handleDeleteSchedule = async (indexToDelete: number) => {
-  const scheduleToDelete = localSchedules[indexToDelete];
+  const handleDeleteSchedule = async (indexToDelete: number) => {
+    const scheduleToDelete = localSchedules[indexToDelete];
 
-  if (!scheduleToDelete?.id) {
-    setLocalSchedules(localSchedules.filter((_, idx) => idx !== indexToDelete));
-    return;
-  }
-
-  try {
-    await deletePsychologistSchedule(scheduleToDelete.id);
-    setLocalSchedules(localSchedules.filter((_, idx) => idx !== indexToDelete));
-    if (onUpdate) await onUpdate();
-  } catch (err: any) {
-    alert("Gagal menghapus jadwal dari database.");
-  }
-};
-
-const handleSave = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
-
-  try {
-    // Hanya simpan jadwal BARU saja (yang belum punya id)
-    const newSchedules = localSchedules.filter((sch) => !sch.id);
-
-    if (newSchedules.length === 0) {
-      alert("Tidak ada jadwal baru untuk disimpan.");
-      setLoading(false);
+    if (!scheduleToDelete?.id) {
+      setLocalSchedules((prev) => prev.filter((_, idx) => idx !== indexToDelete));
       return;
     }
 
-    for (const sch of newSchedules) {
-      await addPsychologistSchedule({
-        date: getNextDateForDay(sch.day),
-        startTime: sch.startTime || "09:00",
-        duration: Number(sch.duration) || 60,
-        isAvailable: true,
-      });
+    try {
+      setLoading(true);
+      await deletePsychologistSchedule(scheduleToDelete.id);
+      setLocalSchedules((prev) => prev.filter((_, idx) => idx !== indexToDelete));
+      if (onUpdate) await onUpdate();
+      alert(`Jadwal hari ${scheduleToDelete.day} berhasil dihapus.`);
+    } catch (err: any) {
+      alert(err.message || "Gagal menghapus jadwal dari database.");
+    } finally {
+      setLoading(false);
     }
+  };
 
-    alert("Jadwal Mingguan Praktik berhasil disimpan!");
-    if (onUpdate) await onUpdate();
-  } catch (err: any) {
-    alert(err.message || "Gagal menyimpan jadwal praktik.");
-  } finally {
-    setLoading(false);
-  }
-};
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // 1. Ambil jadwal baru yang belum tersimpan di database
+      const newSchedules = localSchedules.filter((sch) => !sch.id);
+
+      // 2. Cek apakah ada jadwal lama yang diubah (hari, jam mulai, atau durasi)
+      const modifiedExisting = localSchedules.filter((sch) => {
+        if (!sch.id) return false;
+        const original = schedules.find((s) => s.id === sch.id);
+        if (!original) return false;
+        return (
+          sch.day !== original.day ||
+          sch.startTime !== (original.startTime || original.time) ||
+          Number(sch.duration) !== Number(original.duration)
+        );
+      });
+
+      // Update jadwal lama yang diubah: hapus yang lama, tambahkan versi baru
+      for (const sch of modifiedExisting) {
+        await deletePsychologistSchedule(sch.id);
+        await addPsychologistSchedule({
+          date: getNextDateForDay(sch.day),
+          startTime: sch.startTime || "09:00",
+          duration: Number(sch.duration) || 60,
+          isAvailable: true,
+        });
+      }
+
+      // Tambahkan jadwal baru
+      for (const sch of newSchedules) {
+        await addPsychologistSchedule({
+          date: getNextDateForDay(sch.day),
+          startTime: sch.startTime || "09:00",
+          duration: Number(sch.duration) || 60,
+          isAvailable: true,
+        });
+      }
+
+      alert("Jadwal praktik berhasil disimpan!");
+      if (onUpdate) await onUpdate();
+    } catch (err: any) {
+      alert(err.message || "Gagal menyimpan jadwal praktik.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="bg-white p-5 rounded-2xl border-2 border-slate-500 shadow-xs space-y-2 font-poppins text-xs">
