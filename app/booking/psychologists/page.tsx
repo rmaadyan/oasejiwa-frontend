@@ -1,5 +1,8 @@
 import { PsychologistSelectionContent } from "@/components/features/booking";
 
+// Pastikan halaman selalu di-render ulang (tidak di-cache) agar data spesialisasi selalu fresh
+export const dynamic = "force-dynamic";
+
 type ApiPsychologist = {
   id?: string;
   name?: string;
