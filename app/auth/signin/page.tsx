@@ -87,9 +87,7 @@ if (role === "ADMIN" || role === "SUPERADMIN") {
         router.replace("/admin");
     }
 } else if (role === "PSYCHOLOGIST") {
-    if (user.isFirstLogin) {
-        router.replace("/auth/change-password-psychologist");
-    } else if (redirectUrl && redirectUrl.startsWith("/psychologist")) {
+    if (redirectUrl && redirectUrl.startsWith("/psychologist")) {
         router.replace(redirectUrl);
     } else {
         router.replace("/psychologist/profile");
