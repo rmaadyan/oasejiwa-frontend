@@ -5,12 +5,17 @@ const API_BASE_URL = rawUrl || "https://api.oasejiwa.id";
 
 function getAuthToken(): string {
   if (typeof window !== "undefined") {
-    return (
-      localStorage.getItem("auth_token") ||
-      localStorage.getItem("accessToken") ||
+    let token =
       localStorage.getItem("token") ||
-      ""
-    );
+      localStorage.getItem("accessToken") ||
+      localStorage.getItem("auth_token") ||
+      "";
+
+    if (!token) {
+      const match = document.cookie.match(new RegExp("(^| )token=([^;]+)"));
+      if (match) token = match[2];
+    }
+    return token;
   }
   return "";
 }
@@ -230,4 +235,53 @@ export async function getTesResultDetail(id: string) {
     console.error("Error fetching tes result detail:", err);
     return null;
   }
+}
+
+// 🟢 KATEGORI TES API
+export async function getTesCategories() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/tes/categories`, { cache: "no-store" });
+    if (!res.ok) return [];
+    return await res.json();
+  } catch (err) {
+    console.error("Gagal fetch kategori tes:", err);
+    return [];
+  }
+}
+
+export async function getAllTesCategories() {
+  try {
+    const res = await authFetch(`${API_BASE_URL}/tes/categories/all`, { cache: "no-store" });
+    if (!res.ok) return [];
+    return await res.json();
+  } catch (err) {
+    console.error("Gagal fetch all kategori tes:", err);
+    return [];
+  }
+}
+
+export async function createTesCategory(data: { nama: string; deskripsi?: string; status?: string; urutan?: number }) {
+  const res = await authFetch(`${API_BASE_URL}/tes/categories`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Gagal membuat kategori tes");
+  return res.json();
+}
+
+export async function updateTesCategory(id: number | string, data: any) {
+  const res = await authFetch(`${API_BASE_URL}/tes/categories/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Gagal update kategori tes");
+  return res.json();
+}
+
+export async function deleteTesCategory(id: number | string) {
+  const res = await authFetch(`${API_BASE_URL}/tes/categories/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Gagal delete kategori tes");
+  return res.json();
 }
