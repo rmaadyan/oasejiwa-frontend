@@ -12,6 +12,7 @@ import {
   Award,
   Clock,
   UserCheck,
+  AlertCircle,
   ArrowRight,
 } from "lucide-react";
 import type { Psychologist } from "@/lib/types/psychologist";
@@ -48,24 +49,42 @@ export default function WelcomeBanner({ psychologist }: WelcomeBannerProps) {
         clearInterval(interval);
         setIsTypingComplete(true);
       }
-    }, 55); // 55ms per character (within 40-70ms target)
+    }, 55);
 
     return () => clearInterval(interval);
   }, [fullGreeting]);
 
-  // Derived Info
-  const specializations =
-    Array.isArray(psychologist.specialization) && psychologist.specialization.length > 0
-      ? psychologist.specialization.join(", ")
-      : (psychologist as any).specializations?.join(", ") || "Psikologi Klinis Dewasa";
+  // 🟢 1. Spesialisasi: Ambil yang pertama diisi oleh psikolog
+  const primarySpec =
+    (psychologist as any).primarySpecialization ||
+    (Array.isArray(psychologist.specialization) && psychologist.specialization.length > 0
+      ? psychologist.specialization[0]
+      : Array.isArray((psychologist as any).specializations) && (psychologist as any).specializations.length > 0
+      ? (psychologist as any).specializations[0]
+      : Array.isArray((psychologist as any).expertises) && (psychologist as any).expertises.length > 0
+      ? (psychologist as any).expertises[0]
+      : "Belum Diisi");
 
-  const strNumber = psychologist.str || (psychologist as any).sipp || "STR-PSI-2024-009988";
+  // 🟢 2. SIPP / STR Dinamis (tanpa placeholder palsu)
+  const strNumber =
+    psychologist.str && psychologist.str !== "-"
+      ? psychologist.str
+      : (psychologist as any).sipp && (psychologist as any).sipp !== "-"
+      ? (psychologist as any).sipp
+      : "-";
+
   const joinedYear = psychologist.joinedDate
     ? new Date(psychologist.joinedDate).getFullYear()
-    : 2025;
+    : new Date().getFullYear();
 
   const totalPatients = typeof psychologist.totalPatients === "number" ? psychologist.totalPatients : 0;
   const totalSessions = typeof psychologist.totalSessions === "number" ? psychologist.totalSessions : 0;
+
+  // 🟢 3. Status & Kelengkapan Profil Dinamis
+  const profilePercentage = (psychologist as any).profilePercentage ?? (
+    psychologist.status === "Aktif" || (psychologist as any).isProfileComplete ? 100 : 0
+  );
+  const isComplete = profilePercentage === 100;
 
   const quickActions = [
     {
@@ -104,7 +123,7 @@ export default function WelcomeBanner({ psychologist }: WelcomeBannerProps) {
 
   return (
     <div className="w-full space-y-6 animate-fadeIn">
-      {/* 🟢 HERO WELCOME BANNER WITH GRADIENT & TYPING ANIMATION */}
+      {/* HERO WELCOME BANNER WITH GRADIENT & TYPING ANIMATION */}
       <div className="relative overflow-hidden bg-gradient-to-r from-[#1F415F] via-[#2B5379] to-[#3B6A99] rounded-3xl p-6 sm:p-8 lg:p-10 text-white shadow-xl border border-slate-700/30">
         {/* Decorative Background Elements */}
         <div className="absolute -top-12 -right-12 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none" />
@@ -140,10 +159,22 @@ export default function WelcomeBanner({ psychologist }: WelcomeBannerProps) {
               <ShieldCheck size={14} className="text-emerald-400" />
               <span>SIPP / STR: <strong className="text-white">{strNumber}</strong></span>
             </div>
+
+            {/* 🟢 Badge Status Akun Dinamis */}
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur-xs border border-white/10 text-slate-100">
-              <UserCheck size={14} className="text-blue-300" />
-              <span>Status: <strong className="text-emerald-300 font-bold">🟢 Aktif</strong></span>
+              {isComplete ? (
+                <>
+                  <UserCheck size={14} className="text-emerald-300" />
+                  <span>Status: <strong className="text-emerald-300 font-bold">🟢 Aktif (100%)</strong></span>
+                </>
+              ) : (
+                <>
+                  <AlertCircle size={14} className="text-amber-300" />
+                  <span>Status: <strong className="text-amber-300 font-bold">🟡 Menunggu Profil ({profilePercentage}%)</strong></span>
+                </>
+              )}
             </div>
+
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur-xs border border-white/10 text-slate-100">
               <Clock size={14} className="text-amber-300" />
               <span>Bergabung Sejak: <strong className="text-white">{joinedYear}</strong></span>
@@ -152,7 +183,7 @@ export default function WelcomeBanner({ psychologist }: WelcomeBannerProps) {
         </div>
       </div>
 
-      {/* 🟢 DYNAMIC STATS OVERVIEW CARDS */}
+      {/* DYNAMIC STATS OVERVIEW CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Nama & Gelar */}
         <div className="bg-white p-5 rounded-2xl border-2 border-slate-200/80 shadow-xs hover:shadow-md transition-all">
@@ -167,15 +198,15 @@ export default function WelcomeBanner({ psychologist }: WelcomeBannerProps) {
           </div>
         </div>
 
-        {/* Card 2: Spesialisasi */}
+        {/* Card 2: Spesialisasi Utama */}
         <div className="bg-white p-5 rounded-2xl border-2 border-slate-200/80 shadow-xs hover:shadow-md transition-all">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-purple-50 text-purple-700 rounded-xl">
               <Brain size={22} />
             </div>
             <div>
-              <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Spesialisasi</p>
-              <h4 className="text-xs sm:text-sm font-bold text-[#1F415F] line-clamp-1">{specializations}</h4>
+              <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Spesialisasi Utama</p>
+              <h4 className="text-xs sm:text-sm font-bold text-[#1F415F] line-clamp-1">{primarySpec}</h4>
             </div>
           </div>
         </div>
@@ -207,7 +238,7 @@ export default function WelcomeBanner({ psychologist }: WelcomeBannerProps) {
         </div>
       </div>
 
-      {/* 🟢 QUICK ACTIONS SECTION */}
+      {/* QUICK ACTIONS SECTION */}
       <div className="bg-white p-6 rounded-2xl border-2 border-slate-200/80 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <div>

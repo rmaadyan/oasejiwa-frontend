@@ -87,7 +87,10 @@ if (role === "ADMIN" || role === "SUPERADMIN") {
         router.replace("/admin");
     }
 } else if (role === "PSYCHOLOGIST") {
-    if (redirectUrl && redirectUrl.startsWith("/psychologist")) {
+    // 🟢 WAJIB: Jika pertama kali login menggunakan kredensial dari admin, paksa ganti password
+    if (user.isFirstLogin) {
+        router.replace("/auth/change-password-psychologist");
+    } else if (redirectUrl && redirectUrl.startsWith("/psychologist")) {
         router.replace(redirectUrl);
     } else {
         router.replace("/psychologist/profile");

@@ -24,33 +24,43 @@ function PsychologistSelectionInner({
   const searchParams = useSearchParams();
   const serviceId = searchParams.get("service");
 
-  const [selectedPsychologist, setSelectedPsychologist] = useState<
-    string | null
-  >(null);
+  const [selectedPsychologist, setSelectedPsychologist] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSpecialization, setSelectedSpecialization] = useState("Semua");
 
   useEffect(() => {
     if (!serviceId) {
-        router.replace("/booking/services");
+      router.replace("/booking/services");
     }
-  }, [serviceId]);
+  }, [serviceId, router]);
 
-  const filteredPsychologists = psychologists.filter((psy) => {
+  // 🟢 Filter: Hanya tampilkan psikolog yang aktif (100% lengkap) & cocok dengan query pencarian
+  const filteredPsychologists = psychologists.filter((psy: any) => {
+    // Cek status aktif dan kelengkapan profil dari backend
+    const isActive =
+      psy.isProfileComplete === true ||
+      psy.status === "Aktif" ||
+      psy.profilePercentage === 100;
+
+    if (!isActive) return false;
+
     const matchesSearch =
       psy.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      psy.specializations.some((s) =>
-        s.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      (psy.specializations &&
+        psy.specializations.some((s: string) =>
+          s.toLowerCase().includes(searchQuery.toLowerCase())
+        ));
+
     const matchesSpecialization =
       selectedSpecialization === "Semua" ||
-      psy.specializations.includes(selectedSpecialization);
+      (psy.specializations && psy.specializations.includes(selectedSpecialization));
+
     return matchesSearch && matchesSpecialization;
   });
 
   const handleSelect = (id: string) => {
     const psy = psychologists.find((p) => p.id === id);
-    if (psy?.available) {
+    if (psy?.available !== false) {
       setSelectedPsychologist(id);
     }
   };

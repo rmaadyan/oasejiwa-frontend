@@ -18,6 +18,8 @@ type Psikolog = {
   specializations: string[];
   latestEducation?: string;
   experiences?: string[];
+  status?: string;
+  isProfileComplete?: boolean;
 };
 
 export default function PsikologList() {
@@ -32,10 +34,22 @@ export default function PsikologList() {
       const rawData = (result as any)?.data || result || [];
       const rawList = Array.isArray(rawData) ? rawData : [];
 
+      // 🟢 Filter hanya psikolog aktif & profil lengkap 100%
       const cleanList: Psikolog[] = rawList
         .filter((p: any) => {
           const name = p?.name || p?.fullName;
-          return p?.id && name && name.trim() !== "" && name !== "Psikolog";
+          const isActive =
+            p?.isProfileComplete === true ||
+            p?.status === "Aktif" ||
+            p?.profilePercentage === 100;
+
+          return (
+            p?.id &&
+            name &&
+            name.trim() !== "" &&
+            name !== "Psikolog" &&
+            isActive
+          );
         })
         .map((p: any) => ({
           id: p.id,
@@ -50,7 +64,6 @@ export default function PsikologList() {
           experiences: p.experiences || [],
         }));
 
-      // 🟢 Urutkan pasti berdasarkan displayOrder
       cleanList.sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
       setPsikologList(cleanList);
     } catch (err: any) {
@@ -63,7 +76,6 @@ export default function PsikologList() {
   useEffect(() => {
     fetchData();
 
-    // 🟢 Event listener: update otomatis saat tab di-klik / jendela kembali aktif
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         fetchData();
@@ -116,7 +128,7 @@ export default function PsikologList() {
       <div className="min-h-screen bg-[#F0F4F8]">
         <Navbar />
         <div className="flex items-center justify-center min-h-[60vh]">
-          <p className="text-gray-500 font-medium">Belum ada psikolog tersedia</p>
+          <p className="text-gray-500 font-medium">Belum ada psikolog aktif yang tersedia</p>
         </div>
       </div>
     );

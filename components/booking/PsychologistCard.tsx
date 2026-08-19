@@ -6,14 +6,14 @@ interface PsychologistCardProps {
   id: string;
   name: string;
   role: string;
-  specializations: string[]; // Add this line
-  experience: string;
-  rating: number;
-  reviews: number;
-  price: number;
+  specializations: string[];
+  experience?: string;
+  rating?: number;
+  reviews?: number;
+  price?: number;
   avatar: string;
-  available: boolean;
-  isSelected: boolean;
+  available?: boolean;
+  isSelected?: boolean;
   onSelect: (id: string) => void;
 }
 
@@ -21,13 +21,8 @@ export default function PsychologistCard({
   id,
   name,
   role,
-  specializations,
-  experience,
-  rating,
-  reviews,
-  price,
+  specializations = [],
   avatar,
-  available,
   isSelected = false,
   onSelect,
 }: PsychologistCardProps) {
@@ -39,19 +34,19 @@ export default function PsychologistCard({
     <div
       onClick={() => onSelect(id)}
       className={`
-        flex items-start gap-4 p-4 bg-white rounded-2xl cursor-pointer
+        flex items-center gap-4 p-4 bg-white rounded-2xl cursor-pointer
         transition-all duration-300 ease-out
         ${
           isSelected
-            ? "border-2 border-[#2B5379] shadow-lg shadow-[#2B5379]/20"
+            ? "border-2 border-[#2B5379] shadow-lg shadow-[#2B5379]/20 bg-blue-50/20"
             : "border border-[#D6E6F2] shadow-sm hover:shadow-md hover:border-[#2B5379]/50 hover:-translate-y-0.5"
         }
       `}
     >
       {/* Avatar */}
-      <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden flex-shrink-0 mt-1">
+      <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden flex-shrink-0">
         <Image
-          src={avatar}
+          src={avatar || "/assets/default-avatar.png"}
           alt={name}
           fill
           className="object-cover"
@@ -64,7 +59,7 @@ export default function PsychologistCard({
           {name}
         </h3>
         <p className="text-sm text-[#4B4B4B] truncate">
-          {role}
+          {role || "Psikolog Oase Jiwa"}
         </p>
 
         {/* Specializations */}
@@ -87,18 +82,16 @@ export default function PsychologistCard({
         )}
       </div>
 
-      {/* Price & Button */}
-      <div className="flex flex-col items-end gap-2 flex-shrink-0">
-        <p className="text-sm md:text-base font-semibold text-[#234463] whitespace-nowrap">
-          Rp {price.toLocaleString("id-ID")}
-        </p>
+      {/* Tombol Pilih (Teks Rp 0 Dihilangkan) */}
+      <div className="flex items-center justify-end flex-shrink-0 ml-2">
         <button
+          type="button"
           className={`
-            px-4 py-2 rounded-xl text-sm font-semibold
-            transition-all duration-300 active:scale-95
+            px-5 py-2.5 rounded-xl text-sm font-semibold
+            transition-all duration-300 active:scale-95 cursor-pointer shadow-xs
             ${
               isSelected
-                ? "bg-[#2E8B3D] text-white"
+                ? "bg-[#2E8B3D] text-white shadow-md ring-2 ring-emerald-300"
                 : "bg-[#3AB64C] text-white hover:bg-[#2E8B3D]"
             }
           `}
