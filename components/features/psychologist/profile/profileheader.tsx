@@ -19,8 +19,10 @@ export default function ProfileHeader({
   psychologist,
   onUpdate,
 }: ProfileHeaderProps) {
+  const psychData = psychologist as any;
+
   const [photoUrl, setPhotoUrl] = useState<string>(
-    psychologist.photo || (psychologist as any).avatarUrl || ""
+    psychData?.photo || psychData?.avatarUrl || ""
   );
   const [isUploading, setIsUploading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -28,10 +30,10 @@ export default function ProfileHeader({
   const [isCropperOpen, setIsCropperOpen] = useState(false);
 
   useEffect(() => {
-    if (psychologist.photo || (psychologist as any).avatarUrl) {
-      setPhotoUrl(psychologist.photo || (psychologist as any).avatarUrl || "");
+    if (psychData?.photo || psychData?.avatarUrl) {
+      setPhotoUrl(psychData.photo || psychData.avatarUrl || "");
     }
-  }, [psychologist]);
+  }, [psychData]);
 
   const formatJoinedDate = (date?: string | null) => {
     if (!date) return "-";
@@ -42,11 +44,41 @@ export default function ProfileHeader({
     });
   };
 
-  const percentage = (psychologist as any).profilePercentage ?? (
-    psychologist.status === "Aktif" || (psychologist as any).isProfileComplete ? 100 : 40
-  );
+  const percentage =
+    psychData?.profilePercentage ??
+    (psychologist.status === "Aktif" || psychData?.isProfileComplete
+      ? 100
+      : 40);
 
   const isCompleted = percentage === 100;
+
+  // 🟢 Pengecekan aman checklist 5 bagian (@20%)
+  const hasPersonalInfo = Boolean(
+    psychData?.about &&
+      psychData.about !== "-" &&
+      psychData.about !== "Psikolog Klinik Oase Jiwa" &&
+      psychData.about.trim().length > 3
+  );
+
+  const hasPhoto = Boolean(
+    photoUrl && photoUrl.trim() !== "" && !photoUrl.includes("default")
+  );
+
+  const hasEducation = Boolean(
+    (psychData?.educations && psychData.educations.length > 0) ||
+      (psychData?.education && psychData.education.length > 0)
+  );
+
+  const hasProfessional = Boolean(
+    (psychData?.specializations && psychData.specializations.length > 0) ||
+      (psychData?.specialization && psychData.specialization.length > 0) ||
+      (psychData?.expertises && psychData.expertises.length > 0)
+  );
+
+  const hasSchedule = Boolean(
+    (psychData?.schedules && psychData.schedules.length > 0) ||
+      (psychData?.schedule && psychData.schedule.length > 0)
+  );
 
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -91,7 +123,7 @@ export default function ProfileHeader({
       }
     } catch (err: any) {
       console.error("Gagal update foto psikolog:", err);
-      setPhotoUrl(psychologist.photo || (psychologist as any).avatarUrl || "");
+      setPhotoUrl(psychData?.photo || psychData?.avatarUrl || "");
     } finally {
       setIsUploading(false);
     }
@@ -153,9 +185,7 @@ export default function ProfileHeader({
         <div className="flex flex-col items-center md:items-end gap-2">
           <div
             className={`px-5 py-2 rounded-xl text-xs md:text-sm font-semibold shadow-xs flex items-center gap-1.5 ${
-              isCompleted
-                ? "bg-emerald-600 text-white"
-                : "bg-amber-500 text-white"
+              isCompleted ? "bg-emerald-600 text-white" : "bg-amber-500 text-white"
             }`}
           >
             {isCompleted ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
@@ -167,12 +197,13 @@ export default function ProfileHeader({
         </div>
       </div>
 
-      {/* 🟢 PROGRESS BAR KELENGKAPAN PROFIL (PERSIS PROFILE PASIEN) */}
-      <div className="bg-white/80 backdrop-blur-xs rounded-xl p-4 border border-blue-100 space-y-2">
+      {/* PROGRESS BAR & CHECKLIST KELENGKAPAN */}
+      <div className="bg-white/90 backdrop-blur-xs rounded-xl p-4 border border-blue-100 space-y-3">
         <div className="flex justify-between items-center text-xs font-bold text-[#2B5379]">
           <span>Status Kelengkapan Profil</span>
           <span>{percentage}% / 100%</span>
         </div>
+
         <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
           <div
             className={`h-full transition-all duration-500 rounded-full ${
@@ -181,11 +212,65 @@ export default function ProfileHeader({
             style={{ width: `${percentage}%` }}
           />
         </div>
+
         <p className="text-[11px] text-slate-600 font-medium">
           {isCompleted
             ? "Profil Anda telah lengkap 100% dan akun Anda berstatus Aktif untuk menerima pemesanan konsultasi."
-            : "Lengkapi 5 bagian (Personal Info, Foto, Pendidikan, Info Profesional, dan Jadwal Praktik) agar profil aktif di publik."}
+            : "Lengkapi 5 bagian di bawah ini agar profil aktif di publik dan dapat menerima konsultasi:"}
         </p>
+
+        {/* 🟢 CHECKLIST 5 KRITERIA (@20%) */}
+        <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-100">
+          <span
+            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+              hasPersonalInfo
+                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                : "bg-slate-100 text-slate-500 border border-slate-200"
+            }`}
+          >
+            {hasPersonalInfo ? "✓" : "○"} Info Pribadi & Bio (20%)
+          </span>
+
+          <span
+            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+              hasPhoto
+                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                : "bg-slate-100 text-slate-500 border border-slate-200"
+            }`}
+          >
+            {hasPhoto ? "✓" : "○"} Foto Profil (20%)
+          </span>
+
+          <span
+            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+              hasEducation
+                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                : "bg-slate-100 text-slate-500 border border-slate-200"
+            }`}
+          >
+            {hasEducation ? "✓" : "○"} Pendidikan (20%)
+          </span>
+
+          <span
+            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+              hasProfessional
+                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                : "bg-slate-100 text-slate-500 border border-slate-200"
+            }`}
+          >
+            {hasProfessional ? "✓" : "○"} Info Profesional (20%)
+          </span>
+
+          <span
+            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+              hasSchedule
+                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                : "bg-slate-100 text-slate-500 border border-slate-200"
+            }`}
+          >
+            {hasSchedule ? "✓" : "○"} Jadwal Praktik (20%)
+          </span>
+        </div>
       </div>
 
       {/* Modal Crop */}

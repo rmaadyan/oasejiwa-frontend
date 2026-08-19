@@ -80,11 +80,10 @@ export default function WelcomeBanner({ psychologist }: WelcomeBannerProps) {
   const totalPatients = typeof psychologist.totalPatients === "number" ? psychologist.totalPatients : 0;
   const totalSessions = typeof psychologist.totalSessions === "number" ? psychologist.totalSessions : 0;
 
-  // 🟢 3. Status & Kelengkapan Profil Dinamis
-  const profilePercentage = (psychologist as any).profilePercentage ?? (
-    psychologist.status === "Aktif" || (psychologist as any).isProfileComplete ? 100 : 0
-  );
-  const isComplete = profilePercentage === 100;
+ const profilePercentage =
+    Number((psychologist as any).profilePercentage ?? (psychologist as any).percentage ?? 0);
+  
+  const isComplete = profilePercentage === 100 || psychologist.status === "Aktif";
 
   const quickActions = [
     {
@@ -162,18 +161,18 @@ export default function WelcomeBanner({ psychologist }: WelcomeBannerProps) {
 
             {/* 🟢 Badge Status Akun Dinamis */}
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur-xs border border-white/10 text-slate-100">
-              {isComplete ? (
-                <>
-                  <UserCheck size={14} className="text-emerald-300" />
-                  <span>Status: <strong className="text-emerald-300 font-bold">🟢 Aktif (100%)</strong></span>
-                </>
-              ) : (
-                <>
-                  <AlertCircle size={14} className="text-amber-300" />
-                  <span>Status: <strong className="text-amber-300 font-bold">🟡 Menunggu Profil ({profilePercentage}%)</strong></span>
-                </>
-              )}
-            </div>
+    {isComplete ? (
+      <>
+        <UserCheck size={14} className="text-emerald-300" />
+        <span>Status: <strong className="text-emerald-300 font-bold">🟢 Aktif (100%)</strong></span>
+      </>
+    ) : (
+      <>
+        <AlertCircle size={14} className="text-amber-300" />
+        <span>Status: <strong className="text-amber-300 font-bold">🟡 Menunggu Profil ({profilePercentage}%)</strong></span>
+      </>
+    )}
+  </div>
 
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur-xs border border-white/10 text-slate-100">
               <Clock size={14} className="text-amber-300" />

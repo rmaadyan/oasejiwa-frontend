@@ -433,20 +433,20 @@ export default function PsikologManagementPage() {
 
                                             <td className="p-4 pr-6 text-right">
                                                 <div className="flex items-center justify-end gap-2">
-                                                    {!isComplete && (
-                                                        <button
-                                                            onClick={() => handleSendReminder(item.id, item.email)}
-                                                            disabled={sendingReminderId === item.id || manualMode}
-                                                            className="p-2 text-amber-600 hover:bg-amber-50 rounded-xl transition cursor-pointer flex items-center gap-1 text-xs font-medium border border-amber-200/60 disabled:opacity-40"
-                                                            title="Kirim Email Pengingat Update Profil"
-                                                        >
-                                                            <Mail size={15} />
-                                                            <span className="hidden sm:inline">
-                                                                {sendingReminderId === item.id ? "Sending..." : "Ingatkan"}
-                                                            </span>
-                                                        </button>
-                                                    )}
-
+                                                    {/* 🟢 Munculkan tombol Ingatkan selama statusnya Menunggu Profil / belum 100% */}
+  {(!item.isProfileComplete || item.profilePercentage < 100) && (
+    <button
+      onClick={() => handleSendReminder(item.id, item.email)}
+      disabled={sendingReminderId === item.id || manualMode}
+      className="p-2 text-amber-600 hover:bg-amber-50 rounded-xl transition cursor-pointer flex items-center gap-1 text-xs font-medium border border-amber-200/60 disabled:opacity-40"
+      title="Kirim Email Pengingat Kelengkapan Profil"
+    >
+      <Mail size={15} />
+      <span className="hidden sm:inline">
+        {sendingReminderId === item.id ? "Sending..." : "Ingatkan"}
+      </span>
+    </button>
+  )}
                                                     <Link
                                                         href={`/psikologdetail?id=${item.id}`}
                                                         target="_blank"
