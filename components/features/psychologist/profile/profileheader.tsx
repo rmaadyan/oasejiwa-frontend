@@ -44,45 +44,42 @@ export default function ProfileHeader({
     });
   };
 
-  // 🟢 1. Ambil persentase murni dari backend (misal: 80%)
-  const percentage = Number(
-    psychData?.profilePercentage ??
-    psychData?.percentage ??
-    (psychologist.status === "Aktif" || psychData?.isProfileComplete ? 100 : 0)
+  // 🟢 1. Pengecekan 5 Aspek Checklist (@20%)
+  const hasPersonalInfo = Boolean(
+    (psychologist.name || psychData?.fullName) &&
+    ((psychData?.sipp && psychData.sipp !== "-") || (psychData?.str && psychData.str !== "-"))
   );
 
-  const isCompleted = percentage === 100 || psychologist.status === "Aktif";
-
-  // 🟢 2. Pengecekan Checklist (Gunakan flags dari backend jika ada, atau fallback lokal yang fleksibel)
-  const checks = psychData?.profileChecks || {};
-
-  const hasPersonalInfo = checks.personalInfo ?? Boolean(
-    psychData?.fullName &&
-    ((psychData?.sipp && psychData.sipp !== "-") || (psychData?.str && psychData.str !== "-")) &&
-    psychData?.about &&
-    psychData.about !== "-" &&
-    psychData.about.trim().length > 0
-  );
-
-  const hasPhoto = checks.photo ?? Boolean(
+  const hasPhoto = Boolean(
     photoUrl && photoUrl.trim() !== "" && !photoUrl.includes("default")
   );
 
-  const hasEducation = checks.education ?? Boolean(
+  const hasEducation = Boolean(
     (psychData?.educations && psychData.educations.length > 0) ||
     (psychData?.education && psychData.education.length > 0)
   );
 
-  const hasProfessional = checks.professional ?? Boolean(
+  const hasProfessional = Boolean(
     (psychData?.specializations && psychData.specializations.length > 0) ||
     (psychData?.specialization && psychData.specialization.length > 0) ||
     (psychData?.expertises && psychData.expertises.length > 0)
   );
 
-  const hasSchedule = checks.schedule ?? Boolean(
+  const hasSchedule = Boolean(
     (psychData?.schedules && psychData.schedules.length > 0) ||
     (psychData?.schedule && psychData.schedule.length > 0)
   );
+
+  // 🟢 2. Hitung Persentase Nyata
+  let calculatedScore = 0;
+  if (hasPersonalInfo) calculatedScore += 20;
+  if (hasPhoto) calculatedScore += 20;
+  if (hasEducation) calculatedScore += 20;
+  if (hasProfessional) calculatedScore += 20;
+  if (hasSchedule) calculatedScore += 20;
+
+  const percentage = psychData?.profilePercentage ?? calculatedScore;
+  const isCompleted = percentage === 100 || psychologist.status === "Aktif";
 
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -223,7 +220,7 @@ export default function ProfileHeader({
             : "Lengkapi 5 bagian di bawah ini agar profil aktif di publik dan dapat menerima konsultasi:"}
         </p>
 
-        {/* CHECKLIST 5 KRITERIA (@20%) */}
+        {/* 🟢 CHECKLIST 5 KRITERIA */}
         <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-100">
           <span
             className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${

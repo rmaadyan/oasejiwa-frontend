@@ -23,11 +23,12 @@ interface WelcomeBannerProps {
 
 export default function WelcomeBanner({ psychologist }: WelcomeBannerProps) {
   const router = useRouter();
+  const psychData = psychologist as any;
 
   // Dynamic Name
   const fullName =
     psychologist.name ||
-    (psychologist as any).fullName ||
+    psychData?.fullName ||
     "Psikolog OaseJiwa";
 
   const fullGreeting = `Selamat Datang, ${fullName}`;
@@ -56,21 +57,21 @@ export default function WelcomeBanner({ psychologist }: WelcomeBannerProps) {
 
   // 🟢 1. Spesialisasi: Ambil yang pertama diisi oleh psikolog
   const primarySpec =
-    (psychologist as any).primarySpecialization ||
+    psychData?.primarySpecialization ||
     (Array.isArray(psychologist.specialization) && psychologist.specialization.length > 0
       ? psychologist.specialization[0]
-      : Array.isArray((psychologist as any).specializations) && (psychologist as any).specializations.length > 0
-      ? (psychologist as any).specializations[0]
-      : Array.isArray((psychologist as any).expertises) && (psychologist as any).expertises.length > 0
-      ? (psychologist as any).expertises[0]
+      : Array.isArray(psychData?.specializations) && psychData?.specializations.length > 0
+      ? psychData?.specializations[0]
+      : Array.isArray(psychData?.expertises) && psychData?.expertises.length > 0
+      ? psychData?.expertises[0]
       : "Belum Diisi");
 
-  // 🟢 2. SIPP / STR Dinamis (tanpa placeholder palsu)
+  // 🟢 2. SIPP / STR Dinamis
   const strNumber =
     psychologist.str && psychologist.str !== "-"
       ? psychologist.str
-      : (psychologist as any).sipp && (psychologist as any).sipp !== "-"
-      ? (psychologist as any).sipp
+      : psychData?.sipp && psychData?.sipp !== "-"
+      ? psychData?.sipp
       : "-";
 
   const joinedYear = psychologist.joinedDate
@@ -80,13 +81,24 @@ export default function WelcomeBanner({ psychologist }: WelcomeBannerProps) {
   const totalPatients = typeof psychologist.totalPatients === "number" ? psychologist.totalPatients : 0;
   const totalSessions = typeof psychologist.totalSessions === "number" ? psychologist.totalSessions : 0;
 
- // 🟢 Ambil persentase murni dari backend
-  const profilePercentage = Number(
-    (psychologist as any).profilePercentage ??
-    (psychologist as any).percentage ??
-    (psychologist.status === "Aktif" || (psychologist as any).isProfileComplete ? 100 : 0)
+  // 🟢 3. Hitung Skor Sinkron
+  const hasPersonalInfo = Boolean(
+    (psychologist.name || psychData?.fullName) &&
+    ((psychData?.sipp && psychData.sipp !== "-") || (psychData?.str && psychData.str !== "-"))
   );
+  const hasPhoto = Boolean(psychData?.avatarUrl || psychData?.photo);
+  const hasEducation = Boolean((psychData?.educations?.length || 0) > 0 || (psychData?.education?.length || 0) > 0);
+  const hasProfessional = Boolean((psychData?.specializations?.length || 0) > 0 || (psychData?.expertises?.length || 0) > 0);
+  const hasSchedule = Boolean((psychData?.schedules?.length || 0) > 0 || (psychData?.schedule?.length || 0) > 0);
 
+  let calculatedScore = 0;
+  if (hasPersonalInfo) calculatedScore += 20;
+  if (hasPhoto) calculatedScore += 20;
+  if (hasEducation) calculatedScore += 20;
+  if (hasProfessional) calculatedScore += 20;
+  if (hasSchedule) calculatedScore += 20;
+
+  const profilePercentage = Number(psychData?.profilePercentage ?? calculatedScore);
   const isComplete = profilePercentage === 100 || psychologist.status === "Aktif";
 
   const quickActions = [
@@ -126,23 +138,19 @@ export default function WelcomeBanner({ psychologist }: WelcomeBannerProps) {
 
   return (
     <div className="w-full space-y-6 animate-fadeIn">
-      {/* HERO WELCOME BANNER WITH GRADIENT & TYPING ANIMATION */}
+      {/* HERO WELCOME BANNER */}
       <div className="relative overflow-hidden bg-gradient-to-r from-[#1F415F] via-[#2B5379] to-[#3B6A99] rounded-3xl p-6 sm:p-8 lg:p-10 text-white shadow-xl border border-slate-700/30">
-        {/* Decorative Background Elements */}
         <div className="absolute -top-12 -right-12 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 space-y-4">
-          {/* Badge Sapaan */}
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-xs font-semibold text-emerald-300">
             <Sparkles size={14} className="animate-pulse text-amber-300" />
             <span>Portal Psikolog OaseJiwa</span>
           </div>
 
-          {/* Typing Title */}
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight min-h-[48px] sm:min-h-[56px] flex items-center leading-snug">
             <span>👋 {typedText}</span>
-            {/* Blinking Cursor */}
             <span
               className={`inline-block w-1.5 h-7 sm:h-8 ml-1 bg-amber-400 rounded-xs transition-opacity duration-300 ${
                 isTypingComplete ? "animate-pulse" : "opacity-100"
@@ -150,13 +158,11 @@ export default function WelcomeBanner({ psychologist }: WelcomeBannerProps) {
             />
           </h1>
 
-          {/* Subtitle */}
           <p className="text-sm sm:text-base text-slate-200/95 max-w-3xl leading-relaxed font-normal">
             Semoga hari ini menyenangkan. Terima kasih telah menjadi bagian dari{" "}
             <span className="font-semibold text-white">OaseJiwa</span> dan membantu menjaga kesehatan mental para pasien.
           </p>
 
-          {/* Quick Info Badges inside Hero Banner */}
           <div className="pt-2 flex flex-wrap items-center gap-3 text-xs">
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur-xs border border-white/10 text-slate-100">
               <ShieldCheck size={14} className="text-emerald-400" />
@@ -164,18 +170,18 @@ export default function WelcomeBanner({ psychologist }: WelcomeBannerProps) {
             </div>
 
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur-xs border border-white/10 text-slate-100">
-    {isComplete ? (
-      <>
-        <UserCheck size={14} className="text-emerald-300" />
-        <span>Status: <strong className="text-emerald-300 font-bold">🟢 Aktif (100%)</strong></span>
-      </>
-    ) : (
-      <>
-        <AlertCircle size={14} className="text-amber-300" />
-        <span>Status: <strong className="text-amber-300 font-bold">🟡 Menunggu Profil ({profilePercentage}%)</strong></span>
-      </>
-    )}
-  </div>
+              {isComplete ? (
+                <>
+                  <UserCheck size={14} className="text-emerald-300" />
+                  <span>Status: <strong className="text-emerald-300 font-bold">🟢 Aktif (100%)</strong></span>
+                </>
+              ) : (
+                <>
+                  <AlertCircle size={14} className="text-amber-300" />
+                  <span>Status: <strong className="text-amber-300 font-bold">🟡 Menunggu Profil ({profilePercentage}%)</strong></span>
+                </>
+              )}
+            </div>
 
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur-xs border border-white/10 text-slate-100">
               <Clock size={14} className="text-amber-300" />
