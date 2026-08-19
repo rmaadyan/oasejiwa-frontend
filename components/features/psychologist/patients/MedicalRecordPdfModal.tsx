@@ -94,21 +94,21 @@ export default function MedicalRecordPdfModal({
       });
   }, [isOpen]);
 
-  if (!isOpen || !patient) return null;
-
-  const notesList = (patient as any).sessionNotesList?.length
-    ? (patient as any).sessionNotesList
-    : (patient as any).notes?.length
-    ? (patient as any).notes
-    : (patient as any).sessionNotes?.length
-    ? (patient as any).sessionNotes
-    : officialRecord
-    ? [officialRecord]
+  const notesList = patient
+    ? (patient as any).sessionNotesList?.length
+      ? (patient as any).sessionNotesList
+      : (patient as any).notes?.length
+      ? (patient as any).notes
+      : (patient as any).sessionNotes?.length
+      ? (patient as any).sessionNotes
+      : officialRecord
+      ? [officialRecord]
+      : []
     : [];
 
   const note = notesList[0] || {};
   const totalSessionsCount = Math.max(
-    patient.totalSessions || 1,
+    patient?.totalSessions || 1,
     notesList.length || 1
   );
 
@@ -210,7 +210,7 @@ export default function MedicalRecordPdfModal({
   const additionalNotes = note.additionalNotes || "Tidak ada catatan tambahan";
   const tags: string[] = note.tags?.length ? note.tags : [];
 
-  const rawPdfRisk = note.riskLevel || patient.latestRiskLevel;
+  const rawPdfRisk = note.riskLevel || patient?.latestRiskLevel;
   const riskLevel = rawPdfRisk ? String(rawPdfRisk).toLowerCase() : "";
 
   const sessionNum = note.sessionNumber || 1;
@@ -227,11 +227,11 @@ export default function MedicalRecordPdfModal({
     ? rawDiagnosis
     : "-";
 
-  const medicationStr = Array.isArray(patient.currentMedication) && patient.currentMedication.length > 0
+  const medicationStr = Array.isArray(patient?.currentMedication) && patient.currentMedication.length > 0
     ? patient.currentMedication.join(", ")
     : note.currentMedication || "Tidak ada";
 
-  const allergiesStr = Array.isArray(patient.allergies) && patient.allergies.length > 0
+  const allergiesStr = Array.isArray(patient?.allergies) && patient.allergies.length > 0
     ? patient.allergies.join(", ")
     : note.allergies || "Tidak ada";
 
@@ -364,12 +364,16 @@ export default function MedicalRecordPdfModal({
   };
 
   useEffect(() => {
+    if (!isOpen || !patient) return;
+
     setIsCalculated(false);
     const timer = setTimeout(() => {
       runPaginationCalculation();
     }, 150);
     return () => clearTimeout(timer);
-  }, [patient, note, fetchedPsychologist]);
+  }, [isOpen, patient, note, fetchedPsychologist]);
+
+  if (!isOpen || !patient) return null;
 
   const handlePrint = () => {
     window.print();
