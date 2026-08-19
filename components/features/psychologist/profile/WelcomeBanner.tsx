@@ -80,9 +80,13 @@ export default function WelcomeBanner({ psychologist }: WelcomeBannerProps) {
   const totalPatients = typeof psychologist.totalPatients === "number" ? psychologist.totalPatients : 0;
   const totalSessions = typeof psychologist.totalSessions === "number" ? psychologist.totalSessions : 0;
 
- const profilePercentage =
-    Number((psychologist as any).profilePercentage ?? (psychologist as any).percentage ?? 0);
-  
+ // 🟢 Ambil persentase murni dari backend
+  const profilePercentage = Number(
+    (psychologist as any).profilePercentage ??
+    (psychologist as any).percentage ??
+    (psychologist.status === "Aktif" || (psychologist as any).isProfileComplete ? 100 : 0)
+  );
+
   const isComplete = profilePercentage === 100 || psychologist.status === "Aktif";
 
   const quickActions = [
@@ -159,7 +163,6 @@ export default function WelcomeBanner({ psychologist }: WelcomeBannerProps) {
               <span>SIPP / STR: <strong className="text-white">{strNumber}</strong></span>
             </div>
 
-            {/* 🟢 Badge Status Akun Dinamis */}
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur-xs border border-white/10 text-slate-100">
     {isComplete ? (
       <>
