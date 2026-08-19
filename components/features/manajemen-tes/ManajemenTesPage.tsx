@@ -15,6 +15,8 @@ import TesTable from "./TesTable";
 import type { TesItem } from "./types";
 import { getAllTes, deleteTes } from "@/lib/api/tes"; // sesuaikan path
 
+import CategoryManagementModal from "./CategoryManagementModal";
+
 const PAGE_SIZE_OPTIONS = [5, 10, 20];
 
 export default function ManajemenTesPage() {
@@ -27,6 +29,7 @@ export default function ManajemenTesPage() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
   // Fetch data dari API
   const fetchData = async () => {
@@ -204,6 +207,15 @@ export default function ManajemenTesPage() {
                   />
                 </div>
                 <button
+                  onClick={() => setIsCategoryModalOpen(true)}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-slate-100 border border-slate-300 px-5 py-3 text-[14px] font-semibold text-slate-700 hover:bg-slate-200 transition-all duration-300 cursor-pointer"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                  </svg>
+                  Kelola Kategori
+                </button>
+                <button
                   onClick={() => router.push("/admin/manajemen-tes/tambah")}
                   className="flex items-center justify-center gap-2 rounded-xl bg-[#234463] px-6 py-3 text-[14px] font-semibold text-white hover:bg-[#2B5379] hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
                 >
@@ -237,6 +249,12 @@ export default function ManajemenTesPage() {
           </div>
         </div>
       </div>
+
+      <CategoryManagementModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        onUpdated={fetchData}
+      />
     </>
   );
 }

@@ -3,11 +3,19 @@
 import Footer from "@/components/common/Footer";
 import Navbar from "@/components/common/Navbar";
 import type { TesItem } from "@/components/features/manajemen-tes/types";
-import { getAllTes } from "@/lib/api/tes";
+import { getAllTes, getTesCategories } from "@/lib/api/tes";
 import { DASS21_QUESTIONS } from "@/lib/data/dass21-questions";
 import { getImageUrl } from "@/lib/utils/getImageUrl";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+
+type CategoryData = {
+  id: number;
+  nama: string;
+  deskripsi?: string | null;
+  status: string;
+  urutan: number;
+};
 
 type GroupedTes = {
   jenis: string;
@@ -82,19 +90,25 @@ const FALLBACK_TES_ITEMS: TesItem[] = [
 export default function TesPsikologiUserPage() {
   const router = useRouter();
   const [tesList, setTesList] = useState<TesItem[]>([]);
+  const [categories, setCategories] = useState<CategoryData[]>([]);
   const [loading, setLoading] = useState(true);
   const listRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     async function fetchTes() {
       try {
-        const data = await getAllTes();
+        const [data, cats] = await Promise.all([
+          getAllTes().catch(() => []),
+          getTesCategories().catch(() => []),
+        ]);
+
         const aktif = (data || []).filter((t: TesItem) => t.status === "Aktif");
         if (aktif.length > 0) {
           setTesList(aktif);
         } else {
           setTesList(FALLBACK_TES_ITEMS);
         }
+        setCategories(cats || []);
       } catch (err) {
         console.error("Gagal fetch tes, menggunakan fallback:", err);
         setTesList(FALLBACK_TES_ITEMS);
@@ -111,16 +125,45 @@ export default function TesPsikologiUserPage() {
     }
   };
 
-  const groupedByJenis: GroupedTes[] = (() => {
-    const map = new Map<string, TesItem[]>();
-    for (const item of tesList) {
-      const key = item.jenis || "Tes Psikologi Online";
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(item);
+  const categoryMap = new Map<string, CategoryData>();
+  categories.forEach((c) => categoryMap.set(c.nama.toLowerCase(), c));
+
+  const groupedByJenis: (GroupedTes & { deskripsi?: string })[] = (() => {
+    const activeCategories = (categories || [])
+      .filter((c) => c.status === "Aktif")
+      .sort((a, b) => (a.urutan ?? 0) - (b.urutan ?? 0));
+
+    if (activeCategories.length > 0) {
+      return activeCategories.map((cat) => {
+        const catNamaLower = cat.nama.toLowerCase();
+        const matchingItems = tesList.filter((t) => {
+          const itemJenis = (t.jenis || "").toLowerCase();
+          return (
+            itemJenis === catNamaLower ||
+            catNamaLower.includes(itemJenis) ||
+            itemJenis.includes(catNamaLower)
+          );
+        });
+
+        const items = matchingItems.length > 0 ? matchingItems : tesList;
+
+        return {
+          jenis: cat.nama,
+          deskripsi: cat.deskripsi || undefined,
+          items,
+        };
+      });
     }
-    return Array.from(map.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([jenis, items]) => ({ jenis, items }));
+
+    // 🟢 Jika tidak ada kategori aktif/semua kategori dihapus atau dinonaktifkan:
+    // HAPUS fallback heading "Kecemasan". Kembalikan group tanpa jenis agar heading tidak dirender.
+    return [
+      {
+        jenis: "",
+        deskripsi: undefined,
+        items: tesList,
+      },
+    ];
   })();
 
   if (loading) {
@@ -291,14 +334,23 @@ export default function TesPsikologiUserPage() {
           <div className="mx-auto flex max-w-7xl flex-col gap-12 px-4 sm:px-6 lg:px-16">
             
             {/* TAMPILAN KARTU JIKA DATA TES TERSEDIA */}
-            {groupedByJenis.map((group) => (
-              <div key={group.jenis} className="space-y-6">
-                <div className="flex items-center gap-3">
-                  <div className="h-1.5 w-8 sm:w-10 bg-[#234463] rounded-full" />
-                  <h2 className="text-[22px] sm:text-[26px] md:text-[30px] font-bold text-[#1E293B]">
-                    {group.jenis}
-                  </h2>
-                </div>
+            {groupedByJenis.map((group, idx) => (
+              <div key={group.jenis || idx} className="space-y-6">
+                {group.jenis && group.jenis.trim() !== "" && (
+                  <div>
+                    <div className="flex items-center gap-3">
+                      <div className="h-1.5 w-8 sm:w-10 bg-[#234463] rounded-full" />
+                      <h2 className="text-[22px] sm:text-[26px] md:text-[30px] font-bold text-[#1E293B]">
+                        {group.jenis}
+                      </h2>
+                    </div>
+                    {group.deskripsi && (
+                      <p className="text-xs sm:text-sm text-slate-500 mt-1 ml-11 sm:ml-13 max-w-2xl">
+                        {group.deskripsi}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
                   {group.items.map((tes) => {
