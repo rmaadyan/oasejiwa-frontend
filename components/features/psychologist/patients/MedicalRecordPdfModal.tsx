@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useLayoutEffect } from "react";
 import { X, Printer, Download } from "lucide-react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas-pro";
@@ -16,6 +16,24 @@ interface Props {
   officialRecord?: any;
 }
 
+export interface ClinicalSectionItem {
+  id: string;
+  title: string;
+  type: "text" | "checkboxes" | "session_info" | "list" | "referral";
+  content?: string;
+  items?: string[];
+  followUpPlanValue?: string;
+  sessionNum?: number;
+  nextSessionDate?: string;
+  riskLevelText?: string;
+}
+
+export interface PdfPageData {
+  pageIndex: number;
+  sections: ClinicalSectionItem[];
+  includeSignature: boolean;
+}
+
 export default function MedicalRecordPdfModal({
   isOpen,
   onClose,
@@ -24,7 +42,6 @@ export default function MedicalRecordPdfModal({
   psychologistSipp,
   officialRecord,
 }: Props) {
-  const singlePageRef = useRef<HTMLDivElement>(null);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   // State to store dynamically fetched psychologist profile (logged-in user)
@@ -35,6 +52,18 @@ export default function MedicalRecordPdfModal({
     signatureUrl?: string | null;
     signatureUpdatedAt?: string | null;
   } | null>(null);
+
+  // Pages layout state
+  const [pdfPages, setPdfPages] = useState<PdfPageData[]>([]);
+  const [isCalculated, setIsCalculated] = useState(false);
+
+  // Measurement Refs
+  const measuringContainerRef = useRef<HTMLDivElement>(null);
+  const page1HeaderRef = useRef<HTMLDivElement>(null);
+  const pageNHeaderRef = useRef<HTMLDivElement>(null);
+  const sectionMeasureRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const signatureMeasureRef = useRef<HTMLDivElement>(null);
+  const pageDomRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   // Fetch logged in psychologist profile dynamically when modal opens
   useEffect(() => {
@@ -93,8 +122,7 @@ export default function MedicalRecordPdfModal({
     return `${API_BASE_URL}${trimmed.startsWith("/") ? "" : "/"}${trimmed}`;
   };
 
-  // 🟢 SINGLE UNIFIED UTILITY TO RESOLVE LEGAL SIGNER & SIGNATURE DATA
-  // Sequence: note -> patient.psychologist -> fetchedPsychologist
+  // Resolve signer data
   const resolveSignatureData = () => {
     const rawUrl =
       note.signatureUrl ||
@@ -155,7 +183,6 @@ export default function MedicalRecordPdfModal({
   };
 
   const resolvedLegalSigner = resolveSignatureData();
-
   const finalPsychologistName = resolvedLegalSigner.name;
   const finalPsychologistSipp = resolvedLegalSigner.sipp;
   const finalPsychologistStr = resolvedLegalSigner.str;
@@ -209,50 +236,177 @@ export default function MedicalRecordPdfModal({
     : note.allergies || "Tidak ada";
 
   const followUpPlan = note.followUpPlan || "CONTINUE_SESSION";
+  const tagsStr = tags && tags.length > 0 ? (Array.isArray(tags) ? tags.join(", ") : String(tags)) : "Tidak ada";
+
+  // Build array of clinical sections for pagination calculation
+  const allClinicalSections: ClinicalSectionItem[] = [
+    { id: "sec-subjective", title: "• Ringkasan Masalah Utama (Subjective) :", type: "text", content: mainProblem },
+    { id: "sec-objective", title: "• Observasi Psikolog (Objective) :", type: "text", content: observation },
+    { id: "sec-assessment", title: "• Assessment Psikolog :", type: "text", content: assessment },
+    { id: "sec-plan", title: "• Rekomendasi Pendekatan Terapi (Plan) :", type: "text", content: plan },
+    { id: "sec-followup", title: "• Rencana Tindak Lanjut :", type: "checkboxes", followUpPlanValue: followUpPlan },
+    { id: "sec-sessioninfo", title: "• Sesi & Tanggal Follow-up :", type: "session_info", sessionNum, nextSessionDate },
+    { id: "sec-riskreason", title: `• Alasan Penilaian Risiko (${riskLevel.toUpperCase() || "RENDAH"}) :`, type: "text", content: riskReason },
+    { id: "sec-recommendations", title: "• Rekomendasi Penanganan Otomatis :", type: "list", items: autoRecommendations },
+    { id: "sec-nextfocus", title: "• Fokus Sesi Berikutnya :", type: "text", content: nextSessionFocus },
+    { id: "sec-addnotes", title: "• Catatan Tambahan (jika ada) :", type: "text", content: additionalNotes },
+    { id: "sec-referral", title: "• Referral :", type: "referral", content: tagsStr },
+  ];
+
+  // Perform dynamic height calculation & pagination
+  const runPaginationCalculation = () => {
+    if (!measuringContainerRef.current) return;
+
+    // Standard A4 dimensions at 96 DPI: 297mm ~ 1122.5px.
+    // Sheet padding top 6mm + bottom 6mm ~ 45px.
+    // Inner sheet total height = ~1077px.
+    const TOTAL_A4_INNER_HEIGHT = 1077;
+    const FOOTER_HEIGHT = 45;
+
+    // Measured top headers
+    const hPage1Header = page1HeaderRef.current?.offsetHeight || 340;
+    const hPageNHeader = pageNHeaderRef.current?.offsetHeight || 115;
+    const hSignature = signatureMeasureRef.current?.offsetHeight || 180;
+
+    // Maximum height allowed for content per page
+    const hPage1MaxContent = TOTAL_A4_INNER_HEIGHT - hPage1Header - FOOTER_HEIGHT - 15; // ~700px
+    const hPageNMaxContent = TOTAL_A4_INNER_HEIGHT - hPageNHeader - FOOTER_HEIGHT - 15; // ~900px
+
+    // Measure section heights
+    const sectionHeights: { [id: string]: number } = {};
+    allClinicalSections.forEach((sec) => {
+      const el = sectionMeasureRefs.current[sec.id];
+      sectionHeights[sec.id] = el?.offsetHeight || 60;
+    });
+
+    const pagesResult: PdfPageData[] = [];
+    let currentSections: ClinicalSectionItem[] = [];
+    let currentHeight = 0;
+    let isPage1 = true;
+
+    const maxContentHeight = () => (isPage1 ? hPage1MaxContent : hPageNMaxContent);
+
+    for (let i = 0; i < allClinicalSections.length; i++) {
+      const sec = allClinicalSections[i];
+      const secH = sectionHeights[sec.id] || 60;
+
+      // Check if section fits on current page
+      if (currentHeight + secH <= maxContentHeight()) {
+        currentSections.push(sec);
+        currentHeight += secH;
+      } else {
+        // If single section is longer than paragraph, split text if possible, else push to next page
+        if (sec.type === "text" && sec.content && sec.content.length > 300) {
+          const paragraphs = sec.content.split(/\n+/).filter((p) => p.trim());
+          if (paragraphs.length > 1) {
+            let part1Text = "";
+            let part2Text = "";
+            let splitIndex = Math.ceil(paragraphs.length / 2);
+            part1Text = paragraphs.slice(0, splitIndex).join("\n\n");
+            part2Text = paragraphs.slice(splitIndex).join("\n\n");
+
+            const secPart1: ClinicalSectionItem = { ...sec, content: part1Text };
+            const secPart2: ClinicalSectionItem = { ...sec, id: `${sec.id}-part2`, title: `${sec.title} (Lanjutan)`, content: part2Text };
+
+            currentSections.push(secPart1);
+            pagesResult.push({
+              pageIndex: pagesResult.length,
+              sections: currentSections,
+              includeSignature: false,
+            });
+
+            isPage1 = false;
+            currentSections = [secPart2];
+            currentHeight = secH * 0.5;
+            continue;
+          }
+        }
+
+        // Push current page
+        pagesResult.push({
+          pageIndex: pagesResult.length,
+          sections: currentSections,
+          includeSignature: false,
+        });
+
+        isPage1 = false;
+        currentSections = [sec];
+        currentHeight = secH;
+      }
+    }
+
+    // Now handle signature block
+    if (currentHeight + hSignature <= maxContentHeight()) {
+      pagesResult.push({
+        pageIndex: pagesResult.length,
+        sections: currentSections,
+        includeSignature: true,
+      });
+    } else {
+      // Save current page without signature
+      if (currentSections.length > 0) {
+        pagesResult.push({
+          pageIndex: pagesResult.length,
+          sections: currentSections,
+          includeSignature: false,
+        });
+      }
+      // Create new page specifically for signature
+      pagesResult.push({
+        pageIndex: pagesResult.length,
+        sections: [],
+        includeSignature: true,
+      });
+    }
+
+    setPdfPages(pagesResult);
+    setIsCalculated(true);
+  };
+
+  useEffect(() => {
+    setIsCalculated(false);
+    const timer = setTimeout(() => {
+      runPaginationCalculation();
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [patient, note, fetchedPsychologist]);
 
   const handlePrint = () => {
     window.print();
   };
 
   const handleDownloadJsPDF = async () => {
-    const element = singlePageRef.current;
-    if (!element) {
+    if (!pageDomRefs.current.length) {
       alert("Element PDF tidak ditemukan");
       return;
     }
 
     setDownloadingPdf(true);
     try {
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        backgroundColor: "#ffffff",
-      });
-
-      const imgData = canvas.toDataURL("image/jpeg", 0.82);
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
         format: "a4",
       });
 
-      const imgWidth = 210;
-      const pageHeight = 297;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      for (let i = 0; i < pageDomRefs.current.length; i++) {
+        const pageEl = pageDomRefs.current[i];
+        if (!pageEl) continue;
 
-      let heightLeft = imgHeight;
-      let position = 0;
+        if (i > 0) {
+          pdf.addPage();
+        }
 
-      pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+        const canvas = await html2canvas(pageEl, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          logging: false,
+          backgroundColor: "#ffffff",
+        });
 
-      while (heightLeft >= 5) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+        const imgData = canvas.toDataURL("image/jpeg", 0.95);
+        pdf.addImage(imgData, "JPEG", 0, 0, 210, 297);
       }
 
       pdf.save(`Rekam-Medis-${patient.name.replace(/\s+/g, "_")}.pdf`);
@@ -263,6 +417,270 @@ export default function MedicalRecordPdfModal({
       setDownloadingPdf(false);
     }
   };
+
+  // Renders a single section component
+  const renderSection = (sec: ClinicalSectionItem) => {
+    if (sec.type === "checkboxes") {
+      return (
+        <div key={sec.id} className="mb-2">
+          <span className="font-bold text-[#19355E] text-[11px] block mb-0.5">• Rencana Tindak Lanjut :</span>
+          <div className="pl-4 flex items-center gap-6 text-slate-800 font-medium">
+            <label className={`flex items-center gap-1.5 ${sec.followUpPlanValue === "CONTINUE_SESSION" ? "font-bold text-blue-800" : ""}`}>
+              <input type="checkbox" readOnly checked={sec.followUpPlanValue === "CONTINUE_SESSION"} className="rounded text-blue-600" />
+              <span>[{sec.followUpPlanValue === "CONTINUE_SESSION" ? " ✓ " : "   "}] Lanjutan sesi</span>
+            </label>
+            <label className={`flex items-center gap-1.5 ${sec.followUpPlanValue === "REFER_TO_OTHER" ? "font-bold text-amber-800" : ""}`}>
+              <input type="checkbox" readOnly checked={sec.followUpPlanValue === "REFER_TO_OTHER"} className="rounded text-amber-600" />
+              <span>[{sec.followUpPlanValue === "REFER_TO_OTHER" ? " ✓ " : "   "}] Rujukan ke profesional lain</span>
+            </label>
+            <label className={`flex items-center gap-1.5 ${sec.followUpPlanValue === "COMPLETED" ? "font-bold text-emerald-800" : ""}`}>
+              <input type="checkbox" readOnly checked={sec.followUpPlanValue === "COMPLETED"} className="rounded text-emerald-600" />
+              <span>[{sec.followUpPlanValue === "COMPLETED" ? " ✓ " : "   "}] Selesai</span>
+            </label>
+          </div>
+        </div>
+      );
+    }
+
+    if (sec.type === "session_info") {
+      return (
+        <div key={sec.id} className="pt-1 pb-1 my-1 border-t border-b border-slate-200 flex items-center justify-between text-slate-800 text-[10px]">
+          <span>• <strong>Sesi ini merupakan sesi ke :</strong> {sec.sessionNum}</span>
+          <span>• <strong>Tanggal Sesi Lanjutan / Follow-up :</strong> {sec.nextSessionDate}</span>
+        </div>
+      );
+    }
+
+    if (sec.type === "list") {
+      return (
+        <div key={sec.id} className="mb-2">
+          <span className="font-bold text-[#19355E] text-[11px] block mb-0.5">{sec.title}</span>
+          <ul className="pl-8 list-disc text-slate-800 space-y-0.5 text-[10px]">
+            {sec.items?.map((rec: string, idx: number) => (
+              <li key={idx}>{rec}</li>
+            ))}
+          </ul>
+        </div>
+      );
+    }
+
+    if (sec.type === "referral") {
+      return (
+        <div key={sec.id} className="pt-1 my-1 border-t border-slate-200 flex items-start gap-2 text-[10px]">
+          <span className="font-bold text-slate-900 shrink-0">• Referral :</span>
+          <p className="text-slate-800 text-[10.5px] break-words">{sec.content}</p>
+        </div>
+      );
+    }
+
+    return (
+      <div key={sec.id} className="mb-2">
+        <span className="font-bold text-[#19355E] text-[11px] block mb-0.5">{sec.title}</span>
+        <p className="pl-4 text-slate-800 text-justify text-[10px] whitespace-pre-line leading-relaxed">{sec.content}</p>
+      </div>
+    );
+  };
+
+  // Render Page 1 Header & Metadata
+  const renderPage1Header = () => (
+    <div ref={page1HeaderRef} className="space-y-1.5 mb-2 shrink-0">
+      {/* HEADER OASE JIWA */}
+      <div className="flex justify-between items-center border-b-2 border-slate-800 pb-1.5">
+        <div className="flex items-center gap-2.5">
+          <img
+            src="/assets/logo/logo.png"
+            alt="Oase Jiwa Logo"
+            className="h-11 w-auto object-contain shrink-0"
+          />
+          <div>
+            <h2 className="font-extrabold text-base text-[#19355E] tracking-tight">Oase Jiwa</h2>
+            <p className="text-[10.5px] text-slate-500 font-semibold italic">Biro Psikologi</p>
+          </div>
+        </div>
+
+        <div className="text-right">
+          <h2 className="font-extrabold text-xs text-[#19355E] uppercase tracking-wider">
+            BIRO PSIKOLOGI OASE JIWA
+          </h2>
+          <p className="text-[10.5px] text-slate-500 italic">Temukan Dirimu, Pulihkan Jiwamu.</p>
+        </div>
+      </div>
+
+      {/* DOCUMENT TITLE */}
+      <div className="text-center border-b border-slate-700 pb-0.5">
+        <h3 className="font-bold text-[#19355E] uppercase tracking-wide text-[12px] underline decoration-slate-400 decoration-1">
+          CATATAN UNTUK PSIKOLOG (DIISI OLEH PSIKOLOG SETELAH SESI)
+        </h3>
+      </div>
+
+      {/* METADATA BOX */}
+      <div className="p-2 rounded-xl border border-slate-300 bg-slate-50/70 space-y-1">
+        <div className="flex justify-between items-center border-b border-slate-200 pb-1">
+          <span className="font-bold text-[#19355E] text-[11px]">
+            Sesi Konsultasi ke-{sessionNum} (dari total {totalSessionsCount} sesi) &nbsp;|&nbsp; Tanggal: {formattedSessionDate} &nbsp;|&nbsp; Jam: {formattedSessionTime}
+          </span>
+
+          <span
+            className={`px-2.5 py-0.5 mr-3 rounded-full text-[10.5px] font-extrabold tracking-wide uppercase border ${
+              riskLevel === "very_high" || riskLevel === "sangat_tinggi" || riskLevel === "high" || riskLevel === "tinggi"
+                ? "bg-red-50 text-red-700 border-red-300"
+                : riskLevel === "medium" || riskLevel === "sedang"
+                ? "bg-amber-50 text-amber-800 border-amber-300"
+                : "bg-emerald-50 text-emerald-800 border-emerald-300"
+            }`}
+          >
+            RISK LEVEL: {
+              riskLevel === "very_high" || riskLevel === "sangat_tinggi"
+                ? "SANGAT TINGGI"
+                : riskLevel === "high" || riskLevel === "tinggi"
+                ? "TINGGI"
+                : riskLevel === "medium" || riskLevel === "sedang"
+                ? "SEDANG"
+                : riskLevel === "very_low" || riskLevel === "sangat_rendah"
+                ? "SANGAT RENDAH"
+                : "RENDAH"
+            }
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-x-6 gap-y-0.5 text-[11px]">
+          <div>
+            <span className="font-bold text-slate-700">Psikolog:</span>{" "}
+            <span className="text-slate-900 font-medium">{finalPsychologistName}</span>
+          </div>
+          <div>
+            <span className="font-bold text-slate-700">Pasien:</span>{" "}
+            <span className="text-slate-900 font-semibold">{patient.name}</span>
+          </div>
+          <div>
+            <span className="font-bold text-slate-700">No. Rekam Medis:</span>{" "}
+            <span className="text-slate-800 font-mono text-[10.5px]">{patient.id}</span>
+          </div>
+          <div>
+            <span className="font-bold text-slate-700">Status Konsultasi:</span>{" "}
+            <span className="text-emerald-700 font-bold">{consultationStatus}</span>
+          </div>
+          <div>
+            <span className="font-bold text-slate-700">Diagnosis:</span>{" "}
+            <span className="text-slate-900 font-medium">{diagnosisStr}</span>
+          </div>
+          <div>
+            <span className="font-bold text-slate-700">Obat Saat Ini:</span>{" "}
+            <span className="text-slate-800">{medicationStr}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Render Page N Header (Subsequent Pages)
+  const renderSubsequentHeader = () => (
+    <div ref={pageNHeaderRef} className="space-y-1 mb-2 pb-1.5 border-b-2 border-slate-800 shrink-0">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <img
+            src="/assets/logo/logo.png"
+            alt="Oase Jiwa Logo"
+            className="h-8 w-auto object-contain shrink-0"
+          />
+          <div>
+            <h2 className="font-extrabold text-xs text-[#19355E] tracking-tight">Oase Jiwa — Biro Psikologi</h2>
+            <p className="text-[9.5px] text-slate-500 italic">CATATAN UNTUK PSIKOLOG (LEMBAR LANJUTAN)</p>
+          </div>
+        </div>
+
+        <div className="text-right text-[10px]">
+          <span className="font-bold text-[#19355E]">Pasien: {patient.name}</span>
+          <span className="text-slate-500 block">No. RM: {patient.id?.substring(0, 8)} &nbsp;|&nbsp; Sesi ke-{sessionNum}</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Render Digital Signature Block
+  const renderSignatureBlock = () => (
+    <div ref={signatureMeasureRef} className="mt-4 pt-2 border-t border-slate-200 shrink-0">
+      <div className="flex justify-end font-sans">
+        <div className="text-center w-64">
+          <p className="mb-0.5 text-[11.5px] text-slate-800 font-medium">
+            Malang, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+          </p>
+          <p className="font-bold text-[#19355E] text-[11.5px]">
+            Psikolog Penanggung Jawab,
+          </p>
+
+          {/* Dynamic Digital Signature Image vs Fallback Placeholder */}
+          {activeSignatureUrl ? (
+            <div className="h-16 flex items-center justify-center my-1">
+              <img
+                src={activeSignatureUrl}
+                alt="Tanda Tangan Digital"
+                className="max-h-16 max-w-[170px] object-contain"
+              />
+            </div>
+          ) : (
+            <div className="p-2 border border-dashed border-slate-300 bg-slate-50/70 rounded-lg text-center my-1">
+              <p className="text-[10px] text-slate-400 font-mono">-----------------------------</p>
+              <p className="text-[10px] font-bold text-slate-600">Belum memiliki tanda tangan digital</p>
+              <p className="text-[10px] text-slate-400 font-mono">-----------------------------</p>
+              <p className="text-[9px] text-slate-400 italic mt-0.5">
+                Silakan membuat tanda tangan digital pada menu Profil Saya.
+              </p>
+            </div>
+          )}
+
+          <p className="font-bold text-[#19355E] text-[11.5px] underline mt-0.5">
+            {finalPsychologistName}
+          </p>
+          <p className="text-[10.5px] text-slate-600 font-semibold">
+            {finalPsychologistSipp.startsWith("SIPP") ? finalPsychologistSipp : `SIPP: ${finalPsychologistSipp}`}
+          </p>
+          {finalPsychologistStr && (
+            <p className="text-[10px] text-slate-600 font-medium">
+              {finalPsychologistStr.startsWith("STR") ? finalPsychologistStr : `STR: ${finalPsychologistStr}`}
+            </p>
+          )}
+
+          {/* Status Badge & Timestamp */}
+          {activeSignatureUrl && (
+            <div className="mt-1 flex flex-col items-center gap-0.5 text-[9.5px]">
+              <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                ✔ Ditandatangani secara Digital
+              </span>
+              {activeSignatureUpdatedAt && (
+                <span className="text-[9px] text-slate-500 font-medium">
+                  Terakhir diperbarui:{" "}
+                  {new Date(activeSignatureUpdatedAt).toLocaleDateString("id-ID", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })}{" "}
+                  •{" "}
+                  {new Date(activeSignatureUpdatedAt).toLocaleTimeString("id-ID", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}{" "}
+                  WIB
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  // Render Footer for a page
+  const renderFooter = (pageIndex: number, totalPages: number) => (
+    <div className="mt-auto pt-1.5 border-t border-slate-300 flex justify-between items-center text-[9.5px] text-slate-500 font-sans shrink-0">
+      <span>Dokumen Rahasia Medis - Biro Psikologi Oase Jiwa</span>
+      <span>Generated by Oase Jiwa System | Halaman {pageIndex + 1} dari {totalPages}</span>
+    </div>
+  );
+
+  const displayPages = isCalculated && pdfPages.length > 0 ? pdfPages : [
+    { pageIndex: 0, sections: allClinicalSections, includeSignature: true }
+  ];
 
   return (
     <>
@@ -276,62 +694,100 @@ export default function MedicalRecordPdfModal({
           html,
           body {
             width: 210mm !important;
-            height: 297mm !important;
-            max-height: 297mm !important;
             margin: 0 !important;
             padding: 0 !important;
-            overflow: hidden !important;
             background: #ffffff !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
 
-          #medical-record-pdf-target,
-          #medical-record-pdf-target * {
-            visibility: visible !important;
-            box-sizing: border-box !important;
-          }
-
-          #medical-record-pdf-target {
-            position: fixed !important;
-            left: 0 !important;
-            top: 0 !important;
+          .pdf-page-sheet {
             width: 210mm !important;
             height: 297mm !important;
-            max-height: 297mm !important;
-            margin: 0 !important;
+            margin: 0 auto !important;
             padding: 6mm 10mm !important;
             box-sizing: border-box !important;
             background: #ffffff !important;
             box-shadow: none !important;
             border: none !important;
-            overflow: hidden !important;
-            page-break-after: avoid !important;
-            page-break-before: avoid !important;
-            break-after: avoid !important;
-            break-before: avoid !important;
+            page-break-after: always !important;
+            break-after: page !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
+          }
+
+          #medical-record-modal-overlay {
+            position: absolute !important;
+            inset: 0 !important;
+            background: none !important;
+            padding: 0 !important;
+          }
+
+          #medical-record-modal-container {
+            max-height: none !important;
+            width: 100% !important;
+            background: transparent !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+          }
+
+          .no-print {
+            display: none !important;
           }
         }
       `}</style>
 
+      {/* OFF-SCREEN HIDDEN MEASURING CONTAINER */}
       <div
+        ref={measuringContainerRef}
+        style={{
+          position: "absolute",
+          top: "-9999px",
+          left: "-9999px",
+          width: "210mm",
+          padding: "6mm 10mm",
+          visibility: "hidden",
+          pointerEvents: "none",
+          boxSizing: "border-box",
+        }}
+        className="font-sans text-[11.5px] leading-snug"
+      >
+        {renderPage1Header()}
+        {renderSubsequentHeader()}
+        <div className="p-2 border-2 border-slate-300 rounded-xl bg-white space-y-1.5 text-[10px]">
+          {allClinicalSections.map((sec) => (
+            <div
+              key={sec.id}
+              ref={(el) => {
+                sectionMeasureRefs.current[sec.id] = el;
+              }}
+            >
+              {renderSection(sec)}
+            </div>
+          ))}
+        </div>
+        {renderSignatureBlock()}
+      </div>
+
+      {/* VISIBLE MODAL OVERLAY */}
+      <div
+        id="medical-record-modal-overlay"
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 font-poppins text-xs"
         onClick={onClose}
       >
         <div
-          className="max-h-[94vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-slate-200 shadow-2xl p-4 sm:p-6 space-y-4"
+          id="medical-record-modal-container"
+          className="max-h-[94vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-slate-200 shadow-2xl p-4 sm:p-6 space-y-6"
           onClick={(e) => e.stopPropagation()}
         >
           {/* TOP CONTROLS & HEADER */}
-          <div className="sticky top-0 z-20 flex items-center justify-between border-b-2 border-slate-300 bg-white p-4 rounded-xl shadow-xs">
+          <div className="sticky top-0 z-20 flex items-center justify-between border-b-2 border-slate-300 bg-white p-4 rounded-xl shadow-xs no-print">
             <div>
               <h3 className="font-bold text-[#19355E] text-sm">
-                Dokumen Rekam Medis Digital
+                Dokumen Rekam Medis Digital Multi-Page
               </h3>
               <p className="text-[11px] text-slate-500 font-medium">
-                Pasien: <strong className="text-slate-800">{patient.name}</strong> &nbsp;|&nbsp; Rekam Medis #{patient.id?.substring(0, 8)}
+                Pasien: <strong className="text-slate-800">{patient.name}</strong> &nbsp;|&nbsp; Rekam Medis #{patient.id?.substring(0, 8)} &nbsp;|&nbsp; <strong className="text-[#19355E]">{displayPages.length} Halaman</strong>
               </p>
             </div>
 
@@ -352,7 +808,7 @@ export default function MedicalRecordPdfModal({
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#19355E] hover:bg-[#122746] text-white font-bold text-xs transition shadow-xs cursor-pointer disabled:opacity-50"
               >
                 <Download className="h-4 w-4 text-amber-300" />
-                <span>{downloadingPdf ? "Memproses PDF..." : "Unduh PDF (1 Halaman)"}</span>
+                <span>{downloadingPdf ? "Memproses PDF..." : `Unduh PDF (${displayPages.length} Halaman)`}</span>
               </button>
 
               <button
@@ -366,273 +822,37 @@ export default function MedicalRecordPdfModal({
           </div>
 
           {/* ============================================================ */}
-          {/* SINGLE PAGE A4 CONTAINER SHEET */}
+          {/* MULTI-PAGE A4 CONTAINER SHEETS */}
           {/* ============================================================ */}
-          <div
-            id="medical-record-pdf-target"
-            ref={singlePageRef}
-            className="w-[210mm] mx-auto bg-white p-[6mm_10mm] shadow-md border border-slate-300 font-sans text-[11.5px] leading-snug space-y-1.5 flex flex-col justify-between box-border"
-            style={{ width: "210mm", minHeight: "297mm", height: "auto" }}
-          >
-            <div className="space-y-1.5">
-              {/* HEADER OASE JIWA */}
-              <div className="flex justify-between items-center border-b-2 border-slate-800 pb-1.5">
-                <div className="flex items-center gap-2.5">
-                  <img
-                    src="/assets/logo/logo.png"
-                    alt="Oase Jiwa Logo"
-                    className="h-11 w-auto object-contain shrink-0"
-                  />
-                  <div>
-                    <h2 className="font-extrabold text-base text-[#19355E] tracking-tight">Oase Jiwa</h2>
-                    <p className="text-[10.5px] text-slate-500 font-semibold italic">Biro Psikologi</p>
-                  </div>
-                </div>
+          <div className="space-y-6">
+            {displayPages.map((pageData, pageIdx) => (
+              <div
+                key={`page-${pageIdx}`}
+                ref={(el) => {
+                  pageDomRefs.current[pageIdx] = el;
+                }}
+                className="pdf-page-sheet w-[210mm] min-h-[297mm] h-[297mm] mx-auto bg-white p-[6mm_10mm] shadow-md border border-slate-300 font-sans text-[11.5px] leading-snug flex flex-col justify-between box-border"
+                style={{ width: "210mm", height: "297mm", minHeight: "297mm" }}
+              >
+                <div className="flex-1 flex flex-col space-y-1.5">
+                  {/* HEADER FOR THIS PAGE */}
+                  {pageIdx === 0 ? renderPage1Header() : renderSubsequentHeader()}
 
-                <div className="text-right">
-                  <h2 className="font-extrabold text-xs text-[#19355E] uppercase tracking-wider">
-                    BIRO PSIKOLOGI OASE JIWA
-                  </h2>
-                  <p className="text-[10.5px] text-slate-500 italic">Temukan Dirimu, Pulihkan Jiwamu.</p>
-                </div>
-              </div>
-
-              {/* DOCUMENT TITLE */}
-              <div className="text-center border-b border-slate-700 pb-0.5">
-                <h3 className="font-bold text-[#19355E] uppercase tracking-wide text-[12px] underline decoration-slate-400 decoration-1">
-                  CATATAN UNTUK PSIKOLOG (DIISI OLEH PSIKOLOG SETELAH SESI)
-                </h3>
-              </div>
-
-              {/* METADATA BOX */}
-              <div className="p-2 rounded-xl border border-slate-300 bg-slate-50/70 space-y-1">
-                <div className="flex justify-between items-center border-b border-slate-200 pb-1">
-                  <span className="font-bold text-[#19355E] text-[11px]">
-                    Sesi Konsultasi ke-{sessionNum} (dari total {totalSessionsCount} sesi) &nbsp;|&nbsp; Tanggal: {formattedSessionDate} &nbsp;|&nbsp; Jam: {formattedSessionTime}
-                  </span>
-
-                  {/* RISK LEVEL BADGE WITH MR-3 MARGIN TO PREVENT CLIPPING */}
-                  <span
-                    className={`px-2.5 py-0.5 mr-3 rounded-full text-[10.5px] font-extrabold tracking-wide uppercase border ${
-                      riskLevel === "very_high" || riskLevel === "sangat_tinggi" || riskLevel === "high" || riskLevel === "tinggi"
-                        ? "bg-red-50 text-red-700 border-red-300"
-                        : riskLevel === "medium" || riskLevel === "sedang"
-                        ? "bg-amber-50 text-amber-800 border-amber-300"
-                        : "bg-emerald-50 text-emerald-800 border-emerald-300"
-                    }`}
-                  >
-                    RISK LEVEL: {
-                      riskLevel === "very_high" || riskLevel === "sangat_tinggi"
-                        ? "SANGAT TINGGI"
-                        : riskLevel === "high" || riskLevel === "tinggi"
-                        ? "TINGGI"
-                        : riskLevel === "medium" || riskLevel === "sedang"
-                        ? "SEDANG"
-                        : riskLevel === "very_low" || riskLevel === "sangat_rendah"
-                        ? "SANGAT RENDAH"
-                        : "RENDAH"
-                    }
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-x-6 gap-y-0.5 text-[11px]">
-                  <div>
-                    <span className="font-bold text-slate-700">Psikolog:</span>{" "}
-                    <span className="text-slate-900 font-medium">{finalPsychologistName}</span>
-                  </div>
-                  <div>
-                    <span className="font-bold text-slate-700">Pasien:</span>{" "}
-                    <span className="text-slate-900 font-semibold">{patient.name}</span>
-                  </div>
-                  <div>
-                    <span className="font-bold text-slate-700">No. Rekam Medis:</span>{" "}
-                    <span className="text-slate-800 font-mono text-[10.5px]">{patient.id}</span>
-                  </div>
-                  <div>
-                    <span className="font-bold text-slate-700">Status Konsultasi:</span>{" "}
-                    <span className="text-emerald-700 font-bold">{consultationStatus}</span>
-                  </div>
-                  <div>
-                    <span className="font-bold text-slate-700">Diagnosis:</span>{" "}
-                    <span className="text-slate-900 font-medium">{diagnosisStr}</span>
-                  </div>
-                  <div>
-                    <span className="font-bold text-slate-700">Obat Saat Ini:</span>{" "}
-                    <span className="text-slate-800">{medicationStr}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* MAIN CLINICAL DOCUMENTATION BOX */}
-              <div className="p-2 rounded-xl border-2 border-slate-300 bg-white space-y-1.5 text-[10px] leading-snug break-words">
-                {/* 1. Ringkasan Masalah Utama */}
-                <div>
-                  <span className="font-bold text-[#19355E] text-[11px] block mb-0.5">• Ringkasan Masalah Utama (Subjective) :</span>
-                  <p className="pl-4 text-slate-800 text-justify">{mainProblem}</p>
-                </div>
-
-                {/* 2. Observasi Psikolog */}
-                <div>
-                  <span className="font-bold text-[#19355E] text-[11px] block mb-0.5">• Observasi Psikolog (Objective) :</span>
-                  <p className="pl-4 text-slate-800 text-justify">{observation}</p>
-                </div>
-
-                {/* 3. Assessment Psikolog */}
-                <div>
-                  <span className="font-bold text-[#19355E] text-[11px] block mb-0.5">• Assessment Psikolog :</span>
-                  <p className="pl-4 text-slate-800 text-justify">{assessment}</p>
-                </div>
-
-                {/* 4. Rekomendasi Pendekatan Terapi */}
-                <div>
-                  <span className="font-bold text-[#19355E] text-[11px] block mb-0.5">• Rekomendasi Pendekatan Terapi (Plan) :</span>
-                  <p className="pl-4 text-slate-800 text-justify">{plan}</p>
-                </div>
-
-                {/* 5. Rencana Tindak Lanjut */}
-                <div>
-                  <span className="font-bold text-[#19355E] text-[11px] block mb-0.5">• Rencana Tindak Lanjut :</span>
-                  <div className="pl-4 flex items-center gap-6 text-slate-800 font-medium">
-                    <label className={`flex items-center gap-1.5 ${followUpPlan === "CONTINUE_SESSION" ? "font-bold text-blue-800" : ""}`}>
-                      <input type="checkbox" readOnly checked={followUpPlan === "CONTINUE_SESSION"} className="rounded text-blue-600" />
-                      <span>[{followUpPlan === "CONTINUE_SESSION" ? " ✓ " : "   "}] Lanjutan sesi</span>
-                    </label>
-                    <label className={`flex items-center gap-1.5 ${followUpPlan === "REFER_TO_OTHER" ? "font-bold text-amber-800" : ""}`}>
-                      <input type="checkbox" readOnly checked={followUpPlan === "REFER_TO_OTHER"} className="rounded text-amber-600" />
-                      <span>[{followUpPlan === "REFER_TO_OTHER" ? " ✓ " : "   "}] Rujukan ke profesional lain</span>
-                    </label>
-                    <label className={`flex items-center gap-1.5 ${followUpPlan === "COMPLETED" ? "font-bold text-emerald-800" : ""}`}>
-                      <input type="checkbox" readOnly checked={followUpPlan === "COMPLETED"} className="rounded text-emerald-600" />
-                      <span>[{followUpPlan === "COMPLETED" ? " ✓ " : "   "}] Selesai</span>
-                    </label>
-                  </div>
-                </div>
-
-                {/* 6. Sesi ke & Follow Up Date */}
-                <div className="pt-1 border-t border-slate-200 flex items-center justify-between text-slate-800">
-                  <span>• <strong>Sesi ini merupakan sesi ke :</strong> {sessionNum}</span>
-                  <span>• <strong>Tanggal Sesi Lanjutan / Follow-up :</strong> {nextSessionDate}</span>
-                </div>
-
-                {/* 7. Alasan Penilaian Risiko */}
-                <div>
-                  <span className="font-bold text-[#19355E] text-[11px] block mb-0.5">
-                    • Alasan Penilaian Risiko ({riskLevel.toUpperCase()}) :
-                  </span>
-                  <p className="pl-4 text-slate-700 italic">{riskReason}</p>
-                </div>
-
-                {/* 8. Rekomendasi Penanganan Otomatis */}
-                <div>
-                  <span className="font-bold text-[#19355E] text-[11px] block mb-0.5">• Rekomendasi Penanganan Otomatis :</span>
-                  <ul className="pl-8 list-disc text-slate-800 space-y-0.5">
-                    {autoRecommendations.map((rec: string, idx: number) => (
-                      <li key={idx}>{rec}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* 9. Fokus Sesi Berikutnya */}
-                <div>
-                  <span className="font-bold text-[#19355E] text-[11px] block mb-0.5">• Fokus Sesi Berikutnya :</span>
-                  <p className="pl-4 text-slate-800">{nextSessionFocus}</p>
-                </div>
-
-                {/* 10. Catatan Tambahan */}
-                <div>
-                  <span className="font-bold text-[#19355E] text-[11px] block mb-0.5">• Catatan Tambahan (jika ada) :</span>
-                  <p className="pl-4 text-slate-700 italic">{additionalNotes}</p>
-                </div>
-
-                {/* 11. Referral */}
-                <div className="pt-1 border-t border-slate-200 flex items-start gap-2">
-                  <span className="font-bold text-slate-900 shrink-0">• Referral :</span>
-                  <p className="text-slate-800 text-[11px] break-words">
-                    {tags && tags.length > 0
-                      ? Array.isArray(tags)
-                        ? tags.join(", ")
-                        : String(tags)
-                      : "Tidak ada"}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* DIGITAL SIGNATURE BLOCK & FOOTER */}
-            <div className="space-y-1 pt-2 border-t border-slate-200" style={{ pageBreakInside: "avoid", breakInside: "avoid" }}>
-              <div className="flex justify-end font-sans">
-                <div className="text-center w-64">
-                  <p className="mb-0.5 text-[11.5px] text-slate-800 font-medium">
-                    Malang, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
-                  </p>
-                  <p className="font-bold text-[#19355E] text-[11.5px]">
-                    Psikolog Penanggung Jawab,
-                  </p>
-
-                  {/* Dynamic Digital Signature Image vs Fallback Placeholder */}
-                  {activeSignatureUrl ? (
-                    <div className="h-16 flex items-center justify-center my-1">
-                      <img
-                        src={activeSignatureUrl}
-                        alt="Tanda Tangan Digital"
-                        className="max-h-16 max-w-[170px] object-contain"
-                      />
-                    </div>
-                  ) : (
-                    <div className="p-2 border border-dashed border-slate-300 bg-slate-50/70 rounded-lg text-center my-1">
-                      <p className="text-[10px] text-slate-400 font-mono">-----------------------------</p>
-                      <p className="text-[10px] font-bold text-slate-600">Belum memiliki tanda tangan digital</p>
-                      <p className="text-[10px] text-slate-400 font-mono">-----------------------------</p>
-                      <p className="text-[9px] text-slate-400 italic mt-0.5">
-                        Silakan membuat tanda tangan digital pada menu Profil Saya.
-                      </p>
+                  {/* CLINICAL DOCUMENTATION BOX FOR THIS PAGE */}
+                  {pageData.sections.length > 0 && (
+                    <div className="p-2 rounded-xl border-2 border-slate-300 bg-white space-y-1.5 text-[10px] leading-snug break-words flex-1">
+                      {pageData.sections.map((sec) => renderSection(sec))}
                     </div>
                   )}
 
-                  <p className="font-bold text-[#19355E] text-[11.5px] underline mt-0.5">
-                    {finalPsychologistName}
-                  </p>
-                  <p className="text-[10.5px] text-slate-600 font-semibold">
-                    {finalPsychologistSipp.startsWith("SIPP") ? finalPsychologistSipp : `SIPP: ${finalPsychologistSipp}`}
-                  </p>
-                  {finalPsychologistStr && (
-                    <p className="text-[10px] text-slate-600 font-medium">
-                      {finalPsychologistStr.startsWith("STR") ? finalPsychologistStr : `STR: ${finalPsychologistStr}`}
-                    </p>
-                  )}
-
-                  {/* Status Badge & Timestamp */}
-                  {activeSignatureUrl && (
-                    <div className="mt-1 flex flex-col items-center gap-0.5 text-[9.5px]">
-                      <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                        ✔ Ditandatangani secara Digital
-                      </span>
-                      {activeSignatureUpdatedAt && (
-                        <span className="text-[9px] text-slate-500 font-medium">
-                          Terakhir diperbarui:{" "}
-                          {new Date(activeSignatureUpdatedAt).toLocaleDateString("id-ID", {
-                            day: "numeric",
-                            month: "long",
-                            year: "numeric",
-                          })}{" "}
-                          •{" "}
-                          {new Date(activeSignatureUpdatedAt).toLocaleTimeString("id-ID", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}{" "}
-                          WIB
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  {/* SIGNATURE BLOCK IF THIS PAGE CONTAINS SIGNATURE */}
+                  {pageData.includeSignature && renderSignatureBlock()}
                 </div>
-              </div>
 
-              <div className="pt-1 border-t border-slate-300 flex justify-between items-center text-[9.5px] text-slate-500 font-sans">
-                <span>Dokumen Rahasia Medis - Biro Psikologi Oase Jiwa</span>
-                <span>Generated by Oase Jiwa System</span>
+                {/* CONSISTENT FOOTER FOR THIS PAGE */}
+                {renderFooter(pageIdx, displayPages.length)}
               </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>
