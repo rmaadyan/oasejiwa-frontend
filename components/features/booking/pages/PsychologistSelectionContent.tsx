@@ -34,35 +34,42 @@ function PsychologistSelectionInner({
     }
   }, [serviceId, router]);
 
-  // 🟢 Filter: Hanya tampilkan psikolog yang aktif (100% lengkap) & cocok dengan query pencarian
   const filteredPsychologists = psychologists.filter((psy: any) => {
-    // Cek status aktif dan kelengkapan profil dari backend
-    const isActive =
-      psy.isProfileComplete === true ||
-      psy.status === "Aktif" ||
-      psy.profilePercentage === 100;
+    // 1. Cek kelengkapan/status aktif (cocokkan dengan backend & psikologlist)
+    const isExplicitlyInactive =
+      psy.status === "Menunggu Profil" ||
+      psy.status === "inactive" ||
+      psy.isProfileComplete === false;
 
-    if (!isActive) return false;
+    // Jika psikolog tidak berstatus non-aktif, izinkan tampil
+    if (isExplicitlyInactive) return false;
 
-    const matchesSearch =
-      psy.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (psy.specializations &&
-        psy.specializations.some((s: string) =>
-          s.toLowerCase().includes(searchQuery.toLowerCase())
-        ));
+    // 2. Pencarian Nama atau Spesialisasi
+    const nameMatch = (psy.name || psy.fullName || "")
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
 
-    const matchesSpecialization =
+    const specs = Array.isArray(psy.specializations)
+      ? psy.specializations
+      : Array.isArray(psy.specialization)
+      ? psy.specialization
+      : [];
+
+    const specMatch = specs.some((s: string) =>
+      s.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    // 3. Filter Kategori Spesialisasi
+    const categoryMatch =
       selectedSpecialization === "Semua" ||
-      (psy.specializations && psy.specializations.includes(selectedSpecialization));
+      specs.includes(selectedSpecialization);
 
-    return matchesSearch && matchesSpecialization;
+    return (nameMatch || specMatch) && categoryMatch;
   });
 
   const handleSelect = (id: string) => {
-    const psy = psychologists.find((p) => p.id === id);
-    if (psy?.available !== false) {
-      setSelectedPsychologist(id);
-    }
+    // 🟢 Izinkan memilih psikolog yang ada di daftar
+    setSelectedPsychologist(id);
   };
 
   const handleNext = () => {
