@@ -40,6 +40,16 @@ export default function ChangePasswordPsychologist() {
 
             setMessage("Password berhasil diubah");
 
+            // Update localStorage agar isFirstLogin = false
+            try {
+                const storedUser = localStorage.getItem("user");
+                if (storedUser) {
+                    const userData = JSON.parse(storedUser);
+                    userData.isFirstLogin = false;
+                    localStorage.setItem("user", JSON.stringify(userData));
+                }
+            } catch {}
+
             setTimeout(() => {
                 router.push("/psychologist/profile");
             }, 2000);

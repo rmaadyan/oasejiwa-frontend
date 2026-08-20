@@ -46,20 +46,20 @@ export default function PsikologManagementPage() {
             const rawData = res.data || [];
 
             const formatted = rawData.map((item: any) => {
-                const sippVal = item.sipp || "";
-                const isComplete = sippVal !== "" && sippVal !== "-";
+        const isComplete = item.isProfileComplete ?? (item.profilePercentage === 100 || item.status === "Aktif");
 
-                return {
-                    id: item.id,
-                    fullName: item.fullName || item.name,
-                    email: item.user?.email || item.email || "-",
-                    phoneNumber: item.phoneNumber || item.phone || item.user?.phoneNumber || "-",
-                    sipp: item.sipp || "-",
-                    str: item.str || "-",
-                    displayOrder: Number(item.displayOrder ?? item.order ?? 0),
-                    isProfileComplete: item.user?.isProfileComplete ?? isComplete,
-                };
-            });
+        return {
+          id: item.id,
+          fullName: item.fullName || item.name,
+          email: item.user?.email || item.email || "-",
+          phoneNumber: item.phoneNumber || item.phone || item.user?.userProfile?.phone || "-",
+          sipp: item.sipp || "-",
+          str: item.str || "-",
+          profilePercentage: item.profilePercentage ?? (isComplete ? 100 : 0),
+          displayOrder: Number(item.displayOrder ?? item.order ?? 0),
+          isProfileComplete: isComplete,
+        };
+      });
 
             // Urutkan berdasarkan displayOrder
             formatted.sort((a: any, b: any) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
@@ -415,35 +415,38 @@ export default function PsikologManagementPage() {
                                             </td>
 
                                             <td className="p-4">
-                                                {isComplete ? (
-                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-medium border border-emerald-200">
-                                                        <CheckCircle2 size={12} />
-                                                        Aktif
-                                                    </span>
-                                                ) : (
-                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-medium border border-amber-200" title="Menunggu psikolog login & melengkapi data profil">
-                                                        <Clock size={12} />
-                                                        Menunggu Profil
-                                                    </span>
-                                                )}
-                                            </td>
+  {item.isProfileComplete ? (
+    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-medium border border-emerald-200">
+      <CheckCircle2 size={12} />
+      Aktif (100%)
+    </span>
+  ) : (
+    <span
+      className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-medium border border-amber-200"
+      title="Menunggu kelengkapan data: Personal Info, Foto, Pendidikan, Spesialisasi & Jadwal"
+    >
+      <Clock size={12} />
+      Menunggu Profil ({item.profilePercentage ?? 0}%)
+    </span>
+  )}
+</td>
 
                                             <td className="p-4 pr-6 text-right">
                                                 <div className="flex items-center justify-end gap-2">
-                                                    {!isComplete && (
-                                                        <button
-                                                            onClick={() => handleSendReminder(item.id, item.email)}
-                                                            disabled={sendingReminderId === item.id || manualMode}
-                                                            className="p-2 text-amber-600 hover:bg-amber-50 rounded-xl transition cursor-pointer flex items-center gap-1 text-xs font-medium border border-amber-200/60 disabled:opacity-40"
-                                                            title="Kirim Email Pengingat Update Profil"
-                                                        >
-                                                            <Mail size={15} />
-                                                            <span className="hidden sm:inline">
-                                                                {sendingReminderId === item.id ? "Sending..." : "Ingatkan"}
-                                                            </span>
-                                                        </button>
-                                                    )}
-
+                                                    {/* 🟢 Munculkan tombol Ingatkan selama statusnya Menunggu Profil / belum 100% */}
+  {(!item.isProfileComplete || item.profilePercentage < 100) && (
+    <button
+      onClick={() => handleSendReminder(item.id, item.email)}
+      disabled={sendingReminderId === item.id || manualMode}
+      className="p-2 text-amber-600 hover:bg-amber-50 rounded-xl transition cursor-pointer flex items-center gap-1 text-xs font-medium border border-amber-200/60 disabled:opacity-40"
+      title="Kirim Email Pengingat Kelengkapan Profil"
+    >
+      <Mail size={15} />
+      <span className="hidden sm:inline">
+        {sendingReminderId === item.id ? "Sending..." : "Ingatkan"}
+      </span>
+    </button>
+  )}
                                                     <Link
                                                         href={`/psikologdetail?id=${item.id}`}
                                                         target="_blank"

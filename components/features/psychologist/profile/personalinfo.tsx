@@ -191,25 +191,31 @@ export default function PersonalInfo({
               />
             </div>
 
-            {/* Tentang Saya / Bio Singkat */}
-            <div className="space-y-1">
-              <label className="font-bold text-gray-700 block">
-                Tentang Saya / Bio Singkat <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                required
-                rows={3}
-                disabled={!isEditing}
-                value={formData.about}
-                onChange={(e) => setFormData({ ...formData, about: e.target.value })}
-                className={`w-full p-2.5 border border-slate-300 rounded-lg outline-none font-medium transition ${
-                  isEditing
-                    ? "bg-white focus:border-[#1F415F] focus:ring-1 focus:ring-[#1F415F]"
-                    : "bg-slate-50 text-slate-700 cursor-not-allowed"
-                }`}
-                placeholder="Tuliskan perkenalan singkat mengenai latar belakang klinis Anda..."
-              />
-            </div>
+           <div>
+  <label className="text-xs font-semibold text-slate-700 mb-1 block">
+    Tentang Saya / Bio Singkat <span className="text-rose-500">*</span>
+  </label>
+  <textarea
+    rows={4}
+    // 🟢 Placeholder abu-abu seperti WhatsApp
+    placeholder="Tuliskan deskripsi singkat mengenai pengalaman klinis, pendekatan terapi, dan fokus layanan Anda..."
+    value={
+      formData.about === "Psikolog Klinik Oase Jiwa" ? "" : formData.about || ""
+    }
+    onChange={(e) => setFormData({ ...formData, about: e.target.value })}
+    disabled={!isEditing}
+    className={`w-full p-3 text-xs rounded-xl border transition-all duration-200 outline-none resize-none ${
+      !isEditing
+        ? "bg-slate-50 border-slate-200 text-slate-700 cursor-not-allowed"
+        : "bg-white border-blue-300 focus:ring-2 focus:ring-blue-100 text-slate-800 placeholder:text-slate-400 placeholder:italic"
+    }`}
+  />
+  {isEditing && (
+    <p className="text-[10px] text-slate-400 mt-1">
+      * Wajib diisi sebagai perkenalan profil untuk pasien.
+    </p>
+  )}
+</div>
           </div>
 
         </div>

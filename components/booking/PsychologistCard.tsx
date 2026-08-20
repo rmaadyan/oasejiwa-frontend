@@ -6,14 +6,14 @@ interface PsychologistCardProps {
   id: string;
   name: string;
   role: string;
-  specializations: string[]; // Add this line
-  experience: string;
-  rating: number;
-  reviews: number;
-  price: number;
+  specializations: string[];
+  experience?: string;
+  rating?: number;
+  reviews?: number;
+  price?: number;
   avatar: string;
-  available: boolean;
-  isSelected: boolean;
+  available?: boolean;
+  isSelected?: boolean;
   onSelect: (id: string) => void;
 }
 
@@ -21,16 +21,15 @@ export default function PsychologistCard({
   id,
   name,
   role,
-  specializations,
-  experience,
-  rating,
-  reviews,
-  price,
+  specializations = [],
   avatar,
-  available,
   isSelected = false,
   onSelect,
 }: PsychologistCardProps) {
+  const MAX_VISIBLE_SPECIALIZATIONS = 3;
+  const visibleSpecs = specializations.slice(0, MAX_VISIBLE_SPECIALIZATIONS);
+  const remainingCount = specializations.length - MAX_VISIBLE_SPECIALIZATIONS;
+
   return (
     <div
       onClick={() => onSelect(id)}
@@ -39,7 +38,7 @@ export default function PsychologistCard({
         transition-all duration-300 ease-out
         ${
           isSelected
-            ? "border-2 border-[#2B5379] shadow-lg shadow-[#2B5379]/20"
+            ? "border-2 border-[#2B5379] shadow-lg shadow-[#2B5379]/20 bg-blue-50/20"
             : "border border-[#D6E6F2] shadow-sm hover:shadow-md hover:border-[#2B5379]/50 hover:-translate-y-0.5"
         }
       `}
@@ -47,47 +46,52 @@ export default function PsychologistCard({
       {/* Avatar */}
       <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden flex-shrink-0">
         <Image
-          src={avatar}
+          src={avatar || "/assets/default-avatar.png"}
           alt={name}
           fill
           className="object-cover"
         />
       </div>
 
-      {/* Info */}
+      {/* Info + Specializations */}
       <div className="flex-1 min-w-0">
         <h3 className="text-base md:text-lg font-semibold text-[#234463] truncate">
           {name}
         </h3>
         <p className="text-sm text-[#4B4B4B] truncate">
-          {role}
+          {role || "Psikolog Oase Jiwa"}
         </p>
+
+        {/* Specializations */}
+        {specializations.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {visibleSpecs.map((specialization) => (
+              <span
+                key={specialization}
+                className="text-xs font-semibold text-[#2B5379] bg-[#EDF4FA] px-2.5 py-1 rounded-full"
+              >
+                {specialization}
+              </span>
+            ))}
+            {remainingCount > 0 && (
+              <span className="text-xs font-semibold text-[#6B8CAE] bg-[#F0F0F0] px-2.5 py-1 rounded-full">
+                +{remainingCount} lainnya
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Specializations */}
-      <div className="flex flex-wrap gap-2 mt-2">
-        {specializations.map((specialization) => (
-          <span
-            key={specialization}
-            className="text-xs md:text-sm font-semibold text-[#2B5379] bg-[#F5F5F5] px-2 py-1 rounded-full"
-          >
-            {specialization}
-          </span>
-        ))}
-      </div>
-
-      {/* Price & Button */}
-      <div className="flex flex-col items-end gap-2">
-        <p className="text-sm md:text-base font-semibold text-[#234463]">
-          Rp {price.toLocaleString("id-ID")}
-        </p>
+      {/* Tombol Pilih (Teks Rp 0 Dihilangkan) */}
+      <div className="flex items-center justify-end flex-shrink-0 ml-2">
         <button
+          type="button"
           className={`
-            px-4 py-2 rounded-xl text-sm font-semibold
-            transition-all duration-300 active:scale-95
+            px-5 py-2.5 rounded-xl text-sm font-semibold
+            transition-all duration-300 active:scale-95 cursor-pointer shadow-xs
             ${
               isSelected
-                ? "bg-[#2E8B3D] text-white"
+                ? "bg-[#2E8B3D] text-white shadow-md ring-2 ring-emerald-300"
                 : "bg-[#3AB64C] text-white hover:bg-[#2E8B3D]"
             }
           `}
