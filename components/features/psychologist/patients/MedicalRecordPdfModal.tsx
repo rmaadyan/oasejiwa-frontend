@@ -18,6 +18,8 @@ interface Props {
 
 export interface ClinicalSectionItem {
   id: string;
+  sectionKey?: string;
+  baseTitle?: string;
   title: string;
   type: "text" | "checkboxes" | "session_info" | "list" | "referral";
   content?: string;
@@ -26,6 +28,7 @@ export interface ClinicalSectionItem {
   sessionNum?: number;
   nextSessionDate?: string;
   riskLevelText?: string;
+  isContinuation?: boolean;
 }
 
 export interface PdfPageData {
@@ -220,37 +223,72 @@ export default function MedicalRecordPdfModal({
   const formattedSessionTime = note.sessionTime || "09:00 WIB";
   const consultationStatus = note.consultationStatus || "SELESAI";
 
-  const rawDiagnosis = note.diagnosisSummary || (patient as any)?.diagnosis || (note as any)?.diagnosis;
-  const diagnosisStr = Array.isArray(rawDiagnosis)
-    ? rawDiagnosis.length > 0 ? rawDiagnosis.join(", ") : "-"
-    : typeof rawDiagnosis === "string" && rawDiagnosis.trim()
-    ? rawDiagnosis
-    : "-";
+  const rawDiagnosis = note?.diagnosis || note?.diagnosisSummary || (Array.isArray((patient as any)?.diagnosis) && (patient as any).diagnosis.length > 0 ? (patient as any).diagnosis.join(", ") : null) || "Dalam Evaluasi";
+  const diagnosisStr = typeof rawDiagnosis === "string" && rawDiagnosis.trim() ? rawDiagnosis : "Dalam Evaluasi";
 
-  const medicationStr = Array.isArray(patient?.currentMedication) && patient.currentMedication.length > 0
-    ? patient.currentMedication.join(", ")
-    : note.currentMedication || "Tidak ada";
+  const rawMedication = note?.medication || note?.currentMedication || (Array.isArray(patient?.currentMedication) && patient.currentMedication.length > 0 ? patient.currentMedication.join(", ") : null) || "Tidak ada";
+  const medicationStr = typeof rawMedication === "string" && rawMedication.trim() ? rawMedication : "Tidak ada";
 
   const allergiesStr = Array.isArray(patient?.allergies) && patient.allergies.length > 0
     ? patient.allergies.join(", ")
-    : note.allergies || "Tidak ada";
+    : note?.allergies || "Tidak ada";
 
-  const followUpPlan = note.followUpPlan || "CONTINUE_SESSION";
+  const followUpPlan = note?.followUpPlan || "CONTINUE_SESSION";
   const tagsStr = tags && tags.length > 0 ? (Array.isArray(tags) ? tags.join(", ") : String(tags)) : "Tidak ada";
+
+  // Helper to split text content into natural paragraph/sentence chunks for dynamic A4 pagination
+  const splitTextContent = (title: string, fullContent: string, baseId: string): ClinicalSectionItem[] => {
+    if (!fullContent || fullContent.length <= 1200) {
+      return [{ id: baseId, sectionKey: baseId, baseTitle: title, title, type: "text", content: fullContent }];
+    }
+
+    const rawParagraphs = fullContent.split(/\n+/).filter((p) => p.trim());
+    const chunks: string[] = [];
+
+    for (const p of rawParagraphs) {
+      if (p.length <= 1200) {
+        chunks.push(p);
+      } else {
+        let remaining = p;
+        while (remaining.length > 0) {
+          if (remaining.length <= 1000) {
+            chunks.push(remaining);
+            break;
+          }
+
+          let cutIdx = remaining.lastIndexOf(". ", 900);
+          if (cutIdx < 300) cutIdx = remaining.lastIndexOf(" ", 900);
+          if (cutIdx < 200) cutIdx = 800; // Fallback cut for huge unspaced strings
+
+          chunks.push(remaining.substring(0, cutIdx + 1).trim());
+          remaining = remaining.substring(cutIdx + 1).trim();
+        }
+      }
+    }
+
+    return chunks.map((chunkText, idx) => ({
+      id: idx === 0 ? baseId : `${baseId}-part${idx + 1}`,
+      sectionKey: baseId,
+      baseTitle: title,
+      title: title, // Base title initially; (Lanjutan) will be appended ONLY if it crosses a page break
+      type: "text",
+      content: chunkText,
+    }));
+  };
 
   // Build array of clinical sections for pagination calculation
   const allClinicalSections: ClinicalSectionItem[] = [
-    { id: "sec-subjective", title: "• Ringkasan Masalah Utama (Subjective) :", type: "text", content: mainProblem },
-    { id: "sec-objective", title: "• Observasi Psikolog (Objective) :", type: "text", content: observation },
-    { id: "sec-assessment", title: "• Assessment Psikolog :", type: "text", content: assessment },
-    { id: "sec-plan", title: "• Rekomendasi Pendekatan Terapi (Plan) :", type: "text", content: plan },
-    { id: "sec-followup", title: "• Rencana Tindak Lanjut :", type: "checkboxes", followUpPlanValue: followUpPlan },
-    { id: "sec-sessioninfo", title: "• Sesi & Tanggal Follow-up :", type: "session_info", sessionNum, nextSessionDate },
-    { id: "sec-riskreason", title: `• Alasan Penilaian Risiko (${riskLevel.toUpperCase() || "RENDAH"}) :`, type: "text", content: riskReason },
-    { id: "sec-recommendations", title: "• Rekomendasi Penanganan Otomatis :", type: "list", items: autoRecommendations },
-    { id: "sec-nextfocus", title: "• Fokus Sesi Berikutnya :", type: "text", content: nextSessionFocus },
-    { id: "sec-addnotes", title: "• Catatan Tambahan (jika ada) :", type: "text", content: additionalNotes },
-    { id: "sec-referral", title: "• Referral :", type: "referral", content: tagsStr },
+    ...splitTextContent("• Ringkasan Masalah Utama (Subjective) :", mainProblem, "sec-subjective"),
+    ...splitTextContent("• Observasi Psikolog (Objective) :", observation, "sec-objective"),
+    ...splitTextContent("• Assessment Psikolog :", assessment, "sec-assessment"),
+    ...splitTextContent("• Rekomendasi Pendekatan Terapi (Plan) :", plan, "sec-plan"),
+    { id: "sec-followup", sectionKey: "sec-followup", baseTitle: "• Rencana Tindak Lanjut :", title: "• Rencana Tindak Lanjut :", type: "checkboxes", followUpPlanValue: followUpPlan },
+    { id: "sec-sessioninfo", sectionKey: "sec-sessioninfo", baseTitle: "• Sesi & Tanggal Follow-up :", title: "• Sesi & Tanggal Follow-up :", type: "session_info", sessionNum, nextSessionDate },
+    ...splitTextContent(`• Alasan Penilaian Risiko (${riskLevel.toUpperCase() || "RENDAH"}) :`, riskReason, "sec-riskreason"),
+    { id: "sec-recommendations", sectionKey: "sec-recommendations", baseTitle: "• Rekomendasi Penanganan Otomatis :", title: "• Rekomendasi Penanganan Otomatis :", type: "list", items: autoRecommendations },
+    ...splitTextContent("• Fokus Sesi Berikutnya :", nextSessionFocus, "sec-nextfocus"),
+    ...splitTextContent("• Catatan Tambahan (jika ada) :", additionalNotes, "sec-addnotes"),
+    { id: "sec-referral", sectionKey: "sec-referral", baseTitle: "• Referral :", title: "• Referral :", type: "referral", content: tagsStr },
   ];
 
   // Perform dynamic height calculation & pagination
@@ -276,10 +314,10 @@ export default function MedicalRecordPdfModal({
     const sectionHeights: { [id: string]: number } = {};
     allClinicalSections.forEach((sec) => {
       const el = sectionMeasureRefs.current[sec.id];
-      sectionHeights[sec.id] = el?.offsetHeight || 60;
+      sectionHeights[sec.id] = el?.offsetHeight || 50;
     });
 
-    const pagesResult: PdfPageData[] = [];
+    const rawPages: { pageIndex: number; sections: ClinicalSectionItem[]; includeSignature: boolean }[] = [];
     let currentSections: ClinicalSectionItem[] = [];
     let currentHeight = 0;
     let isPage1 = true;
@@ -288,46 +326,20 @@ export default function MedicalRecordPdfModal({
 
     for (let i = 0; i < allClinicalSections.length; i++) {
       const sec = allClinicalSections[i];
-      const secH = sectionHeights[sec.id] || 60;
+      const secH = sectionHeights[sec.id] || 50;
 
       // Check if section fits on current page
       if (currentHeight + secH <= maxContentHeight()) {
         currentSections.push(sec);
         currentHeight += secH;
       } else {
-        // If single section is longer than paragraph, split text if possible, else push to next page
-        if (sec.type === "text" && sec.content && sec.content.length > 300) {
-          const paragraphs = sec.content.split(/\n+/).filter((p) => p.trim());
-          if (paragraphs.length > 1) {
-            let part1Text = "";
-            let part2Text = "";
-            let splitIndex = Math.ceil(paragraphs.length / 2);
-            part1Text = paragraphs.slice(0, splitIndex).join("\n\n");
-            part2Text = paragraphs.slice(splitIndex).join("\n\n");
-
-            const secPart1: ClinicalSectionItem = { ...sec, content: part1Text };
-            const secPart2: ClinicalSectionItem = { ...sec, id: `${sec.id}-part2`, title: `${sec.title} (Lanjutan)`, content: part2Text };
-
-            currentSections.push(secPart1);
-            pagesResult.push({
-              pageIndex: pagesResult.length,
-              sections: currentSections,
-              includeSignature: false,
-            });
-
-            isPage1 = false;
-            currentSections = [secPart2];
-            currentHeight = secH * 0.5;
-            continue;
-          }
+        if (currentSections.length > 0) {
+          rawPages.push({
+            pageIndex: rawPages.length,
+            sections: currentSections,
+            includeSignature: false,
+          });
         }
-
-        // Push current page
-        pagesResult.push({
-          pageIndex: pagesResult.length,
-          sections: currentSections,
-          includeSignature: false,
-        });
 
         isPage1 = false;
         currentSections = [sec];
@@ -337,29 +349,82 @@ export default function MedicalRecordPdfModal({
 
     // Now handle signature block
     if (currentHeight + hSignature <= maxContentHeight()) {
-      pagesResult.push({
-        pageIndex: pagesResult.length,
+      rawPages.push({
+        pageIndex: rawPages.length,
         sections: currentSections,
         includeSignature: true,
       });
     } else {
       // Save current page without signature
       if (currentSections.length > 0) {
-        pagesResult.push({
-          pageIndex: pagesResult.length,
+        rawPages.push({
+          pageIndex: rawPages.length,
           sections: currentSections,
           includeSignature: false,
         });
       }
       // Create new page specifically for signature
-      pagesResult.push({
-        pageIndex: pagesResult.length,
+      rawPages.push({
+        pageIndex: rawPages.length,
         sections: [],
         includeSignature: true,
       });
     }
 
-    setPdfPages(pagesResult);
+    // Post-process section titles strictly based on PAGE BOUNDARIES
+    const seenSectionKeys = new Set<string>();
+    const finalPages: PdfPageData[] = rawPages.map((pageData) => {
+      const pageSeenInThisPage = new Set<string>();
+      const processedSections = pageData.sections.map((sec) => {
+        const key = sec.sectionKey || sec.id;
+        const baseTitle = sec.baseTitle || sec.title;
+
+        if (seenSectionKeys.has(key)) {
+          // This section key was rendered on a PREVIOUS PAGE
+          if (!pageSeenInThisPage.has(key)) {
+            pageSeenInThisPage.add(key);
+            return {
+              ...sec,
+              title: `${baseTitle} (Lanjutan)`,
+              isContinuation: true,
+            };
+          } else {
+            // Second chunk on the SAME page -> Do not repeat title or (Lanjutan)
+            return {
+              ...sec,
+              title: "",
+              isContinuation: false,
+            };
+          }
+        } else {
+          // First time this section key appears in the document
+          if (!pageSeenInThisPage.has(key)) {
+            pageSeenInThisPage.add(key);
+            return {
+              ...sec,
+              title: baseTitle,
+              isContinuation: false,
+            };
+          } else {
+            // Second chunk on the SAME first page -> Do not repeat title or (Lanjutan)
+            return {
+              ...sec,
+              title: "",
+              isContinuation: false,
+            };
+          }
+        }
+      });
+
+      pageSeenInThisPage.forEach((k) => seenSectionKeys.add(k));
+
+      return {
+        ...pageData,
+        sections: processedSections,
+      };
+    });
+
+    setPdfPages(finalPages);
     setIsCalculated(true);
   };
 
@@ -459,7 +524,7 @@ export default function MedicalRecordPdfModal({
       return (
         <div key={sec.id} className="mb-2">
           <span className="font-bold text-[#19355E] text-[11px] block mb-0.5">{sec.title}</span>
-          <ul className="pl-8 list-disc text-slate-800 space-y-0.5 text-[10px]">
+          <ul className="pl-8 list-disc text-slate-800 space-y-0.5 text-[10px] break-words [overflow-wrap:anywhere] [word-break:break-word] whitespace-pre-wrap">
             {sec.items?.map((rec: string, idx: number) => (
               <li key={idx}>{rec}</li>
             ))}
@@ -472,7 +537,7 @@ export default function MedicalRecordPdfModal({
       return (
         <div key={sec.id} className="pt-1 my-1 border-t border-slate-200 flex items-start gap-2 text-[10px]">
           <span className="font-bold text-slate-900 shrink-0">• Referral :</span>
-          <p className="text-slate-800 text-[10.5px] break-words">{sec.content}</p>
+          <p className="text-slate-800 text-[10.5px] break-words [overflow-wrap:anywhere] [word-break:break-word] whitespace-pre-wrap">{sec.content}</p>
         </div>
       );
     }
@@ -480,7 +545,9 @@ export default function MedicalRecordPdfModal({
     return (
       <div key={sec.id} className="mb-2">
         <span className="font-bold text-[#19355E] text-[11px] block mb-0.5">{sec.title}</span>
-        <p className="pl-4 text-slate-800 text-justify text-[10px] whitespace-pre-line leading-relaxed">{sec.content}</p>
+        <p className="pl-4 text-slate-800 text-justify text-[10px] whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word] leading-relaxed">
+          {sec.content}
+        </p>
       </div>
     );
   };

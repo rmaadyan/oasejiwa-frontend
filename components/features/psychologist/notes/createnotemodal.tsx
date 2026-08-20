@@ -93,12 +93,15 @@ export default function CreateNoteModal({
 
       setReferralText(initialReferral);
 
+      const initDiag = editNote.diagnosis || editNote.diagnosisSummary || "";
+      const initMed = editNote.medication || editNote.currentMedication || (Array.isArray((editNote as any).currentMedication) ? ((editNote as any).currentMedication as string[]).join(", ") : "");
+
       setFormData({
         patientId: resolvedPatientId,
         patientName: resolvedPatientName,
         scheduleId: editNote.scheduleId || "",
-        diagnosis: "",
-        medication: "",
+        diagnosis: initDiag,
+        medication: initMed,
         allergies: "",
         subjective: editNote.subjective || "",
         objective: editNote.objective || "",
@@ -108,7 +111,7 @@ export default function CreateNoteModal({
         riskReason: editNote.riskReason || "",
         assessingPsychologistName: editNote.assessingPsychologistName || "",
         assessmentDate: editNote.assessmentDate || new Date().toISOString().split("T")[0],
-        diagnosisSummary: editNote.diagnosisSummary || "",
+        diagnosisSummary: initDiag,
         treatmentApproach: editNote.treatmentApproach || editNote.plan || "",
         recommendation: editNote.recommendation || editNote.nextSessionRecommendation || "",
         followUpPlan: editNote.followUpPlan || "CONTINUE_SESSION",
@@ -240,6 +243,14 @@ export default function CreateNoteModal({
       errors.scheduleId = "Pilih Sesi Terkait untuk catatan ini";
     }
 
+    if (!formData.diagnosis.trim()) {
+      errors.diagnosis = "Diagnosis wajib diisi.";
+    }
+
+    if (!formData.medication.trim()) {
+      errors.medication = "Obat saat ini wajib diisi.";
+    }
+
     if (!formData.subjective.trim()) {
       errors.subjective = "Keluhan Utama (Subjective) wajib diisi";
     }
@@ -285,13 +296,15 @@ export default function CreateNoteModal({
     setError(null);
 
     const activeConfig = getRiskConfig(formData.riskLevel);
+    const trimmedDiag = formData.diagnosis.trim();
+    const trimmedMed = formData.medication.trim();
 
     try {
       if (formData.patientId) {
         try {
           await updatePatientMedicalInfo(formData.patientId, {
-            diagnosis: formData.diagnosis ? [formData.diagnosis] : undefined,
-            currentMedication: formData.medication ? [formData.medication] : undefined,
+            diagnosis: trimmedDiag ? [trimmedDiag] : undefined,
+            currentMedication: trimmedMed ? [trimmedMed] : undefined,
             allergies: formData.allergies ? [formData.allergies] : undefined,
           });
         } catch (mErr) {
@@ -301,6 +314,9 @@ export default function CreateNoteModal({
 
       if (editNote && editNote.id && String(editNote.id).trim() !== "") {
         await updateNote(editNote.id, {
+          diagnosis: trimmedDiag,
+          medication: trimmedMed,
+          diagnosisSummary: trimmedDiag,
           subjective: formData.subjective,
           objective: formData.objective,
           assessment: formData.assessment,
@@ -310,7 +326,6 @@ export default function CreateNoteModal({
           riskRecommendations: activeConfig.recommendations,
           assessingPsychologistName: formData.assessingPsychologistName,
           assessmentDate: formData.assessmentDate,
-          diagnosisSummary: formData.diagnosisSummary || undefined,
           treatmentApproach: formData.treatmentApproach || formData.plan,
           recommendation: formData.recommendation || formData.nextSessionRecommendation,
           followUpPlan: formData.followUpPlan,
@@ -324,6 +339,9 @@ export default function CreateNoteModal({
         const payload: SessionNotePayload = {
           userId: formData.patientId,
           scheduleId: formData.scheduleId,
+          diagnosis: trimmedDiag,
+          medication: trimmedMed,
+          diagnosisSummary: trimmedDiag,
           subjective: formData.subjective,
           objective: formData.objective,
           assessment: formData.assessment,
@@ -333,7 +351,6 @@ export default function CreateNoteModal({
           riskRecommendations: activeConfig.recommendations,
           assessingPsychologistName: formData.assessingPsychologistName,
           assessmentDate: formData.assessmentDate,
-          diagnosisSummary: formData.diagnosisSummary || undefined,
           treatmentApproach: formData.treatmentApproach || formData.plan,
           recommendation: formData.recommendation || formData.nextSessionRecommendation,
           followUpPlan: formData.followUpPlan,
@@ -506,31 +523,57 @@ export default function CreateNoteModal({
           )}
 
           {/* Informasi Medis & Diagnosis */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 rounded-xl border border-gray-200 bg-gray-50/70 p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-xl border border-gray-200 bg-gray-50/70 p-4">
             <div>
-              <label className="mb-1 block text-xs font-bold text-gray-700">Diagnosis Pasien</label>
+              <label className="mb-1 block text-xs font-bold text-gray-700">
+                Diagnosis Pasien <span className="text-red-500">*</span>
+              </label>
               <input
                 id="diagnosis"
                 name="diagnosis"
                 type="text"
                 value={formData.diagnosis}
-                onChange={(e) => setFormData((prev) => ({ ...prev, diagnosis: e.target.value }))}
+                onChange={(e) => {
+                  setFormData((prev) => ({ ...prev, diagnosis: e.target.value }));
+                  if (fieldErrors.diagnosis) setFieldErrors((prev) => ({ ...prev, diagnosis: "" }));
+                }}
                 placeholder="Contoh: Gangguan Kecemasan Umum"
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2B5379]"
+                className={`w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none transition focus:ring-2 ${
+                  fieldErrors.diagnosis ? "border-red-500 bg-red-50/30 focus:ring-red-500/20" : "border-gray-300 focus:ring-[#2B5379]"
+                }`}
               />
+              {fieldErrors.diagnosis && (
+                <p className="mt-1 text-xs font-medium text-red-600 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {fieldErrors.diagnosis}
+                </p>
+              )}
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-bold text-gray-700">Obat Saat Ini</label>
+              <label className="mb-1 block text-xs font-bold text-gray-700">
+                Obat Saat Ini <span className="text-red-500">*</span>
+              </label>
               <input
                 id="medication"
                 name="medication"
                 type="text"
                 value={formData.medication}
-                onChange={(e) => setFormData((prev) => ({ ...prev, medication: e.target.value }))}
-                placeholder="Contoh: Sertraline 50 mg"
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2B5379]"
+                onChange={(e) => {
+                  setFormData((prev) => ({ ...prev, medication: e.target.value }));
+                  if (fieldErrors.medication) setFieldErrors((prev) => ({ ...prev, medication: "" }));
+                }}
+                placeholder="Contoh: Sertraline 50 mg (atau 'Tidak ada')"
+                className={`w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none transition focus:ring-2 ${
+                  fieldErrors.medication ? "border-red-500 bg-red-50/30 focus:ring-red-500/20" : "border-gray-300 focus:ring-[#2B5379]"
+                }`}
               />
+              {fieldErrors.medication && (
+                <p className="mt-1 text-xs font-medium text-red-600 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {fieldErrors.medication}
+                </p>
+              )}
             </div>
           </div>
 
@@ -545,16 +588,16 @@ export default function CreateNoteModal({
                   Keluhan Utama (Subjective) <span className="text-red-500">*</span>
                 </label>
                 <span className="text-[11px] font-medium text-slate-500">
-                  {formData.subjective.length} / 600 karakter
+                  {formData.subjective.length} / 20.000 karakter
                 </span>
               </div>
               <textarea
                 id="subjective"
                 name="subjective"
-                maxLength={600}
+                maxLength={20000}
                 value={formData.subjective}
                 onChange={(e) => {
-                  const val = e.target.value.slice(0, 600);
+                  const val = e.target.value.slice(0, 20000);
                   setFormData((prev) => ({ ...prev, subjective: val }));
                   if (fieldErrors.subjective) setFieldErrors((prev) => ({ ...prev, subjective: "" }));
                 }}
@@ -578,16 +621,16 @@ export default function CreateNoteModal({
                   Observasi Psikolog (Objective) <span className="text-red-500">*</span>
                 </label>
                 <span className="text-[11px] font-medium text-slate-500">
-                  {formData.objective.length} / 600 karakter
+                  {formData.objective.length} / 20.000 karakter
                 </span>
               </div>
               <textarea
                 id="objective"
                 name="objective"
-                maxLength={600}
+                maxLength={20000}
                 value={formData.objective}
                 onChange={(e) => {
-                  const val = e.target.value.slice(0, 600);
+                  const val = e.target.value.slice(0, 20000);
                   setFormData((prev) => ({ ...prev, objective: val }));
                   if (fieldErrors.objective) setFieldErrors((prev) => ({ ...prev, objective: "" }));
                 }}
@@ -611,16 +654,16 @@ export default function CreateNoteModal({
                   Assessment & Analisis <span className="text-red-500">*</span>
                 </label>
                 <span className="text-[11px] font-medium text-slate-500">
-                  {formData.assessment.length} / 700 karakter
+                  {formData.assessment.length} / 20.000 karakter
                 </span>
               </div>
               <textarea
                 id="assessment"
                 name="assessment"
-                maxLength={700}
+                maxLength={20000}
                 value={formData.assessment}
                 onChange={(e) => {
-                  const val = e.target.value.slice(0, 700);
+                  const val = e.target.value.slice(0, 20000);
                   setFormData((prev) => ({ ...prev, assessment: val }));
                   if (fieldErrors.assessment) setFieldErrors((prev) => ({ ...prev, assessment: "" }));
                 }}
@@ -644,16 +687,16 @@ export default function CreateNoteModal({
                   Intervensi & Rencana (Plan) <span className="text-red-500">*</span>
                 </label>
                 <span className="text-[11px] font-medium text-slate-500">
-                  {formData.plan.length} / 700 karakter
+                  {formData.plan.length} / 20.000 karakter
                 </span>
               </div>
               <textarea
                 id="plan"
                 name="plan"
-                maxLength={700}
+                maxLength={20000}
                 value={formData.plan}
                 onChange={(e) => {
-                  const val = e.target.value.slice(0, 700);
+                  const val = e.target.value.slice(0, 20000);
                   setFormData((prev) => ({ ...prev, plan: val }));
                   if (fieldErrors.plan) setFieldErrors((prev) => ({ ...prev, plan: "" }));
                 }}
