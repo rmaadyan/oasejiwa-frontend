@@ -23,8 +23,10 @@ import {
   ClipboardList,
   Calendar,
   FileSpreadsheet,
+  Award,
 } from "lucide-react";
 import MedicalRecordPdfModal from "@/components/medical-record/MedicalRecordPdfModal";
+import PatientDetailModal from "@/components/features/psychologist/patients/patientdetailmodal";
 import type { PsychologistPatientDetail } from "@/lib/types/psychologist";
 import { getUserTesResults, getAllTesResults } from "@/lib/api/tes";
 
@@ -172,8 +174,10 @@ export default function AdminMedicalRecordsPage() {
 
   // Selected detail state
   const [selectedPatient, setSelectedPatient] = useState<PsychologistPatientDetail | null>(null);
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [loadingPatient, setLoadingPatient] = useState(false);
-  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [isPatientDetailOpen, setIsPatientDetailOpen] = useState(false);
+  const [initialTab, setInitialTab] = useState<"profil" | "medis" | "tes" | "riwayat">("tes");
   const [isPdfOpen, setIsPdfOpen] = useState(false);
 
   const fetchRecords = async (isManualRefresh = false) => {
@@ -223,7 +227,7 @@ export default function AdminMedicalRecordsPage() {
     fetchRecords();
   }, []);
 
-  // Handle Detail Read Only View
+  // Handle Detail Read Only View (PDF Preview & Print)
   const handleViewPatientRecord = async (userId: string) => {
     setLoadingPatient(true);
     try {
@@ -261,6 +265,44 @@ export default function AdminMedicalRecordsPage() {
 
   const handleOpenPdf = async (userId: string) => {
     await handleViewPatientRecord(userId);
+  };
+
+  // Handle Psychology Test Results Modal
+  const handleViewTestResults = async (userId: string) => {
+    setLoadingPatient(true);
+    setSelectedPatientId(userId);
+    setInitialTab("tes");
+    try {
+      const [res, tesRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/admin-medical-records/${userId}`, {
+          credentials: "include",
+          headers: {
+            Authorization: `Bearer ${getAuthToken()}`,
+            "Content-Type": "application/json",
+          },
+        }).catch(() => null),
+        getUserTesResults(userId).catch(() => []),
+      ]);
+
+      let detail: PsychologistPatientDetail;
+      if (res && res.ok) {
+        detail = await res.json();
+      } else {
+        detail = getFallbackPatientDetail(userId);
+      }
+
+      if (tesRes && tesRes.length > 0) {
+        detail.tesResults = tesRes;
+      }
+
+      setSelectedPatient(detail);
+      setIsPatientDetailOpen(true);
+    } catch (err) {
+      setSelectedPatient(getFallbackPatientDetail(userId));
+      setIsPatientDetailOpen(true);
+    } finally {
+      setLoadingPatient(false);
+    }
   };
 
   const getFallbackPatientDetail = (userId: string): PsychologistPatientDetail => {
@@ -762,9 +804,17 @@ export default function AdminMedicalRecordsPage() {
                       <div className="flex items-center justify-center gap-2">
                         <button
                           type="button"
+                          onClick={() => handleViewTestResults(rec.userId)}
+                          className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white px-3 py-2 text-xs font-bold transition shadow-sm border border-indigo-200"
+                          title="Lihat Hasil Tes Psikologi Pasien"
+                        >
+                          <Award className="h-4 w-4" /> Hasil Tes
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => handleViewPatientRecord(rec.userId)}
-                          className="inline-flex items-center gap-1.5 rounded-xl bg-[#F0F7FF] text-[#234463] hover:bg-[#234463] hover:text-white px-3.5 py-2 text-xs font-bold transition shadow-sm border border-blue-200"
-                          title="Lihat Detail Rekam Medis (Read-Only)"
+                          className="inline-flex items-center gap-1.5 rounded-xl bg-[#F0F7FF] text-[#234463] hover:bg-[#234463] hover:text-white px-3 py-2 text-xs font-bold transition shadow-sm border border-blue-200"
+                          title="Lihat Preview PDF Rekam Medis"
                         >
                           <Eye className="h-4 w-4" /> Lihat
                         </button>
@@ -831,6 +881,19 @@ export default function AdminMedicalRecordsPage() {
           </div>
         )}
       </div>
+
+      {/* Patient Detail Modal (Includes Hasil Tes Psikologi Tab) */}
+      <PatientDetailModal
+        isOpen={isPatientDetailOpen}
+        onClose={() => {
+          setIsPatientDetailOpen(false);
+          setSelectedPatient(null);
+          setSelectedPatientId(null);
+        }}
+        patientId={selectedPatientId}
+        patientData={selectedPatient}
+        initialTab={initialTab}
+      />
 
       {/* Shared Medical Record PDF Modal (100% Identical to Psychologist View) */}
       <MedicalRecordPdfModal

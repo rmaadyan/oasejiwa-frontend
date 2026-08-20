@@ -25,16 +25,22 @@ import { calculateDass21Result } from "@/lib/utils/dass21-calculator";
 import { downloadDass21Pdf } from "@/lib/utils/dass21-pdf-generator";
 import TestResultDetailModal from "./TestResultDetailModal";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id";
+
 interface PatientDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   patientId: string | null;
+  patientData?: PsychologistPatientDetail | null;
+  initialTab?: "profil" | "medis" | "tes" | "riwayat";
 }
 
 export default function PatientDetailModal({
   isOpen,
   onClose,
   patientId,
+  patientData,
+  initialTab = "profil",
 }: PatientDetailModalProps) {
   const [loading, setLoading] = useState(false);
   const [patient, setPatient] = useState<PsychologistPatientDetail | null>(null);
@@ -42,8 +48,15 @@ export default function PatientDetailModal({
   const [selectedTestForDetail, setSelectedTestForDetail] = useState<any | null>(null);
 
   useEffect(() => {
-    if (isOpen && patientId) {
-      fetchPatientDetail();
+    if (isOpen) {
+      if (initialTab) {
+        setActiveTab(initialTab);
+      }
+      if (patientData) {
+        setPatient(patientData);
+      } else if (patientId) {
+        fetchPatientDetail();
+      }
     }
 
     if (!isOpen) {
@@ -51,14 +64,33 @@ export default function PatientDetailModal({
       setActiveTab("profil");
       setSelectedTestForDetail(null);
     }
-  }, [isOpen, patientId]);
+  }, [isOpen, patientId, patientData, initialTab]);
 
   const fetchPatientDetail = async () => {
     if (!patientId) return;
 
     setLoading(true);
     try {
-      const data = await getPatientDetail(patientId).catch(() => null);
+      let data = await getPatientDetail(patientId).catch(() => null);
+      if (!data) {
+        const token =
+          typeof window !== "undefined"
+            ? localStorage.getItem("auth_token") ||
+              localStorage.getItem("token") ||
+              localStorage.getItem("accessToken") ||
+              ""
+            : "";
+        const res = await fetch(`${API_BASE_URL}/admin-medical-records/${patientId}`, {
+          credentials: "include",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }).catch(() => null);
+        if (res && res.ok) {
+          data = await res.json();
+        }
+      }
       setPatient(data);
     } catch (error) {
       console.error("Failed to fetch patient detail:", error);

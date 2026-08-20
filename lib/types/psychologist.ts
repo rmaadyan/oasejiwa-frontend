@@ -234,6 +234,9 @@ export interface SessionNote {
   consultationDate?: string | null;
   consultationStatus?: "ONGOING" | "COMPLETED" | "REFERRED";
   diagnosisSummary?: string | null;
+  diagnosis?: string | null;
+  medication?: string | null;
+  currentMedication?: string | null;
   treatmentApproach?: string | null;
   recommendation?: string | null;
   followUpPlan?: "CONTINUE_SESSION" | "REFER_TO_OTHER" | "COMPLETED";
@@ -396,6 +399,8 @@ export interface SessionNotePayload {
   consultationDate?: string;
   consultationStatus?: "ONGOING" | "COMPLETED" | "REFERRED";
   diagnosisSummary?: string;
+  diagnosis?: string;
+  medication?: string;
   treatmentApproach?: string;
   recommendation?: string;
   followUpPlan?: "CONTINUE_SESSION" | "REFER_TO_OTHER" | "COMPLETED";
