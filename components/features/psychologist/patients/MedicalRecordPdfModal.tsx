@@ -296,9 +296,9 @@ export default function MedicalRecordPdfModal({
     if (!measuringContainerRef.current) return;
 
     // Standard A4 dimensions at 96 DPI: 297mm ~ 1122.5px.
-    // Sheet padding top 6mm + bottom 6mm ~ 45px.
-    // Inner sheet total height = ~1077px.
-    const TOTAL_A4_INNER_HEIGHT = 1077;
+    // Sheet padding top 1.5cm (15mm) + bottom 1.5cm (15mm) = 30mm ~ 113.4px.
+    // Inner sheet total printable height = ~1009px.
+    const TOTAL_A4_INNER_HEIGHT = 1009;
     const FOOTER_HEIGHT = 45;
 
     // Measured top headers
@@ -307,8 +307,8 @@ export default function MedicalRecordPdfModal({
     const hSignature = signatureMeasureRef.current?.offsetHeight || 180;
 
     // Maximum height allowed for content per page
-    const hPage1MaxContent = TOTAL_A4_INNER_HEIGHT - hPage1Header - FOOTER_HEIGHT - 15; // ~700px
-    const hPageNMaxContent = TOTAL_A4_INNER_HEIGHT - hPageNHeader - FOOTER_HEIGHT - 15; // ~900px
+    const hPage1MaxContent = TOTAL_A4_INNER_HEIGHT - hPage1Header - FOOTER_HEIGHT - 15; // ~640px
+    const hPageNMaxContent = TOTAL_A4_INNER_HEIGHT - hPageNHeader - FOOTER_HEIGHT - 15; // ~830px
 
     // Measure section heights
     const sectionHeights: { [id: string]: number } = {};
@@ -487,22 +487,22 @@ export default function MedicalRecordPdfModal({
     }
   };
 
-  // Renders a single section component
+  // Renders a single section component (Times New Roman, 11pt headings, 10pt body)
   const renderSection = (sec: ClinicalSectionItem) => {
     if (sec.type === "checkboxes") {
       return (
         <div key={sec.id} className="mb-2">
-          <span className="font-bold text-[#19355E] text-[11px] block mb-0.5">• Rencana Tindak Lanjut :</span>
-          <div className="pl-4 flex items-center gap-6 text-slate-800 font-medium">
-            <label className={`flex items-center gap-1.5 ${sec.followUpPlanValue === "CONTINUE_SESSION" ? "font-bold text-blue-800" : ""}`}>
+          <span className="font-bold text-[#19355E] text-[11pt] block mb-1">• Rencana Tindak Lanjut :</span>
+          <div className="pl-4 flex items-center gap-6 text-slate-900 font-medium text-[10pt]">
+            <label className={`flex items-center gap-1.5 ${sec.followUpPlanValue === "CONTINUE_SESSION" ? "font-bold text-blue-900" : ""}`}>
               <input type="checkbox" readOnly checked={sec.followUpPlanValue === "CONTINUE_SESSION"} className="rounded text-blue-600" />
-              <span>[{sec.followUpPlanValue === "CONTINUE_SESSION" ? " ✓ " : "   "}] Lanjutan sesi</span>
+              <span>[{sec.followUpPlanValue === "CONTINUE_SESSION" ? " ✓ " : "   "}] Lanjutkan sesi</span>
             </label>
-            <label className={`flex items-center gap-1.5 ${sec.followUpPlanValue === "REFER_TO_OTHER" ? "font-bold text-amber-800" : ""}`}>
+            <label className={`flex items-center gap-1.5 ${sec.followUpPlanValue === "REFER_TO_OTHER" ? "font-bold text-amber-900" : ""}`}>
               <input type="checkbox" readOnly checked={sec.followUpPlanValue === "REFER_TO_OTHER"} className="rounded text-amber-600" />
               <span>[{sec.followUpPlanValue === "REFER_TO_OTHER" ? " ✓ " : "   "}] Rujukan ke profesional lain</span>
             </label>
-            <label className={`flex items-center gap-1.5 ${sec.followUpPlanValue === "COMPLETED" ? "font-bold text-emerald-800" : ""}`}>
+            <label className={`flex items-center gap-1.5 ${sec.followUpPlanValue === "COMPLETED" ? "font-bold text-emerald-900" : ""}`}>
               <input type="checkbox" readOnly checked={sec.followUpPlanValue === "COMPLETED"} className="rounded text-emerald-600" />
               <span>[{sec.followUpPlanValue === "COMPLETED" ? " ✓ " : "   "}] Selesai</span>
             </label>
@@ -513,7 +513,7 @@ export default function MedicalRecordPdfModal({
 
     if (sec.type === "session_info") {
       return (
-        <div key={sec.id} className="pt-1 pb-1 my-1 border-t border-b border-slate-200 flex items-center justify-between text-slate-800 text-[10px]">
+        <div key={sec.id} className="pt-1 pb-1 my-1 border-t border-b border-slate-300 flex items-center justify-between text-slate-900 text-[10pt]">
           <span>• <strong>Sesi ini merupakan sesi ke :</strong> {sec.sessionNum}</span>
           <span>• <strong>Tanggal Sesi Lanjutan / Follow-up :</strong> {sec.nextSessionDate}</span>
         </div>
@@ -523,8 +523,8 @@ export default function MedicalRecordPdfModal({
     if (sec.type === "list") {
       return (
         <div key={sec.id} className="mb-2">
-          <span className="font-bold text-[#19355E] text-[11px] block mb-0.5">{sec.title}</span>
-          <ul className="pl-8 list-disc text-slate-800 space-y-0.5 text-[10px] break-words [overflow-wrap:anywhere] [word-break:break-word] whitespace-pre-wrap">
+          <span className="font-bold text-[#19355E] text-[11pt] block mb-1">{sec.title}</span>
+          <ul className="pl-8 list-disc text-slate-900 space-y-0.5 text-[10pt] leading-relaxed break-words [overflow-wrap:anywhere] [word-break:break-word] whitespace-pre-wrap">
             {sec.items?.map((rec: string, idx: number) => (
               <li key={idx}>{rec}</li>
             ))}
@@ -535,109 +535,131 @@ export default function MedicalRecordPdfModal({
 
     if (sec.type === "referral") {
       return (
-        <div key={sec.id} className="pt-1 my-1 border-t border-slate-200 flex items-start gap-2 text-[10px]">
-          <span className="font-bold text-slate-900 shrink-0">• Referral :</span>
-          <p className="text-slate-800 text-[10.5px] break-words [overflow-wrap:anywhere] [word-break:break-word] whitespace-pre-wrap">{sec.content}</p>
+        <div key={sec.id} className="pt-1 my-1 border-t border-slate-300 flex items-start gap-2 text-[10pt]">
+          <span className="font-bold text-[#19355E] shrink-0 text-[11pt]">• Referral :</span>
+          <p className="text-slate-900 text-[10pt] leading-relaxed break-words [overflow-wrap:anywhere] [word-break:break-word] whitespace-pre-wrap pt-0.5">{sec.content}</p>
         </div>
       );
     }
 
     return (
       <div key={sec.id} className="mb-2">
-        <span className="font-bold text-[#19355E] text-[11px] block mb-0.5">{sec.title}</span>
-        <p className="pl-4 text-slate-800 text-justify text-[10px] whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word] leading-relaxed">
+        <span className="font-bold text-[#19355E] text-[11pt] block mb-1">{sec.title}</span>
+        <p className="pl-4 text-slate-900 text-justify text-[10pt] leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]">
           {sec.content}
         </p>
       </div>
     );
   };
 
-  // Render Page 1 Header & Metadata
+  // Render Page 1 Header & Metadata (Times New Roman, clear hierarchy & balanced 2-column layout)
   const renderPage1Header = () => (
-    <div ref={page1HeaderRef} className="space-y-1.5 mb-2 shrink-0">
+    <div ref={page1HeaderRef} className="space-y-2 mb-2 shrink-0" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
       {/* HEADER OASE JIWA */}
       <div className="flex justify-between items-center border-b-2 border-slate-800 pb-1.5">
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-3">
           <img
             src="/assets/logo/logo.png"
             alt="Oase Jiwa Logo"
             className="h-11 w-auto object-contain shrink-0"
           />
           <div>
-            <h2 className="font-extrabold text-base text-[#19355E] tracking-tight">Oase Jiwa</h2>
-            <p className="text-[10.5px] text-slate-500 font-semibold italic">Biro Psikologi</p>
+            <h2 className="font-bold text-[13pt] text-[#19355E] tracking-tight leading-tight">Oase Jiwa</h2>
+            <p className="text-[10pt] text-slate-600 font-medium italic">Biro Psikologi</p>
           </div>
         </div>
 
         <div className="text-right">
-          <h2 className="font-extrabold text-xs text-[#19355E] uppercase tracking-wider">
+          <h2 className="font-bold text-[11pt] text-[#19355E] uppercase tracking-wide">
             BIRO PSIKOLOGI OASE JIWA
           </h2>
-          <p className="text-[10.5px] text-slate-500 italic">Temukan Dirimu, Pulihkan Jiwamu.</p>
+          <p className="text-[10pt] text-slate-600 italic">Temukan Dirimu, Pulihkan Jiwamu.</p>
         </div>
       </div>
 
       {/* DOCUMENT TITLE */}
       <div className="text-center border-b border-slate-700 pb-0.5">
-        <h3 className="font-bold text-[#19355E] uppercase tracking-wide text-[12px] underline decoration-slate-400 decoration-1">
+        <h3 className="font-bold text-[#19355E] uppercase tracking-wide text-[11pt] underline decoration-slate-400 decoration-1">
           CATATAN UNTUK PSIKOLOG (DIISI OLEH PSIKOLOG SETELAH SESI)
         </h3>
       </div>
 
-      {/* METADATA BOX */}
-      <div className="p-2 rounded-xl border border-slate-300 bg-slate-50/70 space-y-1">
-        <div className="flex justify-between items-center border-b border-slate-200 pb-1">
-          <span className="font-bold text-[#19355E] text-[11px]">
-            Sesi Konsultasi ke-{sessionNum} (dari total {totalSessionsCount} sesi) &nbsp;|&nbsp; Tanggal: {formattedSessionDate} &nbsp;|&nbsp; Jam: {formattedSessionTime}
-          </span>
+      {/* METADATA BOX (Refined Professional 2-Column Grid & Risk Badge Layout) */}
+      <div className="p-3 rounded-lg border border-slate-300 bg-slate-50/70 space-y-2.5 text-[10pt]">
+        {/* ROW 1: Sesi, Tanggal, Jam (LEFT) & Risk Level Badge (RIGHT) */}
+        <div className="flex justify-between items-center border-b border-slate-300/80 pb-2 gap-3">
+          <div className="flex-1 min-w-0 text-slate-800 text-[10pt] font-medium leading-snug flex flex-wrap items-center gap-x-2.5 gap-y-0.5">
+            <span className="whitespace-nowrap">
+              <strong className="font-bold text-[#19355E]">
+                Sesi Konsultasi ke-{sessionNum}
+              </strong>{" "}
+              <span className="text-slate-600">(dari total {totalSessionsCount} sesi)</span>
+            </span>
+            <span className="text-slate-400">|</span>
+            <span className="whitespace-nowrap">
+              Tanggal: <strong>{formattedSessionDate}</strong>
+            </span>
+            <span className="text-slate-400">|</span>
+            <span className="whitespace-nowrap">
+              Jam: <strong>{formattedSessionTime}</strong>
+            </span>
+          </div>
 
-          <span
-            className={`px-2.5 py-0.5 mr-3 rounded-full text-[10.5px] font-extrabold tracking-wide uppercase border ${
-              riskLevel === "very_high" || riskLevel === "sangat_tinggi" || riskLevel === "high" || riskLevel === "tinggi"
-                ? "bg-red-50 text-red-700 border-red-300"
-                : riskLevel === "medium" || riskLevel === "sedang"
-                ? "bg-amber-50 text-amber-800 border-amber-300"
-                : "bg-emerald-50 text-emerald-800 border-emerald-300"
-            }`}
-          >
-            RISK LEVEL: {
-              riskLevel === "very_high" || riskLevel === "sangat_tinggi"
-                ? "SANGAT TINGGI"
-                : riskLevel === "high" || riskLevel === "tinggi"
-                ? "TINGGI"
-                : riskLevel === "medium" || riskLevel === "sedang"
-                ? "SEDANG"
-                : riskLevel === "very_low" || riskLevel === "sangat_rendah"
-                ? "SANGAT RENDAH"
-                : "RENDAH"
-            }
-          </span>
+          <div className="shrink-0 flex-none pl-2">
+            <span
+              className={`inline-block px-2.5 py-0.5 rounded-full text-[9.5pt] font-bold tracking-wide uppercase border ${
+                riskLevel === "very_high" || riskLevel === "sangat_tinggi" || riskLevel === "high" || riskLevel === "tinggi"
+                  ? "bg-red-50 text-red-700 border-red-300"
+                  : riskLevel === "medium" || riskLevel === "sedang"
+                  ? "bg-amber-50 text-amber-800 border-amber-300"
+                  : "bg-emerald-50 text-emerald-800 border-emerald-300"
+              }`}
+            >
+              RISK LEVEL: {
+                riskLevel === "very_high" || riskLevel === "sangat_tinggi"
+                  ? "SANGAT TINGGI"
+                  : riskLevel === "high" || riskLevel === "tinggi"
+                  ? "TINGGI"
+                  : riskLevel === "medium" || riskLevel === "sedang"
+                  ? "SEDANG"
+                  : riskLevel === "very_low" || riskLevel === "sangat_rendah"
+                  ? "SANGAT RENDAH"
+                  : "RENDAH"
+              }
+            </span>
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-x-6 gap-y-0.5 text-[11px]">
-          <div>
+        {/* ROW 2: Balanced 2-Column Grid (Flat Pairs for Perfect Baseline Alignment) */}
+        <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[10pt] leading-snug items-baseline">
+          {/* PAIR 1: Psikolog & Pasien */}
+          <div className="min-w-0">
             <span className="font-bold text-slate-700">Psikolog:</span>{" "}
             <span className="text-slate-900 font-medium">{finalPsychologistName}</span>
           </div>
-          <div>
+          <div className="min-w-0">
             <span className="font-bold text-slate-700">Pasien:</span>{" "}
-            <span className="text-slate-900 font-semibold">{patient.name}</span>
+            <span className="text-slate-900 font-bold">{patient.name}</span>
           </div>
-          <div>
+
+          {/* PAIR 2: No. Rekam Medis & Status Konsultasi */}
+          <div className="min-w-0 break-all [overflow-wrap:anywhere]">
             <span className="font-bold text-slate-700">No. Rekam Medis:</span>{" "}
-            <span className="text-slate-800 font-mono text-[10.5px]">{patient.id}</span>
+            <span className="text-slate-900 font-mono text-[9.5pt]">{patient.id}</span>
           </div>
-          <div>
+          <div className="min-w-0">
             <span className="font-bold text-slate-700">Status Konsultasi:</span>{" "}
             <span className="text-emerald-700 font-bold">{consultationStatus}</span>
           </div>
-          <div>
+
+          {/* PAIR 3: Diagnosis & Obat Saat Ini */}
+          <div className="min-w-0">
             <span className="font-bold text-slate-700">Diagnosis:</span>{" "}
             <span className="text-slate-900 font-medium">{diagnosisStr}</span>
           </div>
-          <div>
+          <div className="min-w-0">
             <span className="font-bold text-slate-700">Obat Saat Ini:</span>{" "}
-            <span className="text-slate-800">{medicationStr}</span>
+            <span className="text-slate-900 font-medium">{medicationStr}</span>
           </div>
         </div>
       </div>
@@ -646,23 +668,23 @@ export default function MedicalRecordPdfModal({
 
   // Render Page N Header (Subsequent Pages)
   const renderSubsequentHeader = () => (
-    <div ref={pageNHeaderRef} className="space-y-1 mb-2 pb-1.5 border-b-2 border-slate-800 shrink-0">
+    <div ref={pageNHeaderRef} className="space-y-1 mb-2 pb-1.5 border-b-2 border-slate-800 shrink-0" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
       <div className="flex justify-between items-center">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <img
             src="/assets/logo/logo.png"
             alt="Oase Jiwa Logo"
             className="h-8 w-auto object-contain shrink-0"
           />
           <div>
-            <h2 className="font-extrabold text-xs text-[#19355E] tracking-tight">Oase Jiwa — Biro Psikologi</h2>
-            <p className="text-[9.5px] text-slate-500 italic">CATATAN UNTUK PSIKOLOG (LEMBAR LANJUTAN)</p>
+            <h2 className="font-bold text-[11pt] text-[#19355E] tracking-tight">Oase Jiwa — Biro Psikologi</h2>
+            <p className="text-[9.5pt] text-slate-600 italic">CATATAN UNTUK PSIKOLOG (LEMBAR LANJUTAN)</p>
           </div>
         </div>
 
-        <div className="text-right text-[10px]">
+        <div className="text-right text-[10pt]">
           <span className="font-bold text-[#19355E]">Pasien: {patient.name}</span>
-          <span className="text-slate-500 block">No. RM: {patient.id?.substring(0, 8)} &nbsp;|&nbsp; Sesi ke-{sessionNum}</span>
+          <span className="text-slate-600 block text-[9.5pt]">No. RM: {patient.id?.substring(0, 8)} &nbsp;|&nbsp; Sesi ke-{sessionNum}</span>
         </div>
       </div>
     </div>
@@ -670,13 +692,13 @@ export default function MedicalRecordPdfModal({
 
   // Render Digital Signature Block
   const renderSignatureBlock = () => (
-    <div ref={signatureMeasureRef} className="mt-4 pt-2 border-t border-slate-200 shrink-0">
-      <div className="flex justify-end font-sans">
+    <div ref={signatureMeasureRef} className="mt-3 pt-2 border-t border-slate-300 shrink-0" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
+      <div className="flex justify-end">
         <div className="text-center w-64">
-          <p className="mb-0.5 text-[11.5px] text-slate-800 font-medium">
+          <p className="mb-0.5 text-[10pt] text-slate-800 font-medium">
             Malang, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
           </p>
-          <p className="font-bold text-[#19355E] text-[11.5px]">
+          <p className="font-bold text-[#19355E] text-[10.5pt]">
             Psikolog Penanggung Jawab,
           </p>
 
@@ -691,35 +713,35 @@ export default function MedicalRecordPdfModal({
             </div>
           ) : (
             <div className="p-2 border border-dashed border-slate-300 bg-slate-50/70 rounded-lg text-center my-1">
-              <p className="text-[10px] text-slate-400 font-mono">-----------------------------</p>
-              <p className="text-[10px] font-bold text-slate-600">Belum memiliki tanda tangan digital</p>
-              <p className="text-[10px] text-slate-400 font-mono">-----------------------------</p>
-              <p className="text-[9px] text-slate-400 italic mt-0.5">
+              <p className="text-[9.5pt] text-slate-400 font-mono">-----------------------------</p>
+              <p className="text-[10pt] font-bold text-slate-700">Belum memiliki tanda tangan digital</p>
+              <p className="text-[9.5pt] text-slate-400 font-mono">-----------------------------</p>
+              <p className="text-[9pt] text-slate-500 italic mt-0.5">
                 Silakan membuat tanda tangan digital pada menu Profil Saya.
               </p>
             </div>
           )}
 
-          <p className="font-bold text-[#19355E] text-[11.5px] underline mt-0.5">
+          <p className="font-bold text-[#19355E] text-[11pt] underline mt-0.5">
             {finalPsychologistName}
           </p>
-          <p className="text-[10.5px] text-slate-600 font-semibold">
+          <p className="text-[10pt] text-slate-700 font-semibold">
             {finalPsychologistSipp.startsWith("SIPP") ? finalPsychologistSipp : `SIPP: ${finalPsychologistSipp}`}
           </p>
           {finalPsychologistStr && (
-            <p className="text-[10px] text-slate-600 font-medium">
+            <p className="text-[9.5pt] text-slate-600 font-medium">
               {finalPsychologistStr.startsWith("STR") ? finalPsychologistStr : `STR: ${finalPsychologistStr}`}
             </p>
           )}
 
           {/* Status Badge & Timestamp */}
           {activeSignatureUrl && (
-            <div className="mt-1 flex flex-col items-center gap-0.5 text-[9.5px]">
-              <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+            <div className="mt-1 flex flex-col items-center gap-0.5 text-[9pt]">
+              <span className="inline-flex items-center gap-1 font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                 ✔ Ditandatangani secara Digital
               </span>
               {activeSignatureUpdatedAt && (
-                <span className="text-[9px] text-slate-500 font-medium">
+                <span className="text-[8.5pt] text-slate-600 font-medium">
                   Terakhir diperbarui:{" "}
                   {new Date(activeSignatureUpdatedAt).toLocaleDateString("id-ID", {
                     day: "numeric",
@@ -743,7 +765,7 @@ export default function MedicalRecordPdfModal({
 
   // Render Footer for a page
   const renderFooter = (pageIndex: number, totalPages: number) => (
-    <div className="mt-auto pt-1.5 border-t border-slate-300 flex justify-between items-center text-[9.5px] text-slate-500 font-sans shrink-0">
+    <div className="mt-auto pt-1.5 border-t border-slate-300 flex justify-between items-center text-[9.5pt] text-slate-600 shrink-0" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
       <span>Dokumen Rahasia Medis - Biro Psikologi Oase Jiwa</span>
       <span>Generated by Oase Jiwa System | Halaman {pageIndex + 1} dari {totalPages}</span>
     </div>
@@ -776,7 +798,7 @@ export default function MedicalRecordPdfModal({
             width: 210mm !important;
             height: 297mm !important;
             margin: 0 auto !important;
-            padding: 6mm 10mm !important;
+            padding: 1.5cm 1.5cm 1.5cm 2cm !important;
             box-sizing: border-box !important;
             background: #ffffff !important;
             box-shadow: none !important;
@@ -785,6 +807,7 @@ export default function MedicalRecordPdfModal({
             break-after: page !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
+            font-family: "Times New Roman", Times, serif !important;
           }
 
           #medical-record-modal-overlay {
@@ -816,16 +839,17 @@ export default function MedicalRecordPdfModal({
           top: "-9999px",
           left: "-9999px",
           width: "210mm",
-          padding: "6mm 10mm",
+          padding: "1.5cm 1.5cm 1.5cm 2cm",
           visibility: "hidden",
           pointerEvents: "none",
           boxSizing: "border-box",
+          fontFamily: '"Times New Roman", Times, serif',
         }}
-        className="font-sans text-[11.5px] leading-snug"
+        className="text-[10pt] leading-relaxed"
       >
         {renderPage1Header()}
         {renderSubsequentHeader()}
-        <div className="p-2 border-2 border-slate-300 rounded-xl bg-white space-y-1.5 text-[10px]">
+        <div className="p-2.5 rounded-lg border border-slate-300 bg-white space-y-1.5 text-[10pt]">
           {allClinicalSections.map((sec) => (
             <div
               key={sec.id}
@@ -843,7 +867,7 @@ export default function MedicalRecordPdfModal({
       {/* VISIBLE MODAL OVERLAY */}
       <div
         id="medical-record-modal-overlay"
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 font-poppins text-xs"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 text-xs"
         onClick={onClose}
       >
         <div
@@ -902,8 +926,14 @@ export default function MedicalRecordPdfModal({
                 ref={(el) => {
                   pageDomRefs.current[pageIdx] = el;
                 }}
-                className="pdf-page-sheet w-[210mm] min-h-[297mm] h-[297mm] mx-auto bg-white p-[6mm_10mm] shadow-md border border-slate-300 font-sans text-[11.5px] leading-snug flex flex-col justify-between box-border"
-                style={{ width: "210mm", height: "297mm", minHeight: "297mm" }}
+                className="pdf-page-sheet w-[210mm] min-h-[297mm] h-[297mm] mx-auto bg-white shadow-md border border-slate-300 text-[10pt] leading-relaxed flex flex-col justify-between box-border"
+                style={{
+                  width: "210mm",
+                  height: "297mm",
+                  minHeight: "297mm",
+                  padding: "1.5cm 1.5cm 1.5cm 2cm",
+                  fontFamily: '"Times New Roman", Times, serif',
+                }}
               >
                 <div className="flex-1 flex flex-col space-y-1.5">
                   {/* HEADER FOR THIS PAGE */}
@@ -911,7 +941,7 @@ export default function MedicalRecordPdfModal({
 
                   {/* CLINICAL DOCUMENTATION BOX FOR THIS PAGE */}
                   {pageData.sections.length > 0 && (
-                    <div className="p-2 rounded-xl border-2 border-slate-300 bg-white space-y-1.5 text-[10px] leading-snug break-words flex-1">
+                    <div className="p-2.5 rounded-lg border border-slate-300 bg-white space-y-1.5 text-[10pt] leading-relaxed break-words flex-1">
                       {pageData.sections.map((sec) => renderSection(sec))}
                     </div>
                   )}
