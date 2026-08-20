@@ -2,7 +2,7 @@
 
 import { X, User, Phone, AlertTriangle, AlertCircle, ShieldAlert } from "lucide-react";
 import { useState } from "react";
-import { getRiskConfig } from "@/lib/types/psychologist";
+import { getRiskConfig, RISK_LEVEL_CONFIGS } from "@/lib/types/psychologist";
 import { createPatient } from "@/lib/api/psychologist";
 
 interface CreatePatientModalProps {
@@ -445,13 +445,14 @@ export default function CreatePatientModal({
                 name="riskLevel"
                 value={formData.riskLevel}
                 onChange={(e) => setFormData({ ...formData, riskLevel: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-[#2B5379]"
+                className="w-full rounded-lg border border-amber-300 bg-white px-3.5 py-2 text-sm font-semibold outline-none transition focus:ring-2 focus:ring-[#2B5379]"
               >
-                <option value="very_low">🟢 Sangat Rendah</option>
-                <option value="low">🟢 Rendah</option>
-                <option value="medium">🟡 Sedang</option>
-                <option value="high">🟠 Tinggi</option>
-                <option value="very_high">🔴 Sangat Tinggi</option>
+                <option value="">Pilih Tingkat Risiko</option>
+                {Object.entries(RISK_LEVEL_CONFIGS).map(([key, config]) => (
+                  <option key={key} value={key}>
+                    {config.emoji} {config.label}
+                  </option>
+                ))}
               </select>
             </div>
 

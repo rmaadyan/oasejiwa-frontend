@@ -736,14 +736,14 @@ export default function CreateNoteModal({
                   setFormData((prev) => ({ ...prev, riskLevel: e.target.value }));
                   if (fieldErrors.riskLevel) setFieldErrors((prev) => ({ ...prev, riskLevel: "" }));
                 }}
-                className={`w-full rounded-lg border px-3.5 py-2 text-sm font-bold outline-none focus:ring-2 ${
-                  fieldErrors.riskLevel ? "border-red-500 ring-2 ring-red-200" : "border-amber-300 focus:ring-[#2B5379]"
+                className={`w-full rounded-lg border px-3.5 py-2 text-sm font-semibold outline-none transition focus:ring-2 ${
+                  fieldErrors.riskLevel ? "border-red-500 ring-2 ring-red-200" : "border-amber-300 bg-white focus:ring-[#2B5379]"
                 }`}
               >
                 <option value="">Pilih Tingkat Risiko</option>
                 {Object.entries(RISK_LEVEL_CONFIGS).map(([key, config]) => (
                   <option key={key} value={key}>
-                    {config.label}
+                    {config.emoji} {config.label}
                   </option>
                 ))}
               </select>
