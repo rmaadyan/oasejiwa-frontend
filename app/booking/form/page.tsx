@@ -953,12 +953,39 @@ function ConsultationFormContent() {
           const validScheduledDate = toValidIsoDateString(selectedDate);
 const validConsentDate = toValidIsoDateString(consentData.consentDate!);
 
+          const mappedClientInfo = isCouple
+            ? {
+                fullName: coupleClientData.fullName,
+                phone: coupleClientData.phone,
+                email: coupleClientData.email,
+                address: coupleClientData.address,
+                occupation: coupleClientData.occupation,
+                age: Number(coupleClientData.age) || undefined,
+              }
+            : {
+                fullName: clientData.fullName,
+                gender: clientData.gender,
+                birthDate: clientData.birthDate,
+                birthPlace: clientData.birthPlace,
+                address: clientData.address,
+                originAddress: clientData.originAddress,
+                phone: clientData.phone,
+                email: clientData.email,
+                occupation: clientData.occupation,
+                maritalStatus: clientData.maritalStatus,
+                childOrder: clientData.childOrder,
+                siblingsCount: clientData.siblingsCount,
+                educationCollege: clientData.educationCollege,
+                educationSMA: clientData.educationSMA,
+              };
+
           const payload: any = {
             serviceId: Number(serviceId),
             psychologistId: (selectedPsychologistId || psychologistId || "").trim(),
             scheduleId: scheduleId || undefined,
             scheduledDate: validScheduledDate,
             scheduledTime: selectedTime,
+            clientInfo: mappedClientInfo,
             consultationForm: mappedConsultation,
             consentForm: {
               consentDate: consentData.consentDate,
