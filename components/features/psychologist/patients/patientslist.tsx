@@ -27,24 +27,51 @@ export default function PatientsList({
 
   const safePatients = useMemo(() => (Array.isArray(patients) ? patients : []), [patients]);
 
-  // 🟢 Filter Real-time Murni (Bebas tebak nama)
+  // 🟢 Filter Real-time Murni & Tahan Crash
   const isPatientOffline = (patient: any) => {
     if (!patient) return false;
 
     // 1. Jika backend sudah menandai OFFLINE
     if (patient.registrationType === "OFFLINE") return true;
 
-    // 2. Jika ada tag [OFFLINE] pada catatan atau email internal
+    // 2. Jika email internal
     const emailStr = String(patient.email || "").toLowerCase();
     if (emailStr.endsWith("@oasejiwa.com")) return true;
 
-    const notesStr = String(patient.notes || "").toLowerCase();
-    if (notesStr.includes("offline")) return true;
+    // 3. Cek notes di level pasien secara aman (String/Array/Object)
+    let notesText = "";
+    if (typeof patient.notes === "string") {
+      notesText = patient.notes.toLowerCase();
+    } else if (Array.isArray(patient.notes)) {
+      notesText = patient.notes
+        .map((n) => (typeof n === "string" ? n : n?.notes || n?.assessment || n?.subjective || ""))
+        .join(" ")
+        .toLowerCase();
+    } else if (patient.notes && typeof patient.notes === "object") {
+      notesText = JSON.stringify(patient.notes).toLowerCase();
+    }
 
+    if (notesText.includes("offline") || notesText.includes("psikolog")) {
+      return true;
+    }
+
+    // 4. Cek notes di dalam array sessions
     if (Array.isArray(patient.sessions)) {
-      return patient.sessions.some((s: any) =>
-        String(s.notes || "").toLowerCase().includes("offline")
-      );
+      const hasOfflineSession = patient.sessions.some((s: any) => {
+        let sNotes = "";
+        if (typeof s.notes === "string") {
+          sNotes = s.notes.toLowerCase();
+        } else if (Array.isArray(s.notes)) {
+          sNotes = s.notes
+            .map((sn: any) => (typeof sn === "string" ? sn : sn?.notes || ""))
+            .join(" ")
+            .toLowerCase();
+        } else if (s.notes && typeof s.notes === "object") {
+          sNotes = JSON.stringify(s.notes).toLowerCase();
+        }
+        return sNotes.includes("offline") || sNotes.includes("psikolog");
+      });
+      if (hasOfflineSession) return true;
     }
 
     return false;
@@ -208,6 +235,7 @@ export default function PatientsList({
               onClick={() => goToPage(currentPage - 1)}
               disabled={currentPage === 1}
               className="p-1.5 rounded-lg hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              type="button"
             >
               <ChevronLeft className="w-4 h-4 text-gray-600" />
             </button>
@@ -228,6 +256,7 @@ export default function PatientsList({
                           ? "bg-[#2B5379] text-white"
                           : "text-gray-600 hover:bg-gray-100"
                       }`}
+                      type="button"
                     >
                       {page}
                     </button>
@@ -250,6 +279,7 @@ export default function PatientsList({
               onClick={() => goToPage(currentPage + 1)}
               disabled={currentPage === totalPages}
               className="p-1.5 rounded-lg hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              type="button"
             >
               <ChevronRight className="w-4 h-4 text-gray-600" />
             </button>

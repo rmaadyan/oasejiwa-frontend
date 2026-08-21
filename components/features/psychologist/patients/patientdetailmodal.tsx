@@ -141,12 +141,31 @@ export default function PatientDetailModal({
     intakeData?.address ||
     "Malang";
 
+  // 🟢 Penanganan Ekstraksi Notes yang Aman dari Error Crash
+  const extractSafeNotesText = (notesVal: any): string => {
+    if (typeof notesVal === "string") return notesVal.toLowerCase();
+    if (Array.isArray(notesVal)) {
+      return notesVal
+        .map((n) => (typeof n === "string" ? n : n?.notes || n?.assessment || n?.subjective || ""))
+        .join(" ")
+        .toLowerCase();
+    }
+    if (notesVal && typeof notesVal === "object") {
+      return JSON.stringify(notesVal).toLowerCase();
+    }
+    return "";
+  };
+
+  const patientNotesStr = extractSafeNotesText(patientRaw.notes);
+  const firstSessionNotesStr = extractSafeNotesText(patientRaw.sessionHistory?.[0]?.notes);
+
+  // 🟢 Penanda Pasien Online / Offline yang Akurat & Aman
   const isOffline = Boolean(
     patientRaw.registrationType === "OFFLINE" ||
     (patient as any)?.registrationType === "OFFLINE" ||
     String(email).toLowerCase().endsWith("@oasejiwa.com") ||
-    patientRaw.notes?.toLowerCase().includes("offline") ||
-    patientRaw.sessionHistory?.[0]?.notes?.toLowerCase().includes("offline")
+    patientNotesStr.includes("offline") ||
+    firstSessionNotesStr.includes("offline")
   );
 
   // Gender
