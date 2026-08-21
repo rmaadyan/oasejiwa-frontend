@@ -27,28 +27,25 @@ export default function PatientsList({
 
   const safePatients = useMemo(() => (Array.isArray(patients) ? patients : []), [patients]);
 
-  // 🟢 Deteksi Offline yang Akurat & Komprehensif
+  // 🟢 Filter Real-time Murni (Bebas tebak nama)
   const isPatientOffline = (patient: any) => {
     if (!patient) return false;
 
+    // 1. Jika backend sudah menandai OFFLINE
     if (patient.registrationType === "OFFLINE") return true;
 
+    // 2. Jika ada tag [OFFLINE] pada catatan atau email internal
     const emailStr = String(patient.email || "").toLowerCase();
     if (emailStr.endsWith("@oasejiwa.com")) return true;
 
-    let notesText = "";
-    if (typeof patient.notes === "string") {
-      notesText = patient.notes.toLowerCase();
-    } else if (Array.isArray(patient.notes) || (patient.notes && typeof patient.notes === "object")) {
-      notesText = JSON.stringify(patient.notes).toLowerCase();
-    }
+    const notesStr = String(patient.notes || "").toLowerCase();
+    if (notesStr.includes("offline")) return true;
 
-    if (notesText.includes("offline") || notesText.includes("psikolog")) {
-      return true;
+    if (Array.isArray(patient.sessions)) {
+      return patient.sessions.some((s: any) =>
+        String(s.notes || "").toLowerCase().includes("offline")
+      );
     }
-
-    const nameStr = String(patient.name || patient.fullName || "").toLowerCase();
-    if (nameStr.includes("adinda") || nameStr.includes("odgj")) return true;
 
     return false;
   };
