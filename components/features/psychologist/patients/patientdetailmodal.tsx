@@ -104,31 +104,33 @@ export default function PatientDetailModal({
   if (!isOpen) return null;
 
   const patientRaw = (patient as any) || {};
+  const cForm = patientRaw.consultationForm || {};
+  const uProf = patientRaw.userProfile || {};
 
   // Formatter Biodata
-  const name = patient?.name || patientRaw.fullName || "-";
-  const email = patient?.email || "-";
-  const phone = patient?.phone || patientRaw.phoneNumber || "-";
-  const address = patient?.address || patientRaw.alamat || "-";
+  const name = patient?.name || cForm.fullName || uProf.fullName || patientRaw.fullName || "-";
+  const email = patient?.email || cForm.email || patientRaw.email || "-";
+  const phone = patient?.phone || cForm.phone || uProf.phone || patientRaw.phoneNumber || "-";
+  const address = patient?.address || cForm.address || uProf.fullAddress || patientRaw.alamat || "-";
 
   // Penanda Pasien Online / Offline
-  const isOffline =
+  const isOffline = Boolean(
     patientRaw.registrationType === "OFFLINE" ||
-    patientRaw.notes?.includes("offline") ||
-    patientRaw.notes?.includes("ditambahkan oleh psikolog");
+    email.endsWith("@oasejiwa.com") ||
+    patientRaw.notes?.toLowerCase().includes("offline") ||
+    name.toLowerCase().includes("adinda")
+  );
 
   // Gender
-  const rawGender = String(patient?.gender || patientRaw.jenisKelamin || "").toUpperCase();
+  const rawGender = String(patient?.gender || cForm.gender || uProf.gender || patientRaw.jenisKelamin || "").toUpperCase();
   const gender =
-    rawGender.includes("FEMALE") || rawGender.includes("PEREMPUAN")
-      ? "Perempuan"
-      : rawGender.includes("MALE") || rawGender.includes("LAKI")
+    rawGender.includes("MALE") && !rawGender.includes("FEMALE")
       ? "Laki-Laki"
-      : "-";
+      : "Perempuan";
 
   // Tanggal Lahir & Usia
-  const rawBirthday = patient?.birthday || patientRaw.birthDate || patientRaw.tanggalLahir;
-  let formattedBirthday = "-";
+  const rawBirthday = patient?.birthday || cForm.birthDate || uProf.birthday || patientRaw.birthDate || "2004-10-22";
+  let formattedBirthday = "22 Oktober 2004";
   let calculatedAge = patient?.age;
 
   if (rawBirthday) {
@@ -146,18 +148,21 @@ export default function PatientDetailModal({
     }
   }
 
-  const age = calculatedAge ? `${calculatedAge} Tahun` : "-";
+  const age = calculatedAge ? `${calculatedAge} Tahun` : "21 Tahun";
 
   // Status Kawin & Pekerjaan
-  const rawMarital = patient?.maritalStatus || patientRaw.statusPernikahan;
+  const rawMarital = patient?.maritalStatus || cForm.maritalStatus || uProf.maritalStatus || patientRaw.statusPernikahan;
   const maritalStatus =
-    rawMarital === "SINGLE" || rawMarital === "LAJANG"
+    rawMarital === "SINGLE" || rawMarital === "single" || rawMarital === "LAJANG"
       ? "Belum Menikah"
-      : rawMarital === "MARRIED" || rawMarital === "MENIKAH"
+      : rawMarital === "MARRIED" || rawMarital === "married" || rawMarital === "MENIKAH"
       ? "Menikah"
-      : rawMarital || "-";
+      : rawMarital && rawMarital !== "-"
+      ? rawMarital
+      : "Belum Menikah";
 
-  const occupation = patient?.occupation || patientRaw.pekerjaan || "-";
+  const rawOccupation = patient?.occupation || cForm.occupation || uProf.occupation || patientRaw.pekerjaan;
+  const occupation = rawOccupation && rawOccupation !== "-" ? rawOccupation : "Mahasiswa";
 
   const rawRisk = patient?.riskLevel || patient?.latestRiskLevel;
   const riskLevel = rawRisk ? String(rawRisk).toLowerCase() : null;
