@@ -139,13 +139,14 @@ export default function PatientDetailModal({
     uProf?.fullAddress ||
     patientRaw?.alamat ||
     intakeData?.address ||
-    "Cemorokandang";
+    "Malang";
 
-  // Penanda Pasien Online / Offline yang Aman
   const isOffline = Boolean(
     patientRaw.registrationType === "OFFLINE" ||
+    (patient as any)?.registrationType === "OFFLINE" ||
     String(email).toLowerCase().endsWith("@oasejiwa.com") ||
-    String(name).toLowerCase().includes("adinda")
+    patientRaw.notes?.toLowerCase().includes("offline") ||
+    patientRaw.sessionHistory?.[0]?.notes?.toLowerCase().includes("offline")
   );
 
   // Gender

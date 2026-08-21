@@ -1,9 +1,10 @@
 "use client";
 
 import { X, User, Phone, AlertTriangle, AlertCircle, ShieldAlert } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { getRiskConfig, RISK_LEVEL_CONFIGS } from "@/lib/types/psychologist";
 import { createPatient } from "@/lib/api/psychologist";
+import { getAllLayanan } from "@/lib/api/layanan"; // 🟢 Pakai helper yang sama dengan Manajemen Layanan Admin
 
 interface CreatePatientModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export default function CreatePatientModal({
 }: CreatePatientModalProps) {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [servicesList, setServicesList] = useState<any[]>([]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -27,9 +29,10 @@ export default function CreatePatientModal({
     age: "",
     address: "",
     birthday: "",
-    maritalStatus: "",
+    maritalStatus: "Belum Menikah",
     occupation: "",
     education: "Perguruan Tinggi",
+    serviceId: "", // 🟢 ID Layanan yang dipilih
     emergencyContactName: "",
     emergencyContactPhone: "",
     emergencyContactRelation: "",
@@ -39,6 +42,25 @@ export default function CreatePatientModal({
     riskLevel: "low" as string,
     riskReason: "",
   });
+
+  // 🟢 Load data layanan dari fungsi getAllLayanan() yang dipakai Admin
+  useEffect(() => {
+    if (isOpen) {
+      getAllLayanan()
+        .then((data) => {
+          const list = Array.isArray(data) ? data : (data as any)?.data || [];
+          setServicesList(list);
+          if (list.length > 0) {
+            // Utamakan pilih Konseling Individu jika ada di daftar
+            const defaultItem = list.find((s: any) => s.nama?.toLowerCase().includes("individu")) || list[0];
+            setFormData((prev) => ({ ...prev, serviceId: String(defaultItem.id) }));
+          }
+        })
+        .catch((err) => {
+          console.warn("Gagal load layanan dari API:", err);
+        });
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -71,6 +93,10 @@ export default function CreatePatientModal({
 
     if (!formData.address.trim()) {
       errors.address = "Alamat Lengkap wajib diisi";
+    }
+
+    if (!formData.serviceId) {
+      errors.serviceId = "Pilihan Layanan Konseling wajib dipilih";
     }
 
     if (!formData.diagnosis.trim()) {
@@ -119,7 +145,7 @@ export default function CreatePatientModal({
   const errorCount = Object.keys(fieldErrors).length;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 font-poppins text-xs">
       <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
         {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white p-6 shadow-xs">
@@ -134,7 +160,7 @@ export default function CreatePatientModal({
           <button
             onClick={onClose}
             type="button"
-            className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition"
+            className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition cursor-pointer"
           >
             <X className="h-5 w-5" />
           </button>
@@ -255,7 +281,7 @@ export default function CreatePatientModal({
                   name="gender"
                   value={formData.gender}
                   onChange={(e) => setFormData({ ...formData, gender: e.target.value as "male" | "female" })}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2B5379]"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2B5379] cursor-pointer"
                 >
                   <option value="female">Perempuan</option>
                   <option value="male">Laki-laki</option>
@@ -270,6 +296,7 @@ export default function CreatePatientModal({
                   type="number"
                   value={formData.age}
                   onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                  placeholder="Contoh: 24"
                   className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2B5379]"
                 />
               </div>
@@ -282,21 +309,23 @@ export default function CreatePatientModal({
                   type="date"
                   value={formData.birthday}
                   onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2B5379]"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2B5379] cursor-pointer"
                 />
               </div>
 
               <div>
                 <label className="mb-1 block text-xs font-bold text-gray-700">Status Pernikahan</label>
-                <input
+                <select
                   id="maritalStatus"
                   name="maritalStatus"
-                  type="text"
                   value={formData.maritalStatus}
                   onChange={(e) => setFormData({ ...formData, maritalStatus: e.target.value })}
-                  placeholder="Belum Menikah / Menikah"
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2B5379]"
-                />
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2B5379] cursor-pointer"
+                >
+                  <option value="Belum Menikah">Belum Menikah</option>
+                  <option value="Menikah">Menikah</option>
+                  <option value="Duda/Janda">Duda / Janda</option>
+                </select>
               </div>
 
               <div>
@@ -307,12 +336,11 @@ export default function CreatePatientModal({
                   type="text"
                   value={formData.occupation}
                   onChange={(e) => setFormData({ ...formData, occupation: e.target.value })}
-                  placeholder="Pekerjaan pasien"
+                  placeholder="Contoh: Pegawai Swasta / Mahasiswa"
                   className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2B5379]"
                 />
               </div>
 
-              {/* 🟢 Input Pilihan Pendidikan */}
               <div>
                 <label className="mb-1 block text-xs font-bold text-gray-700">Pendidikan Terakhir</label>
                 <select
@@ -320,7 +348,7 @@ export default function CreatePatientModal({
                   name="education"
                   value={formData.education}
                   onChange={(e) => setFormData({ ...formData, education: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2B5379]"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2B5379] cursor-pointer"
                 >
                   <option value="SD">SD</option>
                   <option value="SMP">SMP</option>
@@ -329,6 +357,41 @@ export default function CreatePatientModal({
                   <option value="Perguruan Tinggi">Sarjana (S1)</option>
                   <option value="Magister">Magister (S2)</option>
                 </select>
+              </div>
+
+              {/* 🟢 PILIHAN LAYANAN KONSELING SESUAI TABEL LAYANAN ADMIN */}
+              <div>
+                <label className="mb-1 block text-xs font-bold text-gray-700">
+                  Pilihan Layanan Konseling <span className="text-red-500">*</span>
+                </label>
+                <select
+                  id="serviceId"
+                  name="serviceId"
+                  value={formData.serviceId}
+                  onChange={(e) => {
+                    setFormData({ ...formData, serviceId: e.target.value });
+                    if (fieldErrors.serviceId) setFieldErrors((prev) => ({ ...prev, serviceId: "" }));
+                  }}
+                  className={`w-full rounded-lg border px-3.5 py-2 text-sm font-semibold outline-none transition focus:ring-2 cursor-pointer ${
+                    fieldErrors.serviceId ? "border-red-500 bg-red-50/30 focus:ring-red-500/20" : "border-blue-400 bg-white text-slate-800 focus:ring-[#2B5379]"
+                  }`}
+                >
+                  {servicesList.length === 0 ? (
+                    <option value="">Memuat layanan dari database...</option>
+                  ) : (
+                    servicesList.map((srv: any) => (
+                      <option key={srv.id} value={srv.id}>
+                        {srv.nama} (Rp {Number(srv.harga || 0).toLocaleString("id-ID")})
+                      </option>
+                    ))
+                  )}
+                </select>
+                {fieldErrors.serviceId && (
+                  <p className="mt-1 text-xs font-medium text-red-600 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {fieldErrors.serviceId}
+                  </p>
+                )}
               </div>
 
               <div className="sm:col-span-2">
@@ -373,6 +436,7 @@ export default function CreatePatientModal({
                   type="text"
                   value={formData.emergencyContactName}
                   onChange={(e) => setFormData({ ...formData, emergencyContactName: e.target.value })}
+                  placeholder="Nama kerabat"
                   className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2B5379]"
                 />
               </div>
@@ -384,6 +448,7 @@ export default function CreatePatientModal({
                   type="text"
                   value={formData.emergencyContactPhone}
                   onChange={(e) => setFormData({ ...formData, emergencyContactPhone: e.target.value })}
+                  placeholder="0812-XXXX-XXXX"
                   className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2B5379]"
                 />
               </div>
@@ -395,6 +460,7 @@ export default function CreatePatientModal({
                   type="text"
                   value={formData.emergencyContactRelation}
                   onChange={(e) => setFormData({ ...formData, emergencyContactRelation: e.target.value })}
+                  placeholder="Contoh: Orang Tua / Pasangan"
                   className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2B5379]"
                 />
               </div>
@@ -442,6 +508,7 @@ export default function CreatePatientModal({
                   type="text"
                   value={formData.medication}
                   onChange={(e) => setFormData({ ...formData, medication: e.target.value })}
+                  placeholder="Daftar obat yang sedang dikonsumsi (jika ada)"
                   className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2B5379]"
                 />
               </div>
@@ -464,7 +531,7 @@ export default function CreatePatientModal({
                 name="riskLevel"
                 value={formData.riskLevel}
                 onChange={(e) => setFormData({ ...formData, riskLevel: e.target.value })}
-                className="w-full rounded-lg border border-amber-300 bg-white px-3.5 py-2 text-sm font-semibold outline-none transition focus:ring-2 focus:ring-[#2B5379]"
+                className="w-full rounded-lg border border-amber-300 bg-white px-3.5 py-2 text-sm font-semibold outline-none transition focus:ring-2 focus:ring-[#2B5379] cursor-pointer"
               >
                 <option value="">Pilih Tingkat Risiko</option>
                 {Object.entries(RISK_LEVEL_CONFIGS).map(([key, config]) => (
@@ -514,14 +581,14 @@ export default function CreatePatientModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
+              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition cursor-pointer"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="rounded-lg bg-[#2B5379] px-5 py-2 text-xs font-bold text-white hover:bg-[#234463] transition shadow-xs disabled:opacity-50"
+              className="rounded-lg bg-[#2B5379] px-5 py-2 text-xs font-bold text-white hover:bg-[#234463] transition shadow-xs disabled:opacity-50 cursor-pointer"
             >
               {submitting ? "Menyimpan..." : "Simpan Pasien Baru"}
             </button>
