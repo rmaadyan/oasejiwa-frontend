@@ -23,7 +23,7 @@ export default function SchedulePage() {
       const data = await getAllSessions();
       setScheduleData(data);
     } catch (error) {
-      console.error("Failed to fetch schedule:", error);
+      console.error("Gagal mengambil jadwal konseling:", error);
     } finally {
       setLoading(false);
     }
@@ -93,7 +93,7 @@ export default function SchedulePage() {
       <div className="flex gap-2 border-b border-gray-200 pb-2">
         <button
           onClick={() => setActiveTab("ALL")}
-          className={`px-4 py-2 rounded-lg font-medium text-xs transition-all ${
+          className={`px-4 py-2 rounded-lg font-medium text-xs transition-all cursor-pointer ${
             activeTab === "ALL" ? "bg-[#2B5379] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
           }`}
         >
@@ -101,7 +101,7 @@ export default function SchedulePage() {
         </button>
         <button
           onClick={() => setActiveTab("UPCOMING")}
-          className={`px-4 py-2 rounded-lg font-medium text-xs transition-all ${
+          className={`px-4 py-2 rounded-lg font-medium text-xs transition-all cursor-pointer ${
             activeTab === "UPCOMING" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
           }`}
         >
@@ -109,7 +109,7 @@ export default function SchedulePage() {
         </button>
         <button
           onClick={() => setActiveTab("COMPLETED")}
-          className={`px-4 py-2 rounded-lg font-medium text-xs transition-all ${
+          className={`px-4 py-2 rounded-lg font-medium text-xs transition-all cursor-pointer ${
             activeTab === "COMPLETED" ? "bg-emerald-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
           }`}
         >
@@ -117,7 +117,7 @@ export default function SchedulePage() {
         </button>
         <button
           onClick={() => setActiveTab("CANCELLED")}
-          className={`px-4 py-2 rounded-lg font-medium text-xs transition-all ${
+          className={`px-4 py-2 rounded-lg font-medium text-xs transition-all cursor-pointer ${
             activeTab === "CANCELLED" ? "bg-rose-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
           }`}
         >

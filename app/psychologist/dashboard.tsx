@@ -21,7 +21,7 @@ export default function PsychologistDashboardPage() {
         const res = await getPsychologistDashboard();
         setData(res?.data || res);
       } catch (err) {
-        console.error(err);
+        console.error("Gagal memuat dashboard:", err);
       } finally {
         setLoading(false);
       }
@@ -30,7 +30,7 @@ export default function PsychologistDashboardPage() {
   }, []);
 
   if (loading) {
-    return <div className="p-8 text-slate-500 font-poppins">Memuat dashboard...</div>;
+    return <div className="p-8 text-slate-500 font-poppins text-xs">Memuat dashboard...</div>;
   }
 
   const greetingText = getGreeting();
@@ -42,33 +42,56 @@ export default function PsychologistDashboardPage() {
     year: "numeric",
   });
 
-  // BACA DATA STATISTIK
+  // 🟢 1. BACA DATA STATISTIK DENGAN FLEKSIBEL (MENDUKUNG FORMAT BARU & LAMA)
   const stats = data?.stats || {};
-  const todaySessionsCount = stats?.sesiHariIni ?? 0;
-  const weeklySessionsCount = stats?.sesiMingguIni ?? 0;
-  const totalPatients = stats?.totalPasien ?? 0;
+  const todaySessionsCount =
+    data?.todaySessionsCount ?? stats?.todaySessions ?? stats?.sesiHariIni ?? 0;
+  const weeklySessionsCount =
+    data?.weeklySessionsCount ?? stats?.weekSessions ?? stats?.sesiMingguIni ?? 0;
+  const totalPatients =
+    data?.totalPatients ?? stats?.totalPatients ?? stats?.totalPasien ?? 0;
 
-  // BACA LIST SESI HARI INI & MENDATANG
-  const rawTodaySessions = data?.jadwalHariIni || [];
-  const rawUpcomingSessions = data?.jadwalMendatang || [];
+  // 🟢 2. BACA LIST SESI HARI INI & MENDATANG
+  const rawTodaySessions =
+    data?.todaySessions || data?.todaySchedule || data?.jadwalHariIni || [];
+  const rawUpcomingSessions =
+    data?.upcomingSessions || data?.jadwalMendatang || [];
 
   const todaySessions = rawTodaySessions.map((session: any) => ({
-    id: session.id,
-    patientName: session.user?.userProfile?.fullName || "Pasien",
-    serviceName: session.service?.nama || "Konseling Psikologi",
-    time: session.scheduledTime || "17:10",
-    status: session.status || "PENDING",
+    id: session.id || session.bookingId,
+    patientName:
+      session.patientName ||
+      session.consultationForm?.fullName ||
+      session.user?.userProfile?.fullName ||
+      session.user?.email ||
+      "Pasien",
+    serviceName:
+      session.serviceName ||
+      session.service?.nama ||
+      session.service ||
+      "Konseling Klinis",
+    time: session.time || session.scheduledTime || "09:00 WIB",
+    status: (session.bookingStatus || session.status || "APPROVED").toUpperCase(),
   }));
 
   const upcomingSessions = rawUpcomingSessions.map((session: any) => ({
-    id: session.id,
-    patientName: session.user?.userProfile?.fullName || "Pasien",
-    serviceName: session.service?.nama || "Konseling Psikologi",
-    date: session.scheduledDate
+    id: session.id || session.bookingId,
+    patientName:
+      session.patientName ||
+      session.consultationForm?.fullName ||
+      session.user?.userProfile?.fullName ||
+      session.user?.email ||
+      "Pasien",
+    serviceName:
+      session.serviceName ||
+      session.service?.nama ||
+      session.service ||
+      "Konseling Klinis",
+    date: session.date || (session.scheduledDate
       ? new Date(session.scheduledDate).toLocaleDateString("id-ID", { day: "numeric", month: "short" })
-      : "-",
-    time: session.scheduledTime || "17:10",
-    status: session.status || "APPROVED",
+      : "-"),
+    time: session.time || session.scheduledTime || "09:00 WIB",
+    status: (session.bookingStatus || session.status || "APPROVED").toUpperCase(),
   }));
 
   return (
@@ -81,7 +104,7 @@ export default function PsychologistDashboardPage() {
       {/* BANNER SAPAAN */}
       <div className="bg-[#D9EBFC] p-6 rounded-2xl border-2 border-slate-500 space-y-1">
         <h2 className="text-sm font-bold text-[#1F415F]">
-          {greetingText}, {data?.psychologistName || "Okta"}
+          {greetingText}, {data?.psychologistName || "Psikolog"}
         </h2>
         <p className="text-slate-600">Semangat untuk membantu pasien hari ini</p>
         <p className="text-slate-400 text-[11px] pt-1">{todayDateFormatted}</p>
@@ -125,7 +148,7 @@ export default function PsychologistDashboardPage() {
                   <p className="text-slate-500 text-[11px]">{session.serviceName}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-[#234463]">{session.time} WIB</p>
+                  <p className="font-semibold text-[#234463]">{session.time}</p>
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium uppercase ${
                     session.status === 'CANCELLED' || session.status === 'REJECTED'
                       ? 'bg-red-100 text-red-800'
@@ -157,7 +180,7 @@ export default function PsychologistDashboardPage() {
                   <p className="text-slate-500 text-[11px]">{session.serviceName} • {session.date}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-[#234463]">{session.time} WIB</p>
+                  <p className="font-semibold text-[#234463]">{session.time}</p>
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-medium uppercase">
                     {session.status}
                   </span>

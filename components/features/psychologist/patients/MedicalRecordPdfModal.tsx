@@ -528,7 +528,8 @@ export default function MedicalRecordPdfModal({
               SIPPK / SIPP : {finalSipp} {finalStr !== "-" ? `• STR : ${finalStr}` : ""}
             </p>
             <p className="text-[7.5pt] text-slate-700 max-w-md leading-tight">
-              Perumahan D'Soeta Residence, Blk. D No.1, Babatan, Tegalgondo, Kec. Karang Ploso, Kab. Malang • ☎ 0813-1388-8830
+              Perumahan D'Soeta Residence, Blk. D No.1, Babatan, Tegalgondo, Kec. Karang Ploso, Kab. Malang 
+              • ☎ 0813-1388-8830
             </p>
           </div>
         </div>
