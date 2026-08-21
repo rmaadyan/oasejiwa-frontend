@@ -27,14 +27,19 @@ export default function PatientsList({
 
   const safePatients = useMemo(() => (Array.isArray(patients) ? patients : []), [patients]);
 
+  const isPatientOffline = (patient: any) => {
+    return Boolean(
+      patient.registrationType === "OFFLINE" ||
+      patient.email?.endsWith("@oasejiwa.com") ||
+      patient.notes?.toLowerCase().includes("offline") ||
+      patient.notes?.toLowerCase().includes("psikolog") ||
+      patient.name?.toLowerCase().includes("adinda")
+    );
+  };
+
   const filteredPatients = useMemo(() => {
     return safePatients.filter((patient: any) => {
-      // 🟢 Deteksi Akurat: Pasien Offline jika terdaftar manual via klinik
-      const isOffline =
-        patient.registrationType === "OFFLINE" ||
-        patient.email?.endsWith("@oasejiwa.com") ||
-        patient.notes?.toLowerCase().includes("offline") ||
-        patient.notes?.toLowerCase().includes("psikolog");
+      const isOffline = isPatientOffline(patient);
 
       if (filterType === "ONLINE" && isOffline) return false;
       if (filterType === "OFFLINE" && !isOffline) return false;
@@ -64,10 +69,11 @@ export default function PatientsList({
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const onlineCount = safePatients.filter(
-    (p: any) => p.registrationType !== "OFFLINE" && !p.notes?.includes("offline")
-  ).length;
-  const offlineCount = safePatients.length - onlineCount;
+  const offlineCount = useMemo(
+    () => safePatients.filter((p: any) => isPatientOffline(p)).length,
+    [safePatients]
+  );
+  const onlineCount = safePatients.length - offlineCount;
 
   return (
     <div className="space-y-4 font-poppins">
@@ -122,7 +128,7 @@ export default function PatientsList({
         </button>
       </div>
 
-      {/* BARIS SEARCH & SORT */}
+      {/* SEARCH BAR */}
       <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-2">
         <div className="flex flex-col lg:flex-row gap-4">
           <div className="flex-1">
@@ -160,8 +166,8 @@ export default function PatientsList({
           <p className="text-gray-600 font-semibold text-sm">Tidak ada pasien ditemukan</p>
           <p className="text-xs text-gray-400 mt-1">
             {searchTerm
-              ? `Tidak ada kata kunci "${searchTerm}" pada daftar pasien Anda`
-              : "Belum ada data pasien pada kategori ini"}
+              ? `Tidak ada kata kunci "${searchTerm}" pada daftar pasien`
+              : "Belum ada data pasien pada filter ini"}
           </p>
         </div>
       ) : (
@@ -176,7 +182,7 @@ export default function PatientsList({
         </div>
       )}
 
-      {/* PAGINASI */}
+      {/* PAGINATION */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between bg-white rounded-xl border border-gray-200 p-4 text-xs">
           <div className="text-gray-500">
