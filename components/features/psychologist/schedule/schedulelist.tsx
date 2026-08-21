@@ -14,7 +14,9 @@ export default function ScheduleList({ sessions, onViewDetails }: ScheduleListPr
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 9;
 
-  if (sessions.length === 0) {
+  const safeSessions = Array.isArray(sessions) ? sessions : [];
+
+  if (safeSessions.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
         <p className="text-gray-600 font-medium">Tidak ada jadwal</p>
@@ -23,24 +25,40 @@ export default function ScheduleList({ sessions, onViewDetails }: ScheduleListPr
     );
   }
 
+  // 🟢 Helper format tanggal header Indonesia
+  const formatDateHeader = (dateStr: string) => {
+    if (!dateStr || dateStr === "undefined") return "Jadwal Belum Ditentukan";
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) return dateStr;
+
+    return new Intl.DateTimeFormat("id-ID", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }).format(d);
+  };
+
   // Group sessions by date
-  const groupedSessions = sessions.reduce((acc, session) => {
-    const date = session.date;
-    if (!acc[date]) {
-      acc[date] = [];
+  const groupedSessions = safeSessions.reduce((acc, session) => {
+    const rawDate = session.date || "Tanpa Tanggal";
+    const dateKey = String(rawDate).split("T")[0]; // Ambil format YYYY-MM-DD
+
+    if (!acc[dateKey]) {
+      acc[dateKey] = [];
     }
-    acc[date].push(session);
+    acc[dateKey].push(session);
     return acc;
   }, {} as Record<string, Session[]>);
 
-  // Sort dates (newest first)
+  // Sort dates (terbaru terlebih dahulu)
   const sortedDates = Object.keys(groupedSessions).sort((a, b) => {
     return new Date(b).getTime() - new Date(a).getTime();
   });
 
   // Flatten sessions for pagination
-  const allSessionsFlat = sortedDates.flatMap(date => 
-    groupedSessions[date].map(session => ({ date, session }))
+  const allSessionsFlat = sortedDates.flatMap((date) =>
+    groupedSessions[date].map((session) => ({ date, session }))
   );
 
   // Calculate pagination
@@ -62,7 +80,7 @@ export default function ScheduleList({ sessions, onViewDetails }: ScheduleListPr
 
   const goToPage = (page: number) => {
     setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
@@ -72,8 +90,8 @@ export default function ScheduleList({ sessions, onViewDetails }: ScheduleListPr
           {/* Date Header */}
           <div className="flex items-center gap-3 mb-4">
             <div className="h-px flex-1 bg-gray-200" />
-            <h3 className="text-sm font-semibold text-[#2B5379] px-3 py-1 bg-gray-50 rounded-full">
-              {date}
+            <h3 className="text-xs font-bold text-[#2B5379] px-3.5 py-1 bg-blue-50 border border-blue-200 rounded-full shadow-xs">
+              {formatDateHeader(date)}
             </h3>
             <div className="h-px flex-1 bg-gray-200" />
           </div>
@@ -82,7 +100,7 @@ export default function ScheduleList({ sessions, onViewDetails }: ScheduleListPr
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {currentGrouped[date].map((session) => (
               <SessionCard
-                key={session.id}
+                key={session.id || (session as any).bookingId}
                 session={session}
                 onViewDetails={onViewDetails}
               />
@@ -93,23 +111,23 @@ export default function ScheduleList({ sessions, onViewDetails }: ScheduleListPr
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between bg-white rounded-xl border border-gray-200 p-4">
-          <div className="text-sm text-gray-600">
+        <div className="flex items-center justify-between bg-white rounded-xl border border-gray-200 p-4 text-xs">
+          <div className="text-gray-600">
             Menampilkan {startIndex + 1}-{Math.min(endIndex, allSessionsFlat.length)} dari {allSessionsFlat.length} sesi
           </div>
-          
+
           <div className="flex items-center gap-2">
             <button
               onClick={() => goToPage(currentPage - 1)}
               disabled={currentPage === 1}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              type="button"
             >
-              <ChevronLeft className="w-5 h-5 text-gray-600" />
+              <ChevronLeft className="w-4 h-4 text-gray-600" />
             </button>
-            
+
             <div className="flex items-center gap-1">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                // Show first page, last page, current page, and pages around current
                 if (
                   page === 1 ||
                   page === totalPages ||
@@ -119,11 +137,12 @@ export default function ScheduleList({ sessions, onViewDetails }: ScheduleListPr
                     <button
                       key={page}
                       onClick={() => goToPage(page)}
-                      className={`min-w-8 h-8 px-2 rounded-lg text-sm font-medium transition-colors ${
+                      className={`min-w-7 h-7 px-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
                         currentPage === page
                           ? "bg-[#2B5379] text-white"
                           : "text-gray-600 hover:bg-gray-100"
                       }`}
+                      type="button"
                     >
                       {page}
                     </button>
@@ -132,18 +151,23 @@ export default function ScheduleList({ sessions, onViewDetails }: ScheduleListPr
                   page === currentPage - 2 ||
                   page === currentPage + 2
                 ) {
-                  return <span key={page} className="px-2 text-gray-400">...</span>;
+                  return (
+                    <span key={page} className="px-1 text-gray-400">
+                      ...
+                    </span>
+                  );
                 }
                 return null;
               })}
             </div>
-            
+
             <button
               onClick={() => goToPage(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              type="button"
             >
-              <ChevronRight className="w-5 h-5 text-gray-600" />
+              <ChevronRight className="w-4 h-4 text-gray-600" />
             </button>
           </div>
         </div>
