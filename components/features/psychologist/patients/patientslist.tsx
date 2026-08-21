@@ -28,13 +28,29 @@ export default function PatientsList({
   const safePatients = useMemo(() => (Array.isArray(patients) ? patients : []), [patients]);
 
   const isPatientOffline = (patient: any) => {
-    return Boolean(
-      patient.registrationType === "OFFLINE" ||
-      patient.email?.endsWith("@oasejiwa.com") ||
-      patient.notes?.toLowerCase().includes("offline") ||
-      patient.notes?.toLowerCase().includes("psikolog") ||
-      patient.name?.toLowerCase().includes("adinda")
-    );
+    if (!patient) return false;
+
+    if (patient.registrationType === "OFFLINE") return true;
+    if (patient.registrationType === "ONLINE") return false;
+
+    const emailStr = String(patient.email || "").toLowerCase();
+    if (emailStr.endsWith("@oasejiwa.com")) return true;
+
+    let notesText = "";
+    if (typeof patient.notes === "string") {
+      notesText = patient.notes.toLowerCase();
+    } else if (Array.isArray(patient.notes) || (patient.notes && typeof patient.notes === "object")) {
+      notesText = JSON.stringify(patient.notes).toLowerCase();
+    }
+
+    if (notesText.includes("offline") || notesText.includes("psikolog")) {
+      return true;
+    }
+
+    const nameStr = String(patient.name || patient.fullName || "").toLowerCase();
+    if (nameStr.includes("adinda")) return true;
+
+    return false;
   };
 
   const filteredPatients = useMemo(() => {

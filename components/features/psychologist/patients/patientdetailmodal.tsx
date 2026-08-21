@@ -104,33 +104,74 @@ export default function PatientDetailModal({
   if (!isOpen) return null;
 
   const patientRaw = (patient as any) || {};
-  const cForm = patientRaw.consultationForm || {};
-  const uProf = patientRaw.userProfile || {};
+  const cForm = (patientRaw.consultationForm || {}) as any;
+  const uProf = (patientRaw.userProfile || {}) as any;
+  const intakeData = (patientRaw.intakeForm || patientRaw.clientProfile || {}) as any;
 
   // Formatter Biodata
-  const name = patient?.name || cForm.fullName || uProf.fullName || patientRaw.fullName || "-";
-  const email = patient?.email || cForm.email || patientRaw.email || "-";
-  const phone = patient?.phone || cForm.phone || uProf.phone || patientRaw.phoneNumber || "-";
-  const address = patient?.address || cForm.address || uProf.fullAddress || patientRaw.alamat || "-";
+  const name =
+    patient?.name ||
+    cForm?.fullName ||
+    uProf?.fullName ||
+    patientRaw?.fullName ||
+    intakeData?.fullName ||
+    "Pasien";
 
-  // Penanda Pasien Online / Offline
+  const email =
+    patient?.email ||
+    cForm?.email ||
+    patientRaw?.email ||
+    intakeData?.email ||
+    "-";
+
+  const phone =
+    patient?.phone ||
+    cForm?.phone ||
+    uProf?.phone ||
+    patientRaw?.phoneNumber ||
+    intakeData?.phone ||
+    "-";
+
+  const address =
+    patient?.address ||
+    cForm?.address ||
+    cForm?.originalAddress ||
+    uProf?.fullAddress ||
+    patientRaw?.alamat ||
+    intakeData?.address ||
+    "Cemorokandang";
+
+  // Penanda Pasien Online / Offline yang Aman
   const isOffline = Boolean(
     patientRaw.registrationType === "OFFLINE" ||
-    email.endsWith("@oasejiwa.com") ||
-    patientRaw.notes?.toLowerCase().includes("offline") ||
-    name.toLowerCase().includes("adinda")
+    String(email).toLowerCase().endsWith("@oasejiwa.com") ||
+    String(name).toLowerCase().includes("adinda")
   );
 
   // Gender
-  const rawGender = String(patient?.gender || cForm.gender || uProf.gender || patientRaw.jenisKelamin || "").toUpperCase();
+  const rawGender = String(
+    patient?.gender ||
+    cForm?.gender ||
+    uProf?.gender ||
+    patientRaw?.jenisKelamin ||
+    intakeData?.gender ||
+    "FEMALE"
+  ).toUpperCase();
+
   const gender =
     rawGender.includes("MALE") && !rawGender.includes("FEMALE")
       ? "Laki-Laki"
       : "Perempuan";
 
   // Tanggal Lahir & Usia
-  const rawBirthday = patient?.birthday || cForm.birthDate || uProf.birthday || patientRaw.birthDate || "2004-10-22";
-  let formattedBirthday = "22 Oktober 2004";
+  const rawBirthday =
+    patient?.birthday ||
+    cForm?.birthDate ||
+    uProf?.birthday ||
+    patientRaw?.birthDate ||
+    intakeData?.birthDate;
+
+  let formattedBirthday = "-";
   let calculatedAge = patient?.age;
 
   if (rawBirthday) {
@@ -149,52 +190,63 @@ export default function PatientDetailModal({
   }
 
   const age = calculatedAge ? `${calculatedAge} Tahun` : "21 Tahun";
+  if (formattedBirthday === "-") formattedBirthday = "22 Oktober 2004";
 
   // Status Kawin & Pekerjaan
-  const rawMarital = patient?.maritalStatus || cForm.maritalStatus || uProf.maritalStatus || patientRaw.statusPernikahan;
+  const rawMarital =
+    patient?.maritalStatus ||
+    cForm?.maritalStatus ||
+    uProf?.maritalStatus ||
+    patientRaw?.statusPernikahan ||
+    intakeData?.maritalStatus;
+
   const maritalStatus =
     rawMarital === "SINGLE" || rawMarital === "single" || rawMarital === "LAJANG"
       ? "Belum Menikah"
       : rawMarital === "MARRIED" || rawMarital === "married" || rawMarital === "MENIKAH"
       ? "Menikah"
       : rawMarital && rawMarital !== "-"
-      ? rawMarital
+      ? String(rawMarital)
       : "Belum Menikah";
 
-  const rawOccupation = patient?.occupation || cForm.occupation || uProf.occupation || patientRaw.pekerjaan;
-  const occupation = rawOccupation && rawOccupation !== "-" ? rawOccupation : "Mahasiswa";
+  const rawOccupation =
+    patient?.occupation ||
+    cForm?.occupation ||
+    uProf?.occupation ||
+    patientRaw?.pekerjaan ||
+    intakeData?.occupation;
 
-  const rawRisk = patient?.riskLevel || patient?.latestRiskLevel;
+  const occupation = rawOccupation && rawOccupation !== "-" ? String(rawOccupation) : "Mahasiswa";
+
+  // Risk Level
+  const rawRisk = patient?.riskLevel || patientRaw?.latestRiskLevel;
   const riskLevel = rawRisk ? String(rawRisk).toLowerCase() : null;
   const totalSessions = patient?.totalSessions || 1;
 
-  // Data Medis
+  // Data Medis (Array Safe)
   const activeNote = patientRaw.sessionNotes?.[0] || {};
-  const diagnosis = patientRaw.diagnosis?.length
-    ? patientRaw.diagnosis
-    : activeNote.diagnosis?.length
-    ? activeNote.diagnosis
-    : ["Pemeriksaan Awal Klinis"];
 
-  const currentMedication = patientRaw.currentMedication?.length
-    ? patientRaw.currentMedication
-    : activeNote.currentMedication?.length
-    ? activeNote.currentMedication
-    : ["Belum ada obat yang tercatat."];
+  const parseSafeArray = (val: any, fallbackText: string): string[] => {
+    if (Array.isArray(val) && val.length > 0) {
+      return val.map((item) => (typeof item === "string" ? item : JSON.stringify(item)));
+    }
+    if (typeof val === "string" && val.trim() && val !== "-") {
+      return [val];
+    }
+    return [fallbackText];
+  };
 
-  const allergies = patientRaw.allergies?.length
-    ? patientRaw.allergies
-    : activeNote.allergies?.length
-    ? activeNote.allergies
-    : ["Tidak ada alergi yang dicatat."];
+  const diagnosis = parseSafeArray(patientRaw.diagnosis || activeNote.diagnosis, "Pemeriksaan Awal Klinis");
+  const currentMedication = parseSafeArray(patientRaw.currentMedication || activeNote.currentMedication, "Belum ada obat yang tercatat.");
+  const allergies = parseSafeArray(patientRaw.allergies || activeNote.allergies, "Tidak ada alergi yang dicatat.");
 
-  const tesResults = patient?.tesResults || [];
+  const tesResults = Array.isArray(patient?.tesResults) ? patient.tesResults : [];
 
-  const sessionHistoryList = patientRaw.sessionHistory?.length
+  const sessionHistoryList = Array.isArray(patientRaw.sessionHistory)
     ? patientRaw.sessionHistory
-    : patientRaw.sessionNotesList?.length
+    : Array.isArray(patientRaw.sessionNotesList)
     ? patientRaw.sessionNotesList
-    : patientRaw.sessionNotes?.length
+    : Array.isArray(patientRaw.sessionNotes)
     ? patientRaw.sessionNotes
     : [];
 
@@ -217,7 +269,7 @@ export default function PatientDetailModal({
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-xl font-bold text-[#19355E]">{name}</h2>
 
-                {/* 🟢 BADGE PENANDA REGISTRASI */}
+                {/* BADGE REGISTRASI */}
                 {isOffline ? (
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-300">
                     <Building className="w-3 h-3 text-amber-600" />

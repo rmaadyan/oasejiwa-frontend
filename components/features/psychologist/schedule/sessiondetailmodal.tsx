@@ -61,52 +61,57 @@ export default function SessionDetailModal({
   };
 
   const handleMarkCompleted = async () => {
-    if (!session?.id) return;
+    const targetId = (session as any)?.bookingId || session?.id;
+    if (!targetId) return;
 
     setLoading(true);
 
     try {
-      // 1. Panggil API backend NestJS
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.oasejiwa.id";
-      const token = localStorage.getItem('token'); // Sesuaikan tempat penyimpanan token-mu
+      
+      const token =
+        typeof window !== "undefined"
+          ? localStorage.getItem("auth_token") ||
+            localStorage.getItem("token") ||
+            localStorage.getItem("accessToken") ||
+            ""
+          : "";
 
-      const res = await fetch(`${apiUrl}/psychologist/sessions/${session.id}/status`, {
-        method: 'PATCH',
+      const res = await fetch(`${apiUrl}/psychologist/sessions/${targetId}/status`, {
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ status: 'COMPLETED' }),
+        credentials: "include",
+        body: JSON.stringify({ status: "COMPLETED" }),
       });
 
-      const responseData = await res.json();
+      const responseData = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        // 🟢 MENAMPILKAN POP-UP PENGINGAT JIKA BELUM WAKTUNYA
-        alert(responseData.message || 'Sesi belum dapat ditandai selesai!');
+        alert(responseData.message || "Sesi belum dapat ditandai selesai!");
         return;
       }
 
-      // Jika ada callback dari parent component
       if (onMarkCompleted) {
-        await onMarkCompleted(session.id);
+        await onMarkCompleted(targetId);
       }
 
-      alert('Sesi berhasil ditandai selesai!');
+      alert("Sesi berhasil ditandai selesai!");
       onClose();
-      
-      // 🟢 Refresh halaman agar card statistik langsung ter-update (Selesai: 1)
       window.location.reload();
     } catch (error: any) {
-      console.error(error);
-      alert('Terjadi kesalahan saat memperbarui status sesi');
+      console.error("Error completing session:", error);
+      alert("Terjadi kesalahan saat memperbarui status sesi");
     } finally {
       setLoading(false);
     }
   };
 
   const handleCancel = async () => {
-    if (!onCancel || !cancelReason.trim()) {
+    const targetId = (session as any)?.bookingId || session?.id;
+    if (!onCancel || !cancelReason.trim() || !targetId) {
       alert("Harap masukkan alasan pembatalan");
       return;
     }
@@ -114,7 +119,7 @@ export default function SessionDetailModal({
     setLoading(true);
 
     try {
-      await onCancel(session.id, cancelReason.trim());
+      await onCancel(targetId, cancelReason.trim());
       onClose();
     } catch (error) {
       console.error(error);
@@ -125,11 +130,11 @@ export default function SessionDetailModal({
   };
 
   const getStatusBadge = (statusParam?: string) => {
-    const rawStatus = String(statusParam || session?.status || '').toLowerCase();
+    const rawStatus = String(statusParam || session?.status || "").toLowerCase();
 
     let normalizedStatus = rawStatus;
-    if (['approved', 'paid', 'success', 'confirmed'].includes(rawStatus)) {
-      normalizedStatus = 'upcoming';
+    if (["approved", "paid", "success", "confirmed"].includes(rawStatus)) {
+      normalizedStatus = "upcoming";
     }
 
     const styles: Record<string, string> = {
@@ -163,8 +168,8 @@ export default function SessionDetailModal({
     onClose();
   };
 
-  const isUpcoming = ['upcoming', 'approved', 'paid', 'success', 'confirmed'].includes(
-    String(session?.status || '').toLowerCase()
+  const isUpcoming = ["upcoming", "approved", "paid", "success", "confirmed"].includes(
+    String(session?.status || "").toLowerCase()
   );
 
   return (
@@ -189,7 +194,7 @@ export default function SessionDetailModal({
 
           <button
             onClick={handleClose}
-            className="rounded-lg p-2 transition-colors hover:bg-gray-100"
+            className="rounded-lg p-2 transition-colors hover:bg-gray-100 cursor-pointer"
             type="button"
           >
             <X className="h-5 w-5 text-gray-600" />
