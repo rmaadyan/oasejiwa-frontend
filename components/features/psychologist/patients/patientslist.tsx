@@ -27,11 +27,11 @@ export default function PatientsList({
 
   const safePatients = useMemo(() => (Array.isArray(patients) ? patients : []), [patients]);
 
+  // 🟢 Deteksi Offline yang Akurat & Komprehensif
   const isPatientOffline = (patient: any) => {
     if (!patient) return false;
 
     if (patient.registrationType === "OFFLINE") return true;
-    if (patient.registrationType === "ONLINE") return false;
 
     const emailStr = String(patient.email || "").toLowerCase();
     if (emailStr.endsWith("@oasejiwa.com")) return true;
@@ -48,7 +48,7 @@ export default function PatientsList({
     }
 
     const nameStr = String(patient.name || patient.fullName || "").toLowerCase();
-    if (nameStr.includes("adinda")) return true;
+    if (nameStr.includes("adinda") || nameStr.includes("odgj")) return true;
 
     return false;
   };

@@ -273,24 +273,79 @@ export default function MedicalRecordPdfModal({
     ? new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "long", year: "numeric" }).format(new Date(rawExamDate))
     : new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "long", year: "numeric" }).format(new Date());
 
-  const sessionNum = note.sessionNumber || 1;
-  const followUpPlan = note?.followUpPlan || officialRecord?.followUpPlan || "CONTINUE_SESSION";
-  const nextSessionDate = note.followUpDate
-    ? new Date(note.followUpDate).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
-    : note.nextSessionDate || "Belum dijadwalkan";
+  const sessionNum = note.sessionNumber || officialRecord?.sessionNumber || 1;
+
+  // 🟢 4. Ekstraksi Dinamis Bagian D & C (Membaca Langsung Data Update Terbaru)
+  const rawFollowUpDate =
+    note.followUpDate ||
+    officialRecord?.followUpDate ||
+    note.nextSessionDate ||
+    officialRecord?.nextSessionDate ||
+    patientData?.followUpDate;
+
+  const nextSessionDate = rawFollowUpDate
+    ? new Date(rawFollowUpDate).toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : "-";
+
+  const followUpPlan =
+    note.followUpPlan ||
+    officialRecord?.followUpPlan ||
+    patientData?.followUpPlan ||
+    "CONTINUE_SESSION";
 
   const mainProblem = note.subjective || "Tidak ada keluhan subjektif";
   const observation = note.objective || "Tidak ada catatan observasi objektif";
   const assessment = note.assessment || officialRecord?.diagnosis || "Dalam proses evaluasi psikologis";
   const plan = note.plan || officialRecord?.therapyApproach || "Belum ada rekomendasi terapi khusus";
-  const additionalNotes = note.additionalNotes || "Tidak ada catatan tambahan";
 
-  // 🟢 Ekstraksi Bagian C & D
-  const riskLevelVal = note.riskLevel || officialRecord?.riskLevel || patientData?.riskLevel || patientData?.latestRiskLevel || "Sedang (Medium Risk)";
-  const riskReasonVal = note.riskReason || officialRecord?.problemSummary || patientData?.riskReason || "Pasien mengalami sindrom kecemasan tergeneralisasi (GAD) disertai episode depresi ringan-sedang dan gejala somatik.";
-  const recommendationVal = note.recommendation || note.rekomendasiPenanganan || officialRecord?.therapyApproach || "Psikoedukasi mekanisme stres, Diaphragmatic Breathing & PMR, Cognitive Restructuring (CBT).";
-  const focusNextSessionVal = note.focusNextSession || note.fokusSesiBerikutnya || "Evaluasi thought record dan pemantauan efektivitas latihan relaksasi somatik.";
-  const referralVal = note.referral || note.referralRekamMedis || "-";
+  const riskLevelVal =
+    note.riskLevel ||
+    officialRecord?.riskLevel ||
+    patientData?.riskLevel ||
+    patientData?.latestRiskLevel ||
+    "Sedang (Medium Risk)";
+
+  const riskReasonVal =
+    note.riskReason ||
+    note.alasanPenilaianRisiko ||
+    officialRecord?.riskReason ||
+    officialRecord?.problemSummary ||
+    patientData?.riskReason ||
+    "-";
+
+  const recommendationVal =
+    note.recommendation ||
+    note.rekomendasiPenanganan ||
+    officialRecord?.recommendation ||
+    officialRecord?.therapyApproach ||
+    patientData?.recommendation ||
+    "-";
+
+  const focusNextSessionVal =
+    note.focusNextSession ||
+    note.fokusSesiBerikutnya ||
+    officialRecord?.nextSessionRecommendation ||
+    officialRecord?.focusNextSession ||
+    patientData?.focusNextSession ||
+    "-";
+
+  const additionalNotesVal =
+    note.additionalNotes ||
+    note.catatanTambahan ||
+    officialRecord?.additionalNotes ||
+    patientData?.additionalNotes ||
+    "-";
+
+  const referralVal =
+    note.referral ||
+    note.referralRekamMedis ||
+    officialRecord?.referral ||
+    patientData?.referral ||
+    "-";
 
   const splitTextContent = (title: string, fullContent: string, baseId: string): ClinicalSectionItem[] => {
     if (!fullContent || fullContent.length <= 1100) {
@@ -330,7 +385,6 @@ export default function MedicalRecordPdfModal({
     }));
   };
 
-  // 🟢 SELURUH BAGIAN ASESMEN, RISIKO (C), DAN TINDAK LANJUT (D) LENGKAP
   const allClinicalSections: ClinicalSectionItem[] = [
     ...splitTextContent("1. KELUHAN UTAMA & KONDISI SUBJEKTIF (SUBJECTIVE) :", mainProblem, "sec-sub"),
     ...splitTextContent("2. OBSERVASI KLINIS & PEMERIKSAAN (OBJECTIVE) :", observation, "sec-obj"),
@@ -356,7 +410,7 @@ export default function MedicalRecordPdfModal({
       recommendation: recommendationVal,
       focusNextSession: focusNextSessionVal,
       referral: referralVal,
-      content: additionalNotes,
+      content: additionalNotesVal,
     },
   ];
 
@@ -366,7 +420,7 @@ export default function MedicalRecordPdfModal({
     const TOTAL_A4_INNER_HEIGHT = 1009;
     const FOOTER_HEIGHT = 35;
 
-    const hPage1Header = page1HeaderRef.current?.offsetHeight || 320;
+    const hPage1Header = page1HeaderRef.current?.offsetHeight || 330;
     const hPageNHeader = pageNHeaderRef.current?.offsetHeight || 45;
     const hSignature = signatureMeasureRef.current?.offsetHeight || 135;
 
@@ -439,7 +493,7 @@ export default function MedicalRecordPdfModal({
       runPaginationCalculation();
     }, 150);
     return () => clearTimeout(timer);
-  }, [isOpen, patient, note, fetchedPsychologist]);
+  }, [isOpen, patient, note, officialRecord, fetchedPsychologist]);
 
   if (!isOpen || !patient) return null;
 
@@ -494,7 +548,7 @@ export default function MedicalRecordPdfModal({
           <div className="pl-2 space-y-1 text-[9pt]">
             <p>
               <strong>Tingkat Risiko:</strong>{" "}
-              <span className="font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-300">
+              <span className="font-semibold text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-300">
                 {sec.riskLevel}
               </span>
             </p>
@@ -507,9 +561,10 @@ export default function MedicalRecordPdfModal({
     }
 
     if (sec.type === "followup_section") {
-      const isLanjutan = sec.followUpPlanValue === "CONTINUE_SESSION" || sec.followUpPlanValue === "Lanjutan Sesi";
-      const isRujukan = sec.followUpPlanValue === "REFER_TO_OTHER" || sec.followUpPlanValue === "Rujukan Profesional Lain";
-      const isSelesai = sec.followUpPlanValue === "COMPLETED" || sec.followUpPlanValue === "Selesai";
+      const planStr = String(sec.followUpPlanValue || "").toUpperCase();
+      const isLanjutan = planStr.includes("CONTINUE") || planStr.includes("LANJUTAN");
+      const isRujukan = planStr.includes("REFER") || planStr.includes("RUJUKAN");
+      const isSelesai = planStr.includes("COMPLETED") || planStr.includes("SELESAI");
 
       return (
         <div key={sec.id} className="mt-3 mb-2 space-y-1.5">
@@ -537,19 +592,19 @@ export default function MedicalRecordPdfModal({
               <p>• <strong>Referral Rekam Medis:</strong> {sec.referral}</p>
             </div>
 
-            {sec.recommendation && (
+            {sec.recommendation && sec.recommendation !== "-" && (
               <p className="text-justify leading-relaxed">
                 • <strong>Rekomendasi Penanganan:</strong> {sec.recommendation}
               </p>
             )}
 
-            {sec.focusNextSession && (
+            {sec.focusNextSession && sec.focusNextSession !== "-" && (
               <p className="text-justify leading-relaxed">
                 • <strong>Fokus Sesi Berikutnya:</strong> {sec.focusNextSession}
               </p>
             )}
 
-            {sec.content && sec.content !== "Tidak ada catatan tambahan" && (
+            {sec.content && sec.content !== "-" && sec.content !== "Tidak ada catatan tambahan" && (
               <p className="text-justify leading-relaxed">
                 • <strong>Catatan Tambahan:</strong> {sec.content}
               </p>
@@ -598,7 +653,11 @@ export default function MedicalRecordPdfModal({
               SIPPK / SIPP : {finalSipp} {finalStr !== "-" ? `• STR : ${finalStr}` : ""}
             </p>
             <p className="text-[7.5pt] text-slate-700 max-w-md leading-tight">
-              Perumahan D'Soeta Residence, Blk. D No.1, Babatan, Tegalgondo, Kec. Karang Ploso, Kab. Malang • ☎ 0813-1388-8830
+              Perumahan D'Soeta Residence, Blk. D No.1, Babatan, Tegalgondo, Kec. Karang Ploso, Kab. Malang
+            </p>
+            {/* 🟢 Nomor Telepon diletakkan di bawah alamat */}
+            <p className="text-[7.5pt] text-slate-700 leading-tight">
+              ☎ 0813-1388-8830
             </p>
           </div>
         </div>
@@ -712,6 +771,7 @@ export default function MedicalRecordPdfModal({
     </div>
   );
 
+  // 🟢 Area Tanda Tangan Rapi (Garis Bawah Presisi)
   const renderSignatureBlock = () => (
     <div
       ref={signatureMeasureRef}
@@ -719,7 +779,7 @@ export default function MedicalRecordPdfModal({
       style={{ fontFamily: '"Times New Roman", Times, serif' }}
     >
       <div className="flex justify-end">
-        <div className="text-center w-56">
+        <div className="text-center w-60">
           <p className="text-[9pt] text-black">
             Malang, {sessionDateFormatted}
           </p>
@@ -739,10 +799,10 @@ export default function MedicalRecordPdfModal({
             )}
           </div>
 
-          <p className="font-bold text-black text-[9.5pt] underline">
-            ( {finalPsychologistName} )
+          <p className="font-bold text-black text-[9.5pt]">
+            (&nbsp;<span className="underline">{finalPsychologistName}</span>&nbsp;)
           </p>
-          <p className="text-[8.5pt] text-black font-medium">
+          <p className="text-[8.5pt] text-black font-medium mt-0.5">
             SIPPK / SIPP : {finalSipp}
           </p>
           {finalStr !== "-" && (
