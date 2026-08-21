@@ -94,9 +94,10 @@ export default function MedicalRecordPdfModal({
     : [];
 
   const note = notesList[0] || {};
-  const patientData = patient as any;
+  const patientData = (patient as any) || {};
+  const intakeData = patientData?.intakeForm || patientData?.clientProfile || patientData?.userProfile || {};
 
-  // Resolusi Profil Psikolog
+  // 🟢 1. PROFIL PSIKOLOG & TANDA TANGAN
   const finalPsychologistName =
     psychologistName ||
     note.psychologistName ||
@@ -140,30 +141,87 @@ export default function MedicalRecordPdfModal({
     patientData?.signatureUrl
   );
 
-  // Standarisasi Digit Nomor RM (6 Digit)
+  // 🟢 2. NO REKAM MEDIS (6 Digit)
   const cleanRmSeed = String(patient?.id || "000001").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
   const rmDigits = cleanRmSeed.substring(0, 6).padEnd(6, "0").split("");
 
-  // Resolusi Data Demografis Pasien (Otomatis dari Booking Online & Input Offline)
-  const patientName = patient?.name || patientData?.fullName || "-";
-  const patientPhone = patientData?.phone || patientData?.phoneNumber || "-";
-  const patientGender = patientData?.gender || patientData?.jenisKelamin || "-";
-  const patientAddress = patientData?.address || patientData?.alamat || "Malang";
-  const patientEducation = patientData?.education || patientData?.pendidikan || "-";
-  const patientOccupation = patientData?.occupation || patientData?.pekerjaan || "-";
-  const patientMarital = patientData?.maritalStatus || patientData?.statusPernikahan || "-";
-  const patientReligion = patientData?.religion || patientData?.agama || "-";
-  const patientEthnicity = patientData?.ethnicity || patientData?.suku || "Jawa";
-  const patientAge = patientData?.age || (patientData?.birthDate ? new Date().getFullYear() - new Date(patientData.birthDate).getFullYear() : "-");
-  
-  const birthDateFormatted = patientData?.birthDate || patientData?.tanggalLahir
-    ? new Date(patientData.birthDate || patientData.tanggalLahir).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
-    : "-";
-  const patientTtl = patientData?.birthPlace ? `${patientData.birthPlace}, ${birthDateFormatted}` : birthDateFormatted;
+  // 🟢 3. PARSING DATA PASIEN SECARA LENGKAP & FLEKSIBEL (ONLINE & OFFLINE)
+  const patientName = patient?.name || patientData?.fullName || intakeData?.fullName || "-";
+  const patientPhone = patientData?.phone || patientData?.phoneNumber || intakeData?.phone || intakeData?.phoneNumber || "-";
 
-  const sessionDateFormatted = note.consultationDate || note.sessionDate || note.createdAt
-    ? new Date(note.consultationDate || note.sessionDate || note.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
-    : new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+  // Parsing Gender
+  const rawGender = String(patientData?.gender || patientData?.jenisKelamin || intakeData?.gender || "").toUpperCase();
+  const patientGender = rawGender.includes("FEMALE") || rawGender.includes("PEREMPUAN")
+    ? "Perempuan"
+    : rawGender.includes("MALE") || rawGender.includes("LAKI")
+    ? "Laki-laki"
+    : patientData?.gender || "-";
+
+  // Parsing Alamat
+  const patientAddress = patientData?.address || patientData?.alamat || intakeData?.address || intakeData?.alamat || "Malang";
+
+  // Parsing Pekerjaan
+  const patientOccupation = patientData?.occupation || patientData?.pekerjaan || intakeData?.occupation || intakeData?.pekerjaan || "-";
+
+  // Parsing Status Kawin
+  const rawMarital = patientData?.maritalStatus || patientData?.statusPernikahan || intakeData?.maritalStatus || intakeData?.statusPernikahan;
+  const patientMarital = rawMarital && rawMarital !== "-"
+    ? rawMarital === "SINGLE" || rawMarital === "LAJANG"
+      ? "Belum Menikah"
+      : rawMarital === "MARRIED" || rawMarital === "MENIKAH"
+      ? "Menikah"
+      : rawMarital
+    : "-";
+
+  // Parsing Pendidikan Terakhir
+  const rawEdu = patientData?.education || patientData?.pendidikan || intakeData?.education || intakeData?.riwayatPendidikan;
+  let patientEducation = "-";
+  if (typeof rawEdu === "string" && rawEdu.trim()) {
+    patientEducation = rawEdu;
+  } else if (Array.isArray(rawEdu) && rawEdu.length > 0) {
+    const highest = rawEdu[rawEdu.length - 1];
+    patientEducation = highest?.jenjang || highest?.sekolah || highest?.name || "Perguruan Tinggi";
+  } else if (patientOccupation.toLowerCase().includes("mahasiswa")) {
+    patientEducation = "Perguruan Tinggi";
+  }
+
+  // Parsing Tanggal Lahir, Usia, & Tempat Lahir (TTL)
+  const rawBirthDate = patientData?.birthDate || patientData?.tanggalLahir || intakeData?.birthDate || intakeData?.tanggalLahir;
+  const birthPlace = patientData?.birthPlace || patientData?.tempatLahir || intakeData?.birthPlace || intakeData?.tempatLahir || "";
+  
+  let formattedBirthDate = "-";
+  let calculatedAge: number | string = "-";
+
+  if (rawBirthDate) {
+    const d = new Date(rawBirthDate);
+    if (!Number.isNaN(d.getTime())) {
+      formattedBirthDate = new Intl.DateTimeFormat("id-ID", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }).format(d);
+
+      const diffMs = Date.now() - d.getTime();
+      const ageDt = new Date(diffMs);
+      calculatedAge = Math.abs(ageDt.getUTCFullYear() - 1970);
+    }
+  }
+
+  if (calculatedAge === "-" && (patientData?.age || intakeData?.age || patientData?.umur)) {
+    calculatedAge = patientData?.age || intakeData?.age || patientData?.umur;
+  }
+
+  const patientTtl = birthPlace && formattedBirthDate !== "-"
+    ? `${birthPlace}, ${formattedBirthDate}`
+    : formattedBirthDate !== "-"
+    ? formattedBirthDate
+    : "-";
+
+  // Tanggal Pemeriksaan
+  const rawExamDate = note.createdAt || note.consultationDate || note.sessionDate || officialRecord?.createdAt;
+  const sessionDateFormatted = rawExamDate
+    ? new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "long", year: "numeric" }).format(new Date(rawExamDate))
+    : new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "long", year: "numeric" }).format(new Date());
 
   const sessionNum = note.sessionNumber || 1;
   const followUpPlan = note?.followUpPlan || "CONTINUE_SESSION";
@@ -177,7 +235,7 @@ export default function MedicalRecordPdfModal({
   const plan = note.plan || "Belum ada rekomendasi terapi khusus";
   const additionalNotes = note.additionalNotes || "Tidak ada catatan tambahan";
 
-  // Helper pemisah teks panjang tanpa menulis ulang judul kelanjutan
+  // Helper pemisah teks panjang
   const splitTextContent = (title: string, fullContent: string, baseId: string): ClinicalSectionItem[] => {
     if (!fullContent || fullContent.length <= 1100) {
       return [{ id: baseId, sectionKey: baseId, baseTitle: title, title, type: "text", content: fullContent }];
@@ -226,23 +284,25 @@ export default function MedicalRecordPdfModal({
     ...splitTextContent("6. CATATAN TAMBAHAN :", additionalNotes, "sec-addnotes"),
   ];
 
+  // 🟢 4. KALKULASI TINGGI HALAMAN YANG LEBIH FLEKSIBEL & PADAT
   const runPaginationCalculation = () => {
     if (!measuringContainerRef.current) return;
 
     const TOTAL_A4_INNER_HEIGHT = 1009;
-    const FOOTER_HEIGHT = 40;
+    const FOOTER_HEIGHT = 35;
 
-    const hPage1Header = page1HeaderRef.current?.offsetHeight || 370;
-    const hPageNHeader = pageNHeaderRef.current?.offsetHeight || 50;
-    const hSignature = signatureMeasureRef.current?.offsetHeight || 150;
+    const hPage1Header = page1HeaderRef.current?.offsetHeight || 320;
+    const hPageNHeader = pageNHeaderRef.current?.offsetHeight || 45;
+    const hSignature = signatureMeasureRef.current?.offsetHeight || 135;
 
-    const hPage1MaxContent = TOTAL_A4_INNER_HEIGHT - hPage1Header - FOOTER_HEIGHT - 10;
-    const hPageNMaxContent = TOTAL_A4_INNER_HEIGHT - hPageNHeader - FOOTER_HEIGHT - 10;
+    // Tambah efisiensi ruang muat di halaman 1
+    const hPage1MaxContent = TOTAL_A4_INNER_HEIGHT - hPage1Header - FOOTER_HEIGHT;
+    const hPageNMaxContent = TOTAL_A4_INNER_HEIGHT - hPageNHeader - FOOTER_HEIGHT;
 
     const sectionHeights: { [id: string]: number } = {};
     allClinicalSections.forEach((sec) => {
       const el = sectionMeasureRefs.current[sec.id];
-      sectionHeights[sec.id] = el?.offsetHeight || 40;
+      sectionHeights[sec.id] = el?.offsetHeight || 35;
     });
 
     const rawPages: { pageIndex: number; sections: ClinicalSectionItem[]; includeSignature: boolean }[] = [];
@@ -254,7 +314,7 @@ export default function MedicalRecordPdfModal({
 
     for (let i = 0; i < allClinicalSections.length; i++) {
       const sec = allClinicalSections[i];
-      const secH = sectionHeights[sec.id] || 40;
+      const secH = sectionHeights[sec.id] || 35;
 
       if (currentHeight + secH <= maxContentHeight()) {
         currentSections.push(sec);
@@ -273,6 +333,7 @@ export default function MedicalRecordPdfModal({
       }
     }
 
+    // Jika tanda tangan muat di halaman saat ini
     if (currentHeight + hSignature <= maxContentHeight()) {
       rawPages.push({
         pageIndex: rawPages.length,
@@ -352,11 +413,11 @@ export default function MedicalRecordPdfModal({
   const renderSection = (sec: ClinicalSectionItem) => {
     if (sec.type === "checkboxes") {
       return (
-        <div key={sec.id} className="mb-2.5">
-          <span className="font-bold text-black text-[10pt] block mb-1">
+        <div key={sec.id} className="mb-2">
+          <span className="font-bold text-black text-[9.5pt] block mb-0.5">
             {sec.title}
           </span>
-          <div className="pl-4 flex items-center gap-6 text-black text-[9.5pt]">
+          <div className="pl-4 flex items-center gap-6 text-black text-[9pt]">
             <label className="flex items-center gap-1.5">
               <span>[{sec.followUpPlanValue === "CONTINUE_SESSION" ? " ✓ " : "   "}] Lanjutkan sesi</span>
             </label>
@@ -373,7 +434,7 @@ export default function MedicalRecordPdfModal({
 
     if (sec.type === "session_info") {
       return (
-        <div key={sec.id} className="pt-1 pb-1 my-1.5 border-t border-b border-slate-300 flex items-center justify-between text-black text-[9.5pt]">
+        <div key={sec.id} className="pt-1 pb-1 my-1 border-t border-b border-slate-300 flex items-center justify-between text-black text-[9pt]">
           <span>• <strong>Sesi Konsultasi ke:</strong> {sec.sessionNum}</span>
           <span>• <strong>Tanggal Sesi Lanjutan:</strong> {sec.nextSessionDate}</span>
         </div>
@@ -381,58 +442,57 @@ export default function MedicalRecordPdfModal({
     }
 
     return (
-      <div key={sec.id} className="mb-2.5">
+      <div key={sec.id} className="mb-2">
         {sec.title && (
-          <span className="font-bold text-black text-[10pt] block mb-1">
+          <span className="font-bold text-black text-[9.5pt] block mb-0.5">
             {sec.title}
           </span>
         )}
-        <p className="pl-4 text-black text-justify text-[9.5pt] leading-relaxed whitespace-pre-wrap break-words">
+        <p className="pl-4 text-black text-justify text-[9pt] leading-relaxed whitespace-pre-wrap break-words">
           {sec.content}
         </p>
       </div>
     );
   };
 
-  // 🟢 KOP SURAT STANDAR PRAKTIK PSIKOLOG KLINIS + IDENTITAS LENGKAP
   const renderPage1Header = () => (
     <div
       ref={page1HeaderRef}
-      className="space-y-2.5 mb-3 shrink-0"
+      className="space-y-2 mb-2.5 shrink-0"
       style={{ fontFamily: '"Times New Roman", Times, serif' }}
     >
-      {/* BARIS KOP: LOGO + INFO PSIKOLOG KLINIS + KOTAK DIGIT NO. RM */}
-      <div className="flex justify-between items-start pb-2 relative">
-        <div className="flex items-center gap-3.5">
+      {/* BARIS KOP */}
+      <div className="flex justify-between items-start pb-1 relative">
+        <div className="flex items-center gap-3">
           <img
             src="/assets/logo/logo.png"
             alt="Oase Jiwa Logo"
-            className="h-16 w-auto object-contain shrink-0"
+            className="h-14 w-auto object-contain shrink-0"
           />
           <div>
-            <h1 className="font-bold text-[13pt] text-black tracking-tight leading-tight uppercase">
+            <h1 className="font-bold text-[12.5pt] text-black tracking-tight leading-tight uppercase">
               PRAKTIK PSIKOLOG KLINIS
             </h1>
-            <p className="text-[11pt] font-bold text-black mt-0.5">
+            <p className="text-[10.5pt] font-bold text-black mt-0.5">
               {finalPsychologistName}
             </p>
-            <p className="text-[9pt] text-black">
+            <p className="text-[8.5pt] text-black">
               SIPPK / SIPP : {finalSipp} {finalStr !== "-" ? `• STR : ${finalStr}` : ""}
             </p>
-            <p className="text-[8.5pt] text-slate-700">
+            <p className="text-[8pt] text-slate-700">
               Biro Psikologi Oase Jiwa • Jl. Alang-Alang No. 27 Malang • ☎ 0857 9119 1511
             </p>
           </div>
         </div>
 
-        {/* Kotak Digit Resmi No. RM */}
-        <div className="shrink-0 flex items-center border border-black p-1 bg-white">
-          <span className="text-[9pt] font-bold text-black px-1.5 whitespace-nowrap">No. RM :</span>
+        {/* Kotak Digit No. RM */}
+        <div className="shrink-0 flex items-center border border-black p-0.5 bg-white">
+          <span className="text-[8.5pt] font-bold text-black px-1.5 whitespace-nowrap">No. RM :</span>
           <div className="flex border-l border-black">
             {rmDigits.map((char, i) => (
               <div
                 key={i}
-                className="w-5 h-5 border-r last:border-r-0 border-black flex items-center justify-center font-mono font-bold text-[10pt] text-black"
+                className="w-4 h-4 border-r last:border-r-0 border-black flex items-center justify-center font-mono font-bold text-[9pt] text-black"
               >
                 {char}
               </div>
@@ -441,73 +501,71 @@ export default function MedicalRecordPdfModal({
         </div>
       </div>
 
-      {/* Garis Ganda Pemisah Kop Surat */}
-      <div className="border-b-2 border-black border-t border-black h-[3px] my-1" />
+      {/* Garis Kop */}
+      <div className="border-b-2 border-black border-t border-black h-[2.5px] my-0.5" />
 
-      {/* JUDUL DOKUMEN */}
-      <div className="text-center pt-1 pb-1">
-        <h2 className="font-bold text-black uppercase tracking-widest text-[12pt]">
+      {/* JUDUL REKAM MEDIS */}
+      <div className="text-center pt-0.5 pb-0.5">
+        <h2 className="font-bold text-black uppercase tracking-widest text-[11.5pt]">
           REKAM MEDIS PSIKOLOGIS
         </h2>
       </div>
 
-     {/* BAGIAN A: IDENTITAS LENGKAP PASIEN (DUA KOLOM BERSIH TANPA AGAMA & SUKU) */}
-      <div className="space-y-1">
-        <h3 className="font-bold text-black text-[10pt]">A. DATA PASIEN</h3>
-        <div className="grid grid-cols-2 gap-x-8 text-[9pt] leading-relaxed border-b border-black pb-2">
-          {/* Kolom Kiri */}
+      {/* A. DATA PASIEN */}
+      <div className="space-y-0.5">
+        <h3 className="font-bold text-black text-[9.5pt]">A. DATA PASIEN</h3>
+        <div className="grid grid-cols-2 gap-x-6 text-[8.5pt] leading-snug border-b border-black pb-1.5">
           <div className="space-y-0.5">
             <div className="flex items-baseline">
-              <span className="w-24 shrink-0 text-slate-800">Nama</span>
+              <span className="w-20 shrink-0 text-slate-800">Nama</span>
               <span className="mr-1.5">:</span>
               <span className="font-bold text-black uppercase">{patientName}</span>
             </div>
             <div className="flex items-baseline">
-              <span className="w-24 shrink-0 text-slate-800">Alamat</span>
+              <span className="w-20 shrink-0 text-slate-800">Alamat</span>
               <span className="mr-1.5">:</span>
               <span className="text-black">{patientAddress}</span>
             </div>
             <div className="flex items-baseline">
-              <span className="w-24 shrink-0 text-slate-800">Pendidikan</span>
+              <span className="w-20 shrink-0 text-slate-800">Pendidikan</span>
               <span className="mr-1.5">:</span>
               <span className="text-black">{patientEducation}</span>
             </div>
             <div className="flex items-baseline">
-              <span className="w-24 shrink-0 text-slate-800">Jenis Kelamin</span>
+              <span className="w-20 shrink-0 text-slate-800">Jenis Kelamin</span>
               <span className="mr-1.5">:</span>
               <span className="text-black">{patientGender}</span>
             </div>
             <div className="flex items-baseline">
-              <span className="w-24 shrink-0 text-slate-800">TTL</span>
+              <span className="w-20 shrink-0 text-slate-800">TTL</span>
               <span className="mr-1.5">:</span>
               <span className="text-black">{patientTtl}</span>
             </div>
           </div>
 
-          {/* Kolom Kanan */}
           <div className="space-y-0.5">
             <div className="flex items-baseline">
-              <span className="w-28 shrink-0 text-slate-800">Usia</span>
+              <span className="w-24 shrink-0 text-slate-800">Usia</span>
               <span className="mr-1.5">:</span>
-              <span className="text-black">{patientAge} Tahun</span>
+              <span className="text-black">{calculatedAge} Tahun</span>
             </div>
             <div className="flex items-baseline">
-              <span className="w-28 shrink-0 text-slate-800">Status Kawin</span>
+              <span className="w-24 shrink-0 text-slate-800">Status Kawin</span>
               <span className="mr-1.5">:</span>
               <span className="text-black">{patientMarital}</span>
             </div>
             <div className="flex items-baseline">
-              <span className="w-28 shrink-0 text-slate-800">Pekerjaan</span>
+              <span className="w-24 shrink-0 text-slate-800">Pekerjaan</span>
               <span className="mr-1.5">:</span>
               <span className="text-black">{patientOccupation}</span>
             </div>
             <div className="flex items-baseline">
-              <span className="w-28 shrink-0 text-slate-800">No. HP</span>
+              <span className="w-24 shrink-0 text-slate-800">No. HP</span>
               <span className="mr-1.5">:</span>
               <span className="text-black font-medium">{patientPhone}</span>
             </div>
             <div className="flex items-baseline">
-              <span className="w-28 shrink-0 text-slate-800">Tgl Pemeriksaan</span>
+              <span className="w-24 shrink-0 text-slate-800">Tgl Pemeriksaan</span>
               <span className="mr-1.5">:</span>
               <span className="text-black font-medium">{sessionDateFormatted}</span>
             </div>
@@ -516,7 +574,7 @@ export default function MedicalRecordPdfModal({
       </div>
 
       <div className="pt-0.5">
-        <h3 className="font-bold text-black text-[10pt]">B. ASESMEN & CATATAN KLINIS</h3>
+        <h3 className="font-bold text-black text-[9.5pt]">B. ASESMEN & CATATAN KLINIS</h3>
       </div>
     </div>
   );
@@ -524,7 +582,7 @@ export default function MedicalRecordPdfModal({
   const renderSubsequentHeader = () => (
     <div
       ref={pageNHeaderRef}
-      className="mb-3 pb-1 border-b border-black flex justify-between items-center text-[8.5pt] text-slate-700 shrink-0"
+      className="mb-2 pb-1 border-b border-black flex justify-between items-center text-[8pt] text-slate-700 shrink-0"
       style={{ fontFamily: '"Times New Roman", Times, serif' }}
     >
       <span className="font-bold text-black uppercase">
@@ -536,41 +594,42 @@ export default function MedicalRecordPdfModal({
     </div>
   );
 
+  // 🟢 5. AREA TANDA TANGAN PROPORSIONAL & LEBIH RAMPING
   const renderSignatureBlock = () => (
     <div
       ref={signatureMeasureRef}
-      className="mt-4 pt-2 border-t border-slate-300 shrink-0"
+      className="mt-3 pt-1.5 border-t border-slate-300 shrink-0"
       style={{ fontFamily: '"Times New Roman", Times, serif' }}
     >
       <div className="flex justify-end">
-        <div className="text-center w-64">
-          <p className="text-[9.5pt] text-black">
+        <div className="text-center w-56">
+          <p className="text-[9pt] text-black">
             Malang, {sessionDateFormatted}
           </p>
-          <p className="font-bold text-black text-[10pt] mt-0.5">
+          <p className="font-bold text-black text-[9.5pt]">
             Psikolog Penanggung Jawab,
           </p>
 
-          <div className="h-20 flex items-center justify-center my-1">
+          <div className="h-16 flex items-center justify-center my-0.5">
             {activeSignatureUrl ? (
               <img
                 src={activeSignatureUrl}
                 alt="Tanda Tangan Psikolog"
-                className="max-h-20 max-w-[180px] object-contain"
+                className="max-h-16 max-w-[150px] object-contain"
               />
             ) : (
-              <div className="h-16 w-full" />
+              <div className="h-12 w-full" />
             )}
           </div>
 
-          <p className="font-bold text-black text-[10.5pt] underline">
+          <p className="font-bold text-black text-[9.5pt] underline">
             ( {finalPsychologistName} )
           </p>
-          <p className="text-[9pt] text-black font-medium mt-0.5">
+          <p className="text-[8.5pt] text-black font-medium">
             SIPPK / SIPP : {finalSipp}
           </p>
           {finalStr !== "-" && (
-            <p className="text-[8.5pt] text-slate-700">
+            <p className="text-[8pt] text-slate-700">
               STR : {finalStr}
             </p>
           )}
@@ -581,7 +640,7 @@ export default function MedicalRecordPdfModal({
 
   const renderFooter = (pageIndex: number, totalPages: number) => (
     <div
-      className="mt-auto pt-1.5 border-t border-slate-400 flex justify-between items-center text-[8.5pt] text-slate-600 shrink-0"
+      className="mt-auto pt-1 border-t border-slate-400 flex justify-between items-center text-[8pt] text-slate-600 shrink-0"
       style={{ fontFamily: '"Times New Roman", Times, serif' }}
     >
       <span>Dokumen Rahasia Medis • Biro Psikologi Oase Jiwa</span>
@@ -658,11 +717,11 @@ export default function MedicalRecordPdfModal({
           boxSizing: "border-box",
           fontFamily: '"Times New Roman", Times, serif',
         }}
-        className="text-[9.5pt] leading-relaxed"
+        className="text-[9pt] leading-relaxed"
       >
         {renderPage1Header()}
         {renderSubsequentHeader()}
-        <div className="space-y-1 text-[9.5pt]">
+        <div className="space-y-0.5 text-[9pt]">
           {allClinicalSections.map((sec) => (
             <div
               key={sec.id}
@@ -728,7 +787,7 @@ export default function MedicalRecordPdfModal({
             </div>
           </div>
 
-          {/* LEMBAR A4 MULTI-PAGE */}
+          {/* LEMBAR A4 */}
           <div className="space-y-6">
             {displayPages.map((pageData, pageIdx) => (
               <div
@@ -736,7 +795,7 @@ export default function MedicalRecordPdfModal({
                 ref={(el) => {
                   pageDomRefs.current[pageIdx] = el;
                 }}
-                className="pdf-page-sheet relative w-[210mm] min-h-[297mm] h-[297mm] mx-auto bg-white shadow-md border border-slate-300 text-[9.5pt] leading-relaxed flex flex-col justify-between box-border overflow-hidden"
+                className="pdf-page-sheet relative w-[210mm] min-h-[297mm] h-[297mm] mx-auto bg-white shadow-md border border-slate-300 text-[9pt] leading-relaxed flex flex-col justify-between box-border overflow-hidden"
                 style={{
                   width: "210mm",
                   height: "297mm",
@@ -745,12 +804,12 @@ export default function MedicalRecordPdfModal({
                   fontFamily: '"Times New Roman", Times, serif',
                 }}
               >
-                {/* Watermark Logo Oase Jiwa */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.04] select-none">
+                {/* Watermark Logo */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.035] select-none">
                   <img
                     src="/assets/logo/logo.png"
                     alt=""
-                    className="w-[420px] h-[420px] object-contain"
+                    className="w-[400px] h-[400px] object-contain"
                   />
                 </div>
 
@@ -758,7 +817,7 @@ export default function MedicalRecordPdfModal({
                   {pageIdx === 0 ? renderPage1Header() : renderSubsequentHeader()}
 
                   {pageData.sections.length > 0 && (
-                    <div className="space-y-1 text-[9.5pt] leading-relaxed break-words flex-1">
+                    <div className="space-y-0.5 text-[9pt] leading-relaxed break-words flex-1">
                       {pageData.sections.map((sec) => renderSection(sec))}
                     </div>
                   )}
