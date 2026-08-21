@@ -13,11 +13,12 @@ import {
   FileText,
   Activity,
   AlertTriangle,
-  ClipboardList,
   Clock,
   Award,
   FileDown,
   Eye,
+  Building,
+  Globe,
 } from "lucide-react";
 import { getPatientDetail } from "@/lib/api/psychologist";
 import type { PsychologistPatientDetail } from "@/lib/types/psychologist";
@@ -102,58 +103,94 @@ export default function PatientDetailModal({
 
   if (!isOpen) return null;
 
-  // Fallbacks for data presentation
-  const name = patient?.name || "-";
-  const age = patient?.age ? `${patient.age} Tahun` : "-";
+  const patientRaw = (patient as any) || {};
+
+  // Formatter Biodata
+  const name = patient?.name || patientRaw.fullName || "-";
+  const email = patient?.email || "-";
+  const phone = patient?.phone || patientRaw.phoneNumber || "-";
+  const address = patient?.address || patientRaw.alamat || "-";
+
+  // Penanda Pasien Online / Offline
+  const isOffline =
+    patientRaw.registrationType === "OFFLINE" ||
+    patientRaw.notes?.includes("offline") ||
+    patientRaw.notes?.includes("ditambahkan oleh psikolog");
+
+  // Gender
+  const rawGender = String(patient?.gender || patientRaw.jenisKelamin || "").toUpperCase();
   const gender =
-    patient?.gender === "FEMALE" || patient?.gender === "female"
+    rawGender.includes("FEMALE") || rawGender.includes("PEREMPUAN")
       ? "Perempuan"
-      : patient?.gender === "MALE" || patient?.gender === "male"
+      : rawGender.includes("MALE") || rawGender.includes("LAKI")
       ? "Laki-Laki"
       : "-";
 
-  const email = patient?.email || "-";
-  const phone = patient?.phone || "-";
-  const address = patient?.address || "-";
-  const birthday = patient?.birthday ? String(patient.birthday) : "-";
-  const maritalStatus = patient?.maritalStatus || "-";
-  const occupation = patient?.occupation || "-";
+  // Tanggal Lahir & Usia
+  const rawBirthday = patient?.birthday || patientRaw.birthDate || patientRaw.tanggalLahir;
+  let formattedBirthday = "-";
+  let calculatedAge = patient?.age;
+
+  if (rawBirthday) {
+    const d = new Date(rawBirthday);
+    if (!Number.isNaN(d.getTime())) {
+      formattedBirthday = new Intl.DateTimeFormat("id-ID", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }).format(d);
+
+      if (!calculatedAge) {
+        calculatedAge = new Date().getFullYear() - d.getFullYear();
+      }
+    }
+  }
+
+  const age = calculatedAge ? `${calculatedAge} Tahun` : "-";
+
+  // Status Kawin & Pekerjaan
+  const rawMarital = patient?.maritalStatus || patientRaw.statusPernikahan;
+  const maritalStatus =
+    rawMarital === "SINGLE" || rawMarital === "LAJANG"
+      ? "Belum Menikah"
+      : rawMarital === "MARRIED" || rawMarital === "MENIKAH"
+      ? "Menikah"
+      : rawMarital || "-";
+
+  const occupation = patient?.occupation || patientRaw.pekerjaan || "-";
 
   const rawRisk = patient?.riskLevel || patient?.latestRiskLevel;
   const riskLevel = rawRisk ? String(rawRisk).toLowerCase() : null;
+  const totalSessions = patient?.totalSessions || 1;
 
-  const totalSessions = patient?.totalSessions || 0;
-
-  // Clinical & Medical Data (NO hardcoded mock fallbacks)
-  const activeNote = (patient as any)?.sessionNotes?.[0] || {};
-  const diagnosis = (patient as any)?.diagnosis?.length
-    ? (patient as any).diagnosis
+  // Data Medis
+  const activeNote = patientRaw.sessionNotes?.[0] || {};
+  const diagnosis = patientRaw.diagnosis?.length
+    ? patientRaw.diagnosis
     : activeNote.diagnosis?.length
     ? activeNote.diagnosis
-    : ["Belum ada diagnosis."];
+    : ["Pemeriksaan Awal Klinis"];
 
-  const currentMedication = (patient as any)?.currentMedication?.length
-    ? (patient as any).currentMedication
+  const currentMedication = patientRaw.currentMedication?.length
+    ? patientRaw.currentMedication
     : activeNote.currentMedication?.length
     ? activeNote.currentMedication
     : ["Belum ada obat yang tercatat."];
 
-  const allergies = (patient as any)?.allergies?.length
-    ? (patient as any).allergies
+  const allergies = patientRaw.allergies?.length
+    ? patientRaw.allergies
     : activeNote.allergies?.length
     ? activeNote.allergies
     : ["Tidak ada alergi yang dicatat."];
 
-  // Real Test Results from backend (NO dummy fallbacks)
   const tesResults = patient?.tesResults || [];
 
-  // Session History (Primary source: patient.sessionHistory from bookings/sessions)
-  const sessionHistoryList = (patient as any)?.sessionHistory?.length
-    ? (patient as any).sessionHistory
-    : (patient as any)?.sessionNotesList?.length
-    ? (patient as any).sessionNotesList
-    : (patient as any)?.sessionNotes?.length
-    ? (patient as any).sessionNotes
+  const sessionHistoryList = patientRaw.sessionHistory?.length
+    ? patientRaw.sessionHistory
+    : patientRaw.sessionNotesList?.length
+    ? patientRaw.sessionNotesList
+    : patientRaw.sessionNotes?.length
+    ? patientRaw.sessionNotes
     : [];
 
   return (
@@ -172,8 +209,23 @@ export default function PatientDetailModal({
               {name.charAt(0)}
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-xl font-bold text-[#19355E]">{name}</h2>
+
+                {/* 🟢 BADGE PENANDA REGISTRASI */}
+                {isOffline ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-300">
+                    <Building className="w-3 h-3 text-amber-600" />
+                    <span>Pasien Offline (Klinik)</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-300">
+                    <Globe className="w-3 h-3 text-blue-600" />
+                    <span>Booking Online</span>
+                  </span>
+                )}
+
+                {/* RISK BADGE */}
                 {!riskLevel ? (
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase border bg-slate-100 text-slate-700 border-slate-200">
                     BELUM DINILAI
@@ -188,17 +240,7 @@ export default function PatientDetailModal({
                         : "bg-emerald-50 text-emerald-800 border-emerald-200"
                     }`}
                   >
-                    RISK: {
-                      riskLevel === "very_high" || riskLevel === "sangat_tinggi"
-                        ? "SANGAT TINGGI"
-                        : riskLevel === "high" || riskLevel === "tinggi"
-                        ? "TINGGI"
-                        : riskLevel === "medium" || riskLevel === "sedang"
-                        ? "SEDANG"
-                        : riskLevel === "very_low" || riskLevel === "sangat_rendah"
-                        ? "SANGAT RENDAH"
-                        : "RENDAH"
-                    }
+                    RISK: {riskLevel.toUpperCase()}
                   </span>
                 )}
               </div>
@@ -207,7 +249,6 @@ export default function PatientDetailModal({
               </p>
             </div>
           </div>
-
 
           <button
             onClick={onClose}
@@ -225,15 +266,13 @@ export default function PatientDetailModal({
           </div>
         ) : (
           <>
-            {/* NAVIGATION TABS */}
+            {/* TABS */}
             <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
               <button
                 type="button"
                 onClick={() => setActiveTab("profil")}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                  activeTab === "profil"
-                    ? "bg-[#19355E] text-white shadow-xs"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  activeTab === "profil" ? "bg-[#19355E] text-white shadow-xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
                 <User className="w-4 h-4" />
@@ -244,9 +283,7 @@ export default function PatientDetailModal({
                 type="button"
                 onClick={() => setActiveTab("medis")}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                  activeTab === "medis"
-                    ? "bg-[#19355E] text-white shadow-xs"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  activeTab === "medis" ? "bg-[#19355E] text-white shadow-xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
                 <Activity className="w-4 h-4" />
@@ -257,9 +294,7 @@ export default function PatientDetailModal({
                 type="button"
                 onClick={() => setActiveTab("tes")}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                  activeTab === "tes"
-                    ? "bg-[#19355E] text-white shadow-xs"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  activeTab === "tes" ? "bg-[#19355E] text-white shadow-xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
                 <Award className="w-4 h-4" />
@@ -270,9 +305,7 @@ export default function PatientDetailModal({
                 type="button"
                 onClick={() => setActiveTab("riwayat")}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                  activeTab === "riwayat"
-                    ? "bg-[#19355E] text-white shadow-xs"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  activeTab === "riwayat" ? "bg-[#19355E] text-white shadow-xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
                 <Clock className="w-4 h-4" />
@@ -280,7 +313,7 @@ export default function PatientDetailModal({
               </button>
             </div>
 
-            {/* TAB CONTENT: INFORMASI PROFIL */}
+            {/* TAB PROFIL */}
             {activeTab === "profil" && (
               <div className="space-y-4">
                 <h3 className="font-bold text-[#19355E] text-sm flex items-center gap-2">
@@ -318,7 +351,7 @@ export default function PatientDetailModal({
                       <Calendar className="w-4 h-4 text-amber-600" />
                       <span>Tanggal Lahir</span>
                     </div>
-                    <p className="text-slate-900 font-medium pl-6">{birthday}</p>
+                    <p className="text-slate-900 font-medium pl-6">{formattedBirthday}</p>
                   </div>
 
                   <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
@@ -340,7 +373,7 @@ export default function PatientDetailModal({
               </div>
             )}
 
-            {/* TAB CONTENT: INFORMASI MEDIS */}
+            {/* TAB MEDIS */}
             {activeTab === "medis" && (
               <div className="space-y-4">
                 <h3 className="font-bold text-[#19355E] text-sm flex items-center gap-2">
@@ -349,7 +382,6 @@ export default function PatientDetailModal({
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Diagnosis */}
                   <div className="p-4 rounded-xl border border-blue-200 bg-blue-50/50 space-y-2">
                     <div className="flex items-center gap-2 text-blue-900 font-bold text-xs">
                       <FileText className="w-4 h-4 text-blue-600" />
@@ -362,7 +394,6 @@ export default function PatientDetailModal({
                     </div>
                   </div>
 
-                  {/* Current Medication */}
                   <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/50 space-y-2">
                     <div className="flex items-center gap-2 text-emerald-900 font-bold text-xs">
                       <Activity className="w-4 h-4 text-emerald-600" />
@@ -375,7 +406,6 @@ export default function PatientDetailModal({
                     </div>
                   </div>
 
-                  {/* Allergies */}
                   <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/50 space-y-2 md:col-span-2">
                     <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
                       <AlertTriangle className="w-4 h-4 text-amber-600" />
@@ -391,7 +421,7 @@ export default function PatientDetailModal({
               </div>
             )}
 
-            {/* TAB CONTENT: HASIL TES PSIKOLOGI */}
+            {/* TAB TES PSIKOLOGI */}
             {activeTab === "tes" && (
               <div className="space-y-4">
                 <h3 className="font-bold text-[#19355E] text-sm flex items-center gap-2">
@@ -424,16 +454,15 @@ export default function PatientDetailModal({
                       };
 
                       return (
-                        <div
-                          key={tes.id || idx}
-                          className="p-4 rounded-xl border border-slate-200 bg-white shadow-xs space-y-3"
-                        >
+                        <div key={tes.id || idx} className="p-4 rounded-xl border border-slate-200 bg-white shadow-xs space-y-3">
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
                             <div>
                               <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full inline-block mb-1">
                                 {testName}
                               </span>
-                              <p className="text-[11px] text-slate-500">{tes.date || new Date(tes.createdAt || Date.now()).toLocaleDateString("id-ID")}</p>
+                              <p className="text-[11px] text-slate-500">
+                                {tes.date || new Date(tes.createdAt || Date.now()).toLocaleDateString("id-ID")}
+                              </p>
                             </div>
 
                             <div className="flex items-center gap-2">
@@ -502,7 +531,7 @@ export default function PatientDetailModal({
               </div>
             )}
 
-            {/* TAB CONTENT: RIWAYAT SESI KONSELING */}
+            {/* TAB RIWAYAT SESI */}
             {activeTab === "riwayat" && (
               <div className="space-y-4">
                 <h3 className="font-bold text-[#19355E] text-sm flex items-center gap-2">
@@ -520,10 +549,7 @@ export default function PatientDetailModal({
                       const sessionDate = sn.date || sn.createdAt;
                       const serviceName = sn.service || sn.namaLayanan || "Konseling";
                       return (
-                        <div
-                          key={sn.id || idx}
-                          className="p-4 rounded-xl border border-slate-200 bg-white space-y-2 text-xs"
-                        >
+                        <div key={sn.id || idx} className="p-4 rounded-xl border border-slate-200 bg-white space-y-2 text-xs">
                           <div className="flex justify-between items-center border-b border-slate-100 pb-2">
                             <div className="flex items-center gap-2">
                               <span className="font-bold text-[#19355E] text-xs">
@@ -547,21 +573,21 @@ export default function PatientDetailModal({
                           </div>
 
                           <div className="space-y-1 text-slate-700 leading-relaxed">
-                            {sn.subjective ? (
+                            {sn.subjective && (
                               <p>
                                 <strong className="text-slate-900">Subjective:</strong> {sn.subjective}
                               </p>
-                            ) : null}
-                            {sn.assessment ? (
+                            )}
+                            {sn.assessment && (
                               <p>
                                 <strong className="text-slate-900">Assessment:</strong> {sn.assessment}
                               </p>
-                            ) : null}
-                            {sn.plan ? (
+                            )}
+                            {sn.plan && (
                               <p>
                                 <strong className="text-slate-900">Plan:</strong> {sn.plan}
                               </p>
-                            ) : null}
+                            )}
                             {!sn.subjective && !sn.assessment && !sn.plan && (
                               <p className="text-slate-500 italic">
                                 Sesi konsultasi terjadwal. Catatan klinis belum ditambahkan.

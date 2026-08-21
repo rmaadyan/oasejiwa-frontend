@@ -471,7 +471,7 @@ export default function MedicalRecordPdfModal({
           />
           <div>
             <h1 className="font-bold text-[12.5pt] text-black tracking-tight leading-tight uppercase">
-              PRAKTIK PSIKOLOG KLINIS
+              BIRO PSIKOLOGI OASE JIWA
             </h1>
             <p className="text-[10.5pt] font-bold text-black mt-0.5">
               {finalPsychologistName}
@@ -480,7 +480,7 @@ export default function MedicalRecordPdfModal({
               SIPPK / SIPP : {finalSipp} {finalStr !== "-" ? `• STR : ${finalStr}` : ""}
             </p>
             <p className="text-[8pt] text-slate-700">
-              Biro Psikologi Oase Jiwa • Jl. Alang-Alang No. 27 Malang • ☎ 0857 9119 1511
+              Biro Psikologi Oase Jiwa • perumahan d'soeta residence, Blk. D No.1, Babatan, Tegalgondo, Kec. Karang Ploso, Kabupaten Malang, Jawa Timur 65152 • ☎ 0813-1388-8830
             </p>
           </div>
         </div>
