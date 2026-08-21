@@ -95,9 +95,11 @@ export default function MedicalRecordPdfModal({
 
   const note = notesList[0] || {};
   const patientData = (patient as any) || {};
-  const intakeData = patientData?.intakeForm || patientData?.clientProfile || patientData?.userProfile || {};
+  const cForm = patientData?.consultationForm || {};
+  const uProf = patientData?.userProfile || {};
+  const intakeData = patientData?.intakeForm || patientData?.clientProfile || {};
 
-  // 🟢 1. PROFIL PSIKOLOG & TANDA TANGAN
+  // 1. Profil Psikolog
   const finalPsychologistName =
     psychologistName ||
     note.psychologistName ||
@@ -141,42 +143,81 @@ export default function MedicalRecordPdfModal({
     patientData?.signatureUrl
   );
 
-  // 🟢 2. NO REKAM MEDIS (6 Digit)
+  // 2. Nomor RM
   const cleanRmSeed = String(patient?.id || "000001").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
   const rmDigits = cleanRmSeed.substring(0, 6).padEnd(6, "0").split("");
 
-  // 🟢 3. PARSING DATA PASIEN SECARA LENGKAP & FLEKSIBEL (ONLINE & OFFLINE)
-  const patientName = patient?.name || patientData?.fullName || intakeData?.fullName || "-";
-  const patientPhone = patientData?.phone || patientData?.phoneNumber || intakeData?.phone || intakeData?.phoneNumber || "-";
+  // 3. Biodata Pasien
+  const patientName =
+    patient?.name ||
+    cForm?.fullName ||
+    uProf?.fullName ||
+    intakeData?.fullName ||
+    patientData?.fullName ||
+    "-";
 
-  // Parsing Gender
-  const rawGender = String(patientData?.gender || patientData?.jenisKelamin || intakeData?.gender || "").toUpperCase();
-  const patientGender = rawGender.includes("FEMALE") || rawGender.includes("PEREMPUAN")
-    ? "Perempuan"
-    : rawGender.includes("MALE") || rawGender.includes("LAKI")
-    ? "Laki-laki"
-    : patientData?.gender || "-";
+  const patientPhone =
+    cForm?.phone ||
+    uProf?.phone ||
+    intakeData?.phone ||
+    patientData?.phone ||
+    patientData?.phoneNumber ||
+    "-";
 
-  // Parsing Alamat
-  const patientAddress = patientData?.address || patientData?.alamat || intakeData?.address || intakeData?.alamat || "Malang";
+  const rawGender = String(
+    cForm?.gender || uProf?.gender || intakeData?.gender || patientData?.gender || patientData?.jenisKelamin || ""
+  ).toUpperCase();
+  const patientGender =
+    rawGender.includes("FEMALE") || rawGender.includes("PEREMPUAN")
+      ? "Perempuan"
+      : rawGender.includes("MALE") || rawGender.includes("LAKI")
+      ? "Laki-laki"
+      : "-";
 
-  // Parsing Pekerjaan
-  const patientOccupation = patientData?.occupation || patientData?.pekerjaan || intakeData?.occupation || intakeData?.pekerjaan || "-";
+  const patientAddress =
+    cForm?.address ||
+    cForm?.originalAddress ||
+    uProf?.fullAddress ||
+    intakeData?.address ||
+    patientData?.address ||
+    patientData?.alamat ||
+    "Malang";
 
-  // Parsing Status Kawin
-  const rawMarital = patientData?.maritalStatus || patientData?.statusPernikahan || intakeData?.maritalStatus || intakeData?.statusPernikahan;
-  const patientMarital = rawMarital && rawMarital !== "-"
-    ? rawMarital === "SINGLE" || rawMarital === "LAJANG"
+  const patientOccupation =
+    cForm?.occupation ||
+    uProf?.occupation ||
+    intakeData?.occupation ||
+    patientData?.occupation ||
+    patientData?.pekerjaan ||
+    "-";
+
+  const rawMarital =
+    cForm?.maritalStatus ||
+    uProf?.maritalStatus ||
+    intakeData?.maritalStatus ||
+    patientData?.maritalStatus ||
+    patientData?.statusPernikahan;
+
+  const patientMarital =
+    rawMarital === "single" || rawMarital === "SINGLE" || rawMarital === "LAJANG"
       ? "Belum Menikah"
-      : rawMarital === "MARRIED" || rawMarital === "MENIKAH"
+      : rawMarital === "married" || rawMarital === "MARRIED" || rawMarital === "MENIKAH"
       ? "Menikah"
-      : rawMarital
-    : "-";
+      : rawMarital === "divorced" || rawMarital === "DIVORCED"
+      ? "Duda/Janda"
+      : rawMarital && rawMarital !== "-"
+      ? rawMarital
+      : "-";
 
-  // Parsing Pendidikan Terakhir
-  const rawEdu = patientData?.education || patientData?.pendidikan || intakeData?.education || intakeData?.riwayatPendidikan;
+  const rawEdu =
+    cForm?.educationHistory ||
+    uProf?.educationHistory ||
+    intakeData?.education ||
+    patientData?.education ||
+    patientData?.pendidikan;
+
   let patientEducation = "-";
-  if (typeof rawEdu === "string" && rawEdu.trim()) {
+  if (typeof rawEdu === "string" && rawEdu.trim() && rawEdu !== "-") {
     patientEducation = rawEdu;
   } else if (Array.isArray(rawEdu) && rawEdu.length > 0) {
     const highest = rawEdu[rawEdu.length - 1];
@@ -185,10 +226,15 @@ export default function MedicalRecordPdfModal({
     patientEducation = "Perguruan Tinggi";
   }
 
-  // Parsing Tanggal Lahir, Usia, & Tempat Lahir (TTL)
-  const rawBirthDate = patientData?.birthDate || patientData?.tanggalLahir || intakeData?.birthDate || intakeData?.tanggalLahir;
-  const birthPlace = patientData?.birthPlace || patientData?.tempatLahir || intakeData?.birthPlace || intakeData?.tempatLahir || "";
-  
+  // Tanggal Lahir & Usia
+  const rawBirthDate =
+    cForm?.birthDate ||
+    uProf?.birthday ||
+    intakeData?.birthDate ||
+    patientData?.birthday ||
+    patientData?.birthDate ||
+    patientData?.tanggalLahir;
+
   let formattedBirthDate = "-";
   let calculatedAge: number | string = "-";
 
@@ -207,15 +253,9 @@ export default function MedicalRecordPdfModal({
     }
   }
 
-  if (calculatedAge === "-" && (patientData?.age || intakeData?.age || patientData?.umur)) {
-    calculatedAge = patientData?.age || intakeData?.age || patientData?.umur;
+  if (calculatedAge === "-" && (patientData?.age || patientData?.umur)) {
+    calculatedAge = patientData?.age || patientData?.umur;
   }
-
-  const patientTtl = birthPlace && formattedBirthDate !== "-"
-    ? `${birthPlace}, ${formattedBirthDate}`
-    : formattedBirthDate !== "-"
-    ? formattedBirthDate
-    : "-";
 
   // Tanggal Pemeriksaan
   const rawExamDate = note.createdAt || note.consultationDate || note.sessionDate || officialRecord?.createdAt;
@@ -235,7 +275,6 @@ export default function MedicalRecordPdfModal({
   const plan = note.plan || "Belum ada rekomendasi terapi khusus";
   const additionalNotes = note.additionalNotes || "Tidak ada catatan tambahan";
 
-  // Helper pemisah teks panjang
   const splitTextContent = (title: string, fullContent: string, baseId: string): ClinicalSectionItem[] => {
     if (!fullContent || fullContent.length <= 1100) {
       return [{ id: baseId, sectionKey: baseId, baseTitle: title, title, type: "text", content: fullContent }];
@@ -284,7 +323,6 @@ export default function MedicalRecordPdfModal({
     ...splitTextContent("6. CATATAN TAMBAHAN :", additionalNotes, "sec-addnotes"),
   ];
 
-  // 🟢 4. KALKULASI TINGGI HALAMAN YANG LEBIH FLEKSIBEL & PADAT
   const runPaginationCalculation = () => {
     if (!measuringContainerRef.current) return;
 
@@ -295,7 +333,6 @@ export default function MedicalRecordPdfModal({
     const hPageNHeader = pageNHeaderRef.current?.offsetHeight || 45;
     const hSignature = signatureMeasureRef.current?.offsetHeight || 135;
 
-    // Tambah efisiensi ruang muat di halaman 1
     const hPage1MaxContent = TOTAL_A4_INNER_HEIGHT - hPage1Header - FOOTER_HEIGHT;
     const hPageNMaxContent = TOTAL_A4_INNER_HEIGHT - hPageNHeader - FOOTER_HEIGHT;
 
@@ -333,7 +370,6 @@ export default function MedicalRecordPdfModal({
       }
     }
 
-    // Jika tanda tangan muat di halaman saat ini
     if (currentHeight + hSignature <= maxContentHeight()) {
       rawPages.push({
         pageIndex: rawPages.length,
@@ -479,8 +515,8 @@ export default function MedicalRecordPdfModal({
             <p className="text-[8.5pt] text-black">
               SIPPK / SIPP : {finalSipp} {finalStr !== "-" ? `• STR : ${finalStr}` : ""}
             </p>
-            <p className="text-[8pt] text-slate-700">
-              Biro Psikologi Oase Jiwa • perumahan d'soeta residence, Blk. D No.1, Babatan, Tegalgondo, Kec. Karang Ploso, Kabupaten Malang, Jawa Timur 65152 • ☎ 0813-1388-8830
+            <p className="text-[7.5pt] text-slate-700 max-w-md leading-tight">
+              Perumahan D'Soeta Residence, Blk. D No.1, Babatan, Tegalgondo, Kec. Karang Ploso, Kab. Malang • ☎ 0813-1388-8830
             </p>
           </div>
         </div>
@@ -501,7 +537,7 @@ export default function MedicalRecordPdfModal({
         </div>
       </div>
 
-      {/* Garis Kop */}
+      {/* Garis Kop Ganda */}
       <div className="border-b-2 border-black border-t border-black h-[2.5px] my-0.5" />
 
       {/* JUDUL REKAM MEDIS */}
@@ -517,29 +553,30 @@ export default function MedicalRecordPdfModal({
         <div className="grid grid-cols-2 gap-x-6 text-[8.5pt] leading-snug border-b border-black pb-1.5">
           <div className="space-y-0.5">
             <div className="flex items-baseline">
-              <span className="w-20 shrink-0 text-slate-800">Nama</span>
+              <span className="w-24 shrink-0 text-slate-800">Nama</span>
               <span className="mr-1.5">:</span>
               <span className="font-bold text-black uppercase">{patientName}</span>
             </div>
             <div className="flex items-baseline">
-              <span className="w-20 shrink-0 text-slate-800">Alamat</span>
+              <span className="w-24 shrink-0 text-slate-800">Alamat</span>
               <span className="mr-1.5">:</span>
               <span className="text-black">{patientAddress}</span>
             </div>
             <div className="flex items-baseline">
-              <span className="w-20 shrink-0 text-slate-800">Pendidikan</span>
+              <span className="w-24 shrink-0 text-slate-800">Pendidikan</span>
               <span className="mr-1.5">:</span>
               <span className="text-black">{patientEducation}</span>
             </div>
             <div className="flex items-baseline">
-              <span className="w-20 shrink-0 text-slate-800">Jenis Kelamin</span>
+              <span className="w-24 shrink-0 text-slate-800">Jenis Kelamin</span>
               <span className="mr-1.5">:</span>
               <span className="text-black">{patientGender}</span>
             </div>
+            {/* 🟢 Diganti Tanggal Lahir */}
             <div className="flex items-baseline">
-              <span className="w-20 shrink-0 text-slate-800">TTL</span>
+              <span className="w-24 shrink-0 text-slate-800">Tanggal Lahir</span>
               <span className="mr-1.5">:</span>
-              <span className="text-black">{patientTtl}</span>
+              <span className="text-black">{formattedBirthDate}</span>
             </div>
           </div>
 
@@ -594,7 +631,6 @@ export default function MedicalRecordPdfModal({
     </div>
   );
 
-  // 🟢 5. AREA TANDA TANGAN PROPORSIONAL & LEBIH RAMPING
   const renderSignatureBlock = () => (
     <div
       ref={signatureMeasureRef}

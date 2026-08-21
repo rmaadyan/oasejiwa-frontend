@@ -29,16 +29,16 @@ export default function PatientsList({
 
   const filteredPatients = useMemo(() => {
     return safePatients.filter((patient: any) => {
-      // 1. Filter tipe pendaftaran
+      // 🟢 Deteksi Akurat: Pasien Offline jika terdaftar manual via klinik
       const isOffline =
         patient.registrationType === "OFFLINE" ||
-        patient.notes?.includes("offline") ||
-        patient.notes?.includes("ditambahkan oleh psikolog");
+        patient.email?.endsWith("@oasejiwa.com") ||
+        patient.notes?.toLowerCase().includes("offline") ||
+        patient.notes?.toLowerCase().includes("psikolog");
 
       if (filterType === "ONLINE" && isOffline) return false;
       if (filterType === "OFFLINE" && !isOffline) return false;
 
-      // 2. Filter kata kunci pencarian
       if (!searchTerm.trim()) return true;
       const term = searchTerm.toLowerCase();
       const name = (patient.name || patient.fullName || "").toLowerCase();

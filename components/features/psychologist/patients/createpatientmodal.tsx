@@ -29,6 +29,7 @@ export default function CreatePatientModal({
     birthday: "",
     maritalStatus: "",
     occupation: "",
+    education: "Perguruan Tinggi",
     emergencyContactName: "",
     emergencyContactPhone: "",
     emergencyContactRelation: "",
@@ -140,7 +141,6 @@ export default function CreatePatientModal({
         </div>
 
         <form noValidate onSubmit={handleSubmit} className="space-y-6 p-6">
-          {/* Top Error Summary Banner */}
           {errorCount > 0 && (
             <div className="rounded-xl border border-red-300 bg-red-50 p-4 text-xs">
               <div className="flex items-center gap-2 text-red-800 font-bold mb-2">
@@ -312,6 +312,25 @@ export default function CreatePatientModal({
                 />
               </div>
 
+              {/* 🟢 Input Pilihan Pendidikan */}
+              <div>
+                <label className="mb-1 block text-xs font-bold text-gray-700">Pendidikan Terakhir</label>
+                <select
+                  id="education"
+                  name="education"
+                  value={formData.education}
+                  onChange={(e) => setFormData({ ...formData, education: e.target.value })}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2B5379]"
+                >
+                  <option value="SD">SD</option>
+                  <option value="SMP">SMP</option>
+                  <option value="SMA">SMA / SMK</option>
+                  <option value="Diploma">Diploma (D3/D4)</option>
+                  <option value="Perguruan Tinggi">Sarjana (S1)</option>
+                  <option value="Magister">Magister (S2)</option>
+                </select>
+              </div>
+
               <div className="sm:col-span-2">
                 <label className="mb-1 block text-xs font-bold text-gray-700">
                   Alamat Lengkap <span className="text-red-500">*</span>
@@ -340,7 +359,7 @@ export default function CreatePatientModal({
             </div>
           </div>
 
-          {/* Section 2: Informasi Kontak Darurat */}
+          {/* Section 2: Kontak Darurat */}
           <div className="space-y-4 rounded-xl border border-gray-200 bg-gray-50/50 p-4">
             <h3 className="text-sm font-bold text-[#2B5379] uppercase tracking-wide flex items-center gap-2">
               <Phone className="h-4 w-4 text-[#2B5379]" /> Kontak Darurat Pasien
@@ -382,7 +401,7 @@ export default function CreatePatientModal({
             </div>
           </div>
 
-          {/* Section 3: Informasi Profil Rekam Medis */}
+          {/* Section 3: Profil Medis */}
           <div className="space-y-4 rounded-xl border border-[#2B5379]/20 bg-blue-50/40 p-4">
             <h3 className="text-sm font-bold text-[#2B5379] uppercase tracking-wide flex items-center gap-2">
               <ShieldAlert className="h-4 w-4 text-[#2B5379]" /> Profil Medis Pasien
@@ -429,7 +448,7 @@ export default function CreatePatientModal({
             </div>
           </div>
 
-          {/* Section 4: Assessment Tingkat Risiko */}
+          {/* Section 4: Assessment Risiko */}
           <div className="space-y-4 rounded-xl border border-amber-300/80 bg-amber-50/40 p-4">
             <div className="flex items-center gap-2 border-b border-amber-200 pb-2">
               <AlertTriangle className="h-4 w-4 text-amber-600" />
@@ -490,7 +509,7 @@ export default function CreatePatientModal({
             </div>
           </div>
 
-          {/* Footer Buttons */}
+          {/* Footer */}
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
             <button
               type="button"
