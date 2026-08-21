@@ -27,7 +27,7 @@ export default function PatientsList({
 
   const safePatients = useMemo(() => (Array.isArray(patients) ? patients : []), [patients]);
 
-  // 🟢 Filter Real-time Murni & Tahan Crash
+  // 🟢 Filter Real-time Murni & Tahan Crash (Dengan Type Explicit)
   const isPatientOffline = (patient: any) => {
     if (!patient) return false;
 
@@ -38,13 +38,13 @@ export default function PatientsList({
     const emailStr = String(patient.email || "").toLowerCase();
     if (emailStr.endsWith("@oasejiwa.com")) return true;
 
-    // 3. Cek notes di level pasien secara aman (String/Array/Object)
+    // 3. Cek notes di level pasien secara aman
     let notesText = "";
     if (typeof patient.notes === "string") {
       notesText = patient.notes.toLowerCase();
     } else if (Array.isArray(patient.notes)) {
-      notesText = patient.notes
-        .map((n) => (typeof n === "string" ? n : n?.notes || n?.assessment || n?.subjective || ""))
+      notesText = (patient.notes as any[])
+        .map((n: any) => (typeof n === "string" ? n : n?.notes || n?.assessment || n?.subjective || ""))
         .join(" ")
         .toLowerCase();
     } else if (patient.notes && typeof patient.notes === "object") {
@@ -62,7 +62,7 @@ export default function PatientsList({
         if (typeof s.notes === "string") {
           sNotes = s.notes.toLowerCase();
         } else if (Array.isArray(s.notes)) {
-          sNotes = s.notes
+          sNotes = (s.notes as any[])
             .map((sn: any) => (typeof sn === "string" ? sn : sn?.notes || ""))
             .join(" ")
             .toLowerCase();
@@ -76,6 +76,7 @@ export default function PatientsList({
 
     return false;
   };
+    
 
   const filteredPatients = useMemo(() => {
     return safePatients.filter((patient: any) => {
