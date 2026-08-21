@@ -79,7 +79,7 @@ export default function UsersPage() {
     try {
       const response = await getUsers({
         page: currentPage,
-        perPage,
+        perPage: perPage,
         sort: sortBy,
         search: searchQuery,
       });
@@ -93,7 +93,7 @@ export default function UsersPage() {
         totalUsers: response.meta?.totalUsers ?? response.total ?? fetchedList.length,
         totalPatients: response.meta?.totalPatients ?? fetchedList.filter((u: any) => ["PATIENT", "PASIEN", "USER", "user"].includes(String(u.role).toUpperCase())).length,
         totalPsychologists: response.meta?.totalPsychologists ?? fetchedList.filter((u: any) => ["PSYCHOLOGIST", "PSIKOLOG"].includes(String(u.role).toUpperCase())).length,
-        totalAdmins: response.meta?.totalAdmins ?? fetchedList.filter((u: any) => ["ADMIN"].includes(String(u.role).toUpperCase())).length,
+        totalAdmins: response.meta?.totalAdmins ?? 0,
       });
     } catch (error) {
       console.error("Failed to fetch users:", error);
@@ -117,7 +117,7 @@ export default function UsersPage() {
     setSelectedUser(null);
   };
 
-  // Filter Data Berdasarkan Tab yang Aktif
+  // Filter Tab
   const filteredUsers = users.filter((u) => {
     const roleUpper = String(u.role || "").toUpperCase();
     if (activeRoleTab === "PATIENT") {
@@ -129,10 +129,29 @@ export default function UsersPage() {
     return true;
   });
 
-  // Export CSV
+  // 🟢 Export Seluruh Data User
   const handleExport = async () => {
     try {
-      const targetUsers = filteredUsers;
+      setLoading(true);
+      const allResponse = await getUsers({
+        page: 1,
+        perPage: 5000,
+        sort: sortBy,
+        search: searchQuery,
+      });
+
+      const allUsersList = allResponse.users || [];
+
+      const targetUsers = allUsersList.filter((u: any) => {
+        const roleUpper = String(u.role || "").toUpperCase();
+        if (activeRoleTab === "PATIENT") {
+          return roleUpper === "PATIENT" || roleUpper === "PASIEN" || roleUpper === "USER";
+        }
+        if (activeRoleTab === "PSYCHOLOGIST") {
+          return roleUpper === "PSYCHOLOGIST" || roleUpper === "PSIKOLOG";
+        }
+        return true;
+      });
 
       if (targetUsers.length === 0) {
         alert("Tidak ada data user yang dapat di-export pada tab ini.");
@@ -183,6 +202,8 @@ export default function UsersPage() {
     } catch (error) {
       console.error("Failed to export users:", error);
       alert("Gagal export data user.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -191,7 +212,6 @@ export default function UsersPage() {
     setIsModalOpen(true);
   };
 
-  // 🟢 FIX FETCH DETAIL USER TANPA LOCALHOST:5000 & DENGAN TOKEN AUTH
   const openDetailsModal = async (user: User) => {
     setSelectedUser(user);
     setIsDetailsModalOpen(true);
@@ -217,42 +237,30 @@ export default function UsersPage() {
   return (
     <div className="space-y-6 font-poppins">
       <div>
-        <h1 className="text-3xl font-bold text-[#2B5379]">
-          Manajemen User
-        </h1>
-        <p className="mt-1 text-gray-600">
-          Lihat rincian user dan ubah role pengguna
-        </p>
+        <h1 className="text-3xl font-bold text-[#2B5379]">Manajemen User</h1>
+        <p className="mt-1 text-gray-600">Lihat rincian user dan ubah role pengguna</p>
       </div>
 
       {/* Cards Statistik */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <div className="rounded-xl border border-gray-200 bg-white p-6">
           <p className="text-sm font-medium text-gray-600">Total User</p>
-          <p className="mt-2 text-3xl font-bold text-[#2B5379]">
-            {userStats.totalUsers}
-          </p>
+          <p className="mt-2 text-3xl font-bold text-[#2B5379]">{userStats.totalUsers}</p>
         </div>
 
         <div className="rounded-xl border border-gray-200 bg-white p-6">
           <p className="text-sm font-medium text-gray-600">Pasien</p>
-          <p className="mt-2 text-3xl font-bold text-green-600">
-            {userStats.totalPatients}
-          </p>
+          <p className="mt-2 text-3xl font-bold text-green-600">{userStats.totalPatients}</p>
         </div>
 
         <div className="rounded-xl border border-gray-200 bg-white p-6">
           <p className="text-sm font-medium text-gray-600">Psikolog</p>
-          <p className="mt-2 text-3xl font-bold text-purple-600">
-            {userStats.totalPsychologists}
-          </p>
+          <p className="mt-2 text-3xl font-bold text-purple-600">{userStats.totalPsychologists}</p>
         </div>
 
         <div className="rounded-xl border border-gray-200 bg-white p-6">
           <p className="text-sm font-medium text-gray-600">Halaman Ini</p>
-          <p className="mt-2 text-3xl font-bold text-blue-600">
-            {filteredUsers.length}
-          </p>
+          <p className="mt-2 text-3xl font-bold text-blue-600">{filteredUsers.length}</p>
         </div>
       </div>
 
@@ -267,7 +275,7 @@ export default function UsersPage() {
               : "border-transparent text-gray-400 hover:text-gray-600"
           }`}
         >
-          Semua User ({users.length})
+          Semua User ({userStats.totalUsers})
         </button>
 
         <button
@@ -303,7 +311,7 @@ export default function UsersPage() {
         perPage={perPage}
         onPerPageChange={setPerPage}
         onExport={handleExport}
-        totalUsers={filteredUsers.length}
+        totalUsers={totalUsers}
       />
 
       <UserTable
